@@ -37,7 +37,7 @@ test("bare app entries open Discover for both signed-in and signed-out visitors"
 });
 test("My Skills has an explicit URL and all views survive reload and history navigation", () => {
   assert.equal(navigationSearch(initialNavigation), "?view=all");
-  for (const view of ["all", "favorites", "sets", "set", "agents", "profile", "devices", "github", "mcp", "discover", "top", "creators", "collections", "creator", "collection"] as const) {
+  for (const view of ["all", "favorites", "sets", "set", "agents", "profile", "devices", "github", "safety", "mcp", "discover", "top", "creators", "collections", "creator", "collection"] as const) {
     const nav = { ...initialNavigation, view, id: ["set", "creator", "collection"].includes(view) ? "test-id" : "" };
     assert.deepEqual(entryNavigation("/app/", navigationSearch(nav), "/app/"), nav);
   }

@@ -3370,3 +3370,47 @@ main:has(> .ua-az-anchor) .ua-content {
   .ua-add-sheet { height: 92dvh; }
   .ua-add-sheet-bar { padding: 12px; gap: 8px; }
 }
+.ua-safety-summary {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--ua-chip);
+}
+.ua-safety-summary > svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: var(--ua-muted);
+}
+.ua-safety-summary strong {
+  font-size: 16px;
+}
+.ua-safety-summary p {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+.ua-safety-group h2 small {
+  margin-left: 4px;
+  color: var(--ua-muted);
+  font-size: 16px;
+  font-weight: 400;
+}
+.ua-safety-group p {
+  margin: 4px 0 8px;
+  font-size: 13px;
+}
+.ua-safety-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ua-safety-group li {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--ua-line);
+}

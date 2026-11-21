@@ -18,7 +18,7 @@ test("private navigation is cleared on logout, public selection survives", () =>
   assert.equal(accountNavigation({ ...publicNav, selected: "synced:private" }, false).selected, "");
 });
 test("connected account destinations retain their route but clear unrelated private IDs", () => {
-  for (const view of ["devices", "github", "mcp"] as const) {
+  for (const view of ["devices", "github", "safety", "mcp"] as const) {
     assert.deepEqual(accountNavigation({ ...initialNavigation, view, id: "private-id" }, true), { ...initialNavigation, view });
     assert.equal(accountNavigation({ ...initialNavigation, view }, false).view, "discover");
   }

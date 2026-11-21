@@ -151,7 +151,7 @@ import { CloudStatusBadge, CloudStatusSection, type CloudInfo } from "./CloudSta
 import { looksLikeGithubLink, type MySkillAdditions } from "../my-skills-additions";
 import { AddSkillForm } from "./AddSkillDialog";
 import { PortalApiError } from "../../api-error";
-import { cleanScan, cloudSkillRows, scanCopyKeys, needsAttention, setsNote, skillCloudRow, statusText } from "../../cloud-save/cloud-save";
+import { cleanScan, cloudSkillRows, safetyGroups, safetyStatus, scanCopyKeys, type SafetyGroup, needsAttention, setsNote, skillCloudRow, statusText } from "../../cloud-save/cloud-save";
 
 // Official Lucide artwork (ISC): https://lucide.dev/icons/package-question-mark (not in our installed version yet).
 const PackageQuestionMark = createLucideIcon("PackageQuestionMark", [
@@ -270,6 +270,55 @@ function ScanTip({ scannedAt, yourCopy }: { scannedAt: string; yourCopy: boolean
       <ShieldCheck aria-hidden="true" />
       <span className="ua-scan-tip-text" aria-hidden="true">{label}</span>
     </button>
+  );
+}
+/**
+ * Safety scan: how many of your skills the background scan found nothing in, then every other
+ * skill by what stopped it, so nothing is hidden. Advisory only; it never says a skill is safe.
+ */
+function SafetyScan({ skills, status, ready, available, open }: {
+  skills: SkillDisplay[];
+  /** Your saved copies loaded; without them there's nothing to report. */
+  available: boolean;
+  status: (skill: SkillDisplay) => { group: SafetyGroup; note?: string; scannedAt?: string };
+  ready: boolean;
+  open: (skill: SkillDisplay) => void;
+}) {
+  if (!ready) return <div className="ua-account-page"><p className="ua-muted">Loading scan results…</p></div>;
+  if (!available) return <Empty title="Scan results aren't available right now">They come from your synced skills. Try again in a moment.</Empty>;
+  const results = skills.map(skill => ({ skill, ...status(skill) }));
+  const clean = results.filter(result => result.group === "clean");
+  const latest = clean.reduce((newest, result) => (result.scannedAt ?? "") > newest ? result.scannedAt! : newest, "");
+  return (
+    <div className="ua-account-page ua-safety">
+      <div className="ua-safety-summary">
+        <ShieldCheck aria-hidden="true" />
+        <div>
+          <strong>{clean.length} of {skills.length} skills scanned, nothing found</strong>
+          <p className="ua-muted">No leaked keys, hidden instructions or download-and-run commands found by our checks
+            {latest ? ` · last scan ${new Date(latest).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : ""}.
+            A clean scan doesn't mean a skill is safe.</p>
+        </div>
+      </div>
+      {safetyGroups.map(({ group, title, help }) => {
+        const items = results.filter(result => result.group === group);
+        if (!items.length) return null;
+        return (
+          <section key={group} className="ua-safety-group">
+            <h2>{title} <small>{items.length}</small></h2>
+            <p className="ua-muted">{help}</p>
+            <ul>
+              {items.map(({ skill, note }) => (
+                <li key={skill.key}>
+                  <button type="button" className="ua-link" onClick={() => open(skill)}>{skill.name}</button>
+                  {note && <small className="ua-muted">{note}</small>}
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
+    </div>
   );
 }
 function CollectionCover({ src }: { src: string }) {
@@ -1124,6 +1173,9 @@ export function UnifiedApp({
       {supportsView("cloud") && accountPages && <MenuItem icon={Cloud} onSelect={() => goFromAccount("cloud")}>
         Sync
       </MenuItem>}
+      {supportsView("safety") && cloud && signedIn && <MenuItem icon={ShieldCheck} onSelect={() => goFromAccount("safety")}>
+        Safety scan
+      </MenuItem>}
       {supportsView("mcp") && <MenuItem icon={Server} onSelect={() => goFromAccount("mcp")}>
         MCP server
       </MenuItem>}
@@ -1500,6 +1552,7 @@ export function UnifiedApp({
     profile: "profile",
     github: "GitHub sources",
     cloud: "Sync",
+    safety: "Safety scan",
     mcp: "MCP server",
   };
   const title = nav.query
@@ -2045,6 +2098,10 @@ export function UnifiedApp({
                     </Empty>
                   )}
                 </div>
+              ) : nav.view === "safety" ? (
+                <SafetyScan skills={allMine} status={skill => safetyStatus(cloudRows,
+                  skill.cloudKey ? [skill.cloudKey] : scanCopyKeys(skill.installed?.sourceSkills ?? []))}
+                  ready={myCountReady} available={!!cloud} open={skill => navigate(openSkillNavigation({ ...nav, view: "all", id: "", query: "" }, skill))} />
               ) : ["agents", "devices", "profile", "github", "cloud", "mcp"].includes(
                   nav.view,
                 ) ? (
