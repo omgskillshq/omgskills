@@ -390,3 +390,33 @@ test("a skill that ran out of tries by timing out gets one more try every 6 hour
     assert.deepEqual((await pool.query("SELECT last_error FROM scan_jobs")).rows, [{ last_error: "scanner_failed" }], "the rejected one stays");
   });
 });
+
+test("an extra try waits behind new saves, and a run that dies holding it doesn't retry it every run", async () => {
+  await withMigratedSchema(async (pool) => {
+    const store = new MemoryStore();
+    await saveSkill(pool, store, await createUser(pool), "big", risky);
+    await pool.query("UPDATE scan_jobs SET attempts = $1, last_error = 'unreachable', not_before = now() - interval '7 hours'", [MAX_ATTEMPTS]);
+    await saveSkill(pool, store, await createUser(pool), "fresh", [{ ...risky[0], text: `${risky[0].text}Fresh.\n` }]);
+    const trees = new Map((await pool.query("SELECT tree_sha, attempts FROM scan_jobs")).rows.map((row) => [row.tree_sha, row.attempts]));
+    const order: number[] = [];
+    const base = scanner(store).fetchImpl;
+    const watching: typeof fetch = async (input, init) => {
+      if (String(input instanceof Request ? input.url : input).endsWith("/scan") && init?.body) {
+        const text = typeof init.body === "string" ? init.body : new TextDecoder().decode(init.body as Uint8Array);
+        order.push(trees.get(JSON.parse(text).treeSha));
+      }
+      return base(input, init);
+    };
+    assert.equal((await runScanQueue(pool, deps(watching))).scanned, 2);
+    assert.deepEqual(order, [0, MAX_ATTEMPTS], "the new save is scanned before the extra try");
+
+    // A run that stops while holding an extra try (here: the keys stop matching) doesn't get it
+    // again on the next run: the extra try's 6-hour wait started when it was taken.
+    await saveSkill(pool, store, await createUser(pool), "big-again", [{ ...risky[0], text: `${risky[0].text}Again.\n` }]);
+    await pool.query("UPDATE scan_jobs SET attempts = $1, last_error = 'unreachable', not_before = now() - interval '7 hours'", [MAX_ATTEMPTS]);
+    assert.equal((await runScanQueue(pool, deps(scanner(store, { scanStatus: 401 }).fetchImpl))).stoppedBy, "unauthorized");
+    const { calls: scanCalls, fetchImpl } = scanner(store);
+    await runScanQueue(pool, deps(fetchImpl));
+    assert.deepEqual(scanCalls, ["/scanners"], "not retried straight away");
+  });
+});

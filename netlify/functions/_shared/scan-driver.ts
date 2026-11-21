@@ -196,13 +196,16 @@ async function leaseJobs(pool: Pool, scanners: ScannerInfo[], limit: number, ski
           -- ${REVIVE_AFTER} rather than never, so it doesn't stay unscanned for good.
           AND (attempts < $3 OR (last_error = 'unreachable' AND not_before <= now() - interval '${REVIVE_AFTER}'))
           AND NOT (release_id = ANY($6::uuid[]))
-        -- One that timed out goes first, while the run still has time for its longer try.
-        ORDER BY (last_error = 'unreachable') IS TRUE DESC, queued_at DESC
+        -- An extra try for one out of tries waits behind everything else. Otherwise one that timed
+        -- out goes first, while the run still has time for its longer try.
+        ORDER BY attempts >= $3, (last_error = 'unreachable') IS TRUE DESC, queued_at DESC
         LIMIT $2
         FOR UPDATE SKIP LOCKED
       ), leased AS (
         UPDATE scan_jobs job
-        SET lease_token = $1, lease_until = now() + interval '${LEASE}', attempts = job.attempts + 1
+        SET lease_token = $1, lease_until = now() + interval '${LEASE}', attempts = job.attempts + 1,
+          -- An extra try starts its 6-hour wait now, so a run that dies holding it can't retry it every run.
+          not_before = CASE WHEN job.attempts >= $3 THEN now() ELSE job.not_before END
         FROM due WHERE job.release_id = due.release_id
         RETURNING job.release_id, job.tree_sha, job.attempts, job.lease_token, job.last_error, job.queued_at
       )
@@ -220,7 +223,7 @@ async function leaseJobs(pool: Pool, scanners: ScannerInfo[], limit: number, ski
       FROM leased
       JOIN skill_releases release ON release.id = leased.release_id
       JOIN skill_sources source ON source.id = release.source_id
-      ORDER BY (leased.last_error = 'unreachable') IS TRUE DESC, leased.queued_at DESC
+      ORDER BY leased.attempts > $3, (leased.last_error = 'unreachable') IS TRUE DESC, leased.queued_at DESC
     `,
     [leaseToken, limit, MAX_ATTEMPTS, scanners.map((s) => s.scanner), scanners.map((s) => s.version), skip]
   );
