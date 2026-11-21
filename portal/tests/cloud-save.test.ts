@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { PortalApiError } from "../src/api-error";
-import { cleanScan, cloudSkillKey, cloudSkillRows, deleteCloudSaved, loadSavedSkillMd, formatBytes, isDeletingAllCloudSkills, isDeletingCloudSkill, loadCloudSave, type CloudSaveState } from "../src/cloud-save/cloud-save";
+import { cleanScan, scanCopyKeys, cloudSkillKey, cloudSkillRows, deleteCloudSaved, loadSavedSkillMd, formatBytes, isDeletingAllCloudSkills, isDeletingCloudSkill, loadCloudSave, type CloudSaveState } from "../src/cloud-save/cloud-save";
 import type { SyncedSkill } from "../src/synced-skill-grouping";
 import { savedSkillKeys } from "../src/app/unified/SkillReadme";
 import { notInstalledSkills } from "../src/app/unified/model";
@@ -323,4 +323,16 @@ test("the shield needs every copy saved as it is now and scanned clean", () => {
   assert.equal(cleanScan(rows, ["a", "waiting"]), null, "one copy not saved yet");
   assert.equal(cleanScan(rows, ["left-out"]), null, "left out of saving");
   assert.equal(cleanScan(rows, []), null);
+});
+
+test("the scan badge counts every current copy, with or without a library ID", () => {
+  const copies = [
+    { name: "ai-seo", catalogSkillId: null, cloudKey: "ai-seo", isCurrent: true },
+    { name: "ai-seo", catalogSkillId: "owner/repo:skills/ai-seo", cloudKey: "ai-seo", isCurrent: true },
+    { name: "ai-seo", catalogSkillId: "other/repo:ai-seo", cloudKey: "ai-seo-2", isCurrent: true },
+    { name: "ai-seo", catalogSkillId: null, cloudKey: "old", isCurrent: false },
+    { name: "Mine", installationFolder: "Mine-Folder" },
+  ];
+  assert.deepEqual(scanCopyKeys(copies), ["ai-seo", "ai-seo-2", "mine-folder"]);
+  assert.deepEqual(scanCopyKeys([]), []);
 });
