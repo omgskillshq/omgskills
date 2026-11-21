@@ -3414,3 +3414,36 @@ main:has(> .ua-az-anchor) .ua-content {
   padding: 8px 0;
   border-bottom: 1px solid var(--ua-line);
 }
+.ua-safety-group-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.ua-safety-group .ua-pill svg {
+  width: 14px;
+  height: 14px;
+}
+.ua-safety-flagged > li {
+  display: block;
+  padding: 12px 0;
+}
+.ua-safety-flagged-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+.ua-safety-group .ua-safety-findings {
+  margin-top: 6px;
+}
+.ua-safety-group .ua-safety-findings li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0 0;
+  border-bottom: 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}

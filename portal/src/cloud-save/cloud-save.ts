@@ -5,7 +5,9 @@ import type { SyncedSkill } from "../synced-skill-grouping";
 export type CloudFinding = { rule: string; kind: string; line: number };
 export type CloudLabel = "scripts" | "download_and_run" | "invisible_characters" | "hidden_instructions" | "confirmed_secret";
 /** The background scan of a saved version; "incomplete" is never shown as clean. */
-export type CloudScan = { status: "clean" | "flagged" | "incomplete"; scannedAt: string };
+export type CloudScan = { status: "clean" | "flagged" | "incomplete"; scannedAt: string; findings?: CloudScanFinding[] };
+/** Something a scan found worth a look: the rule, file and line, never the matched text. Older servers leave the list out. */
+export type CloudScanFinding = { rule: string; label: string; severity: string; path: string; line: number | null };
 
 export type CloudSaveState = {
   settings: { enabled: boolean; excludedSkillKeys: string[] };
@@ -336,7 +338,7 @@ export type SafetyGroup = "flagged" | "held" | "incomplete" | "not_scanned" | "n
 
 /** Sections of the Safety scan page, worst first. */
 export const safetyGroups: { group: Exclude<SafetyGroup, "clean">; title: string; help: string }[] = [
-  { group: "flagged", title: "Flagged", help: "The scan found something to check, like a key, hidden instructions or a command that downloads and runs code." },
+  { group: "flagged", title: "Worth a look", help: "Our checks matched a pattern here. Most turn out fine, like an example key or an install command, so a match doesn't mean a skill is harmful. Ask your agent to look them over." },
   { group: "held", title: "Held back", help: "A file looks like it holds a key or password, so it wasn't saved or scanned." },
   { group: "incomplete", title: "Scan didn't finish", help: "Part of the skill was scanned; the rest was too big or couldn't be read." },
   { group: "not_scanned", title: "Not scanned yet", help: "Saved, but the scan hasn't finished. It keeps trying in the background." },
@@ -349,13 +351,22 @@ const safetyRank: Record<SafetyGroup, number> = {
   clean: 0, no_copy: 1, off: 2, not_saved: 3, not_scanned: 4, incomplete: 5, held: 6, flagged: 7,
 };
 
+export type SafetyStatus = {
+  group: SafetyGroup;
+  note?: string;
+  scannedAt?: string;
+  /** For a flagged skill: what each flagged copy's scan found, by its saved key. */
+  flagged?: { key: string; findings: CloudScanFinding[] }[];
+};
+
 /** One skill's scan state from its saved copies (keys). No keys means nothing of yours to scan. */
-export function safetyStatus(rows: Map<string, CloudSkillRow>, keys: string[]): { group: SafetyGroup; note?: string; scannedAt?: string } {
+export function safetyStatus(rows: Map<string, CloudSkillRow>, keys: string[]): SafetyStatus {
   if (keys.length === 0) return { group: "no_copy" };
-  let worst: { group: SafetyGroup; note?: string; scannedAt?: string } = { group: "clean" };
+  let worst: SafetyStatus = { group: "clean" };
+  const flagged: { key: string; findings: CloudScanFinding[] }[] = [];
   for (const key of keys) {
     const row = rows.get(key);
-    const next: { group: SafetyGroup; note?: string; scannedAt?: string } =
+    const next: SafetyStatus =
       !row ? { group: "not_saved", note: "Not synced yet" }
       : row.status === "excluded" || row.status === "off" ? { group: "off" }
       : row.status === "review" || row.status === "confirmed" ? { group: "held", note: statusText[row.status] }
@@ -363,8 +374,9 @@ export function safetyStatus(rows: Map<string, CloudSkillRow>, keys: string[]): 
       : !row.scan ? { group: "not_scanned" }
       : row.scan.status === "clean" ? { group: "clean", scannedAt: row.scan.scannedAt }
       : { group: row.scan.status, scannedAt: row.scan.scannedAt };
+    if (next.group === "flagged") flagged.push({ key, findings: row?.scan?.findings ?? [] });
     if (safetyRank[next.group] > safetyRank[worst.group]) worst = next;
     else if (next.group === "clean" && worst.group === "clean" && (!worst.scannedAt || (next.scannedAt ?? "") > worst.scannedAt)) worst = next;
   }
-  return worst;
+  return worst.group === "flagged" ? { ...worst, flagged } : worst;
 }

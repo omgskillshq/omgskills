@@ -151,7 +151,8 @@ import { CloudStatusBadge, CloudStatusSection, type CloudInfo } from "./CloudSta
 import { looksLikeGithubLink, type MySkillAdditions } from "../my-skills-additions";
 import { AddSkillForm } from "./AddSkillDialog";
 import { PortalApiError } from "../../api-error";
-import { cleanScan, cloudSkillRows, safetyGroups, safetyStatus, scanCopyKeys, type SafetyGroup, needsAttention, setsNote, skillCloudRow, statusText } from "../../cloud-save/cloud-save";
+import { cleanScan, cloudSkillRows, installationCloudKey, safetyGroups, safetyStatus, scanCopyKeys, type CloudScanFinding, type SafetyStatus, needsAttention, setsNote, skillCloudRow, statusText } from "../../cloud-save/cloud-save";
+import { agentReviewPrompt, findingInfo, findingPlace, skillFolder, type FlaggedSkill } from "../../cloud-save/scan-findings";
 
 // Official Lucide artwork (ISC): https://lucide.dev/icons/package-question-mark (not in our installed version yet).
 const PackageQuestionMark = createLucideIcon("PackageQuestionMark", [
@@ -276,28 +277,31 @@ function ScanTip({ scannedAt, yourCopy }: { scannedAt: string; yourCopy: boolean
  * Safety scan: how many of your skills the background scan found nothing in, then every other
  * skill by what stopped it, so nothing is hidden. Advisory only; it never says a skill is safe.
  */
-function SafetyScan({ skills, status, ready, available, open }: {
+function SafetyScan({ skills, status, ready, available, open, copy }: {
   skills: SkillDisplay[];
   /** Your saved copies loaded; without them there's nothing to report. */
   available: boolean;
-  status: (skill: SkillDisplay) => { group: SafetyGroup; note?: string; scannedAt?: string };
+  status: (skill: SkillDisplay) => SafetyStatus;
   ready: boolean;
   open: (skill: SkillDisplay) => void;
+  /** Copies the note for your agent. */
+  copy: (text: string) => void;
 }) {
   if (!ready) return <div className="ua-account-page"><p className="ua-muted">Loading scan results…</p></div>;
   if (!available) return <Empty title="Scan results aren't available right now">They come from your synced skills. Try again in a moment.</Empty>;
   const results = skills.map(skill => ({ skill, ...status(skill) }));
   const clean = results.filter(result => result.group === "clean");
   const latest = clean.reduce((newest, result) => (result.scannedAt ?? "") > newest ? result.scannedAt! : newest, "");
+  const flagged = results.filter(result => result.group === "flagged").map(result => ({ skill: result.skill, ...flaggedSkill(result.skill, result.flagged ?? []) }));
   return (
     <div className="ua-account-page ua-safety">
       <div className="ua-safety-summary">
         <ShieldCheck aria-hidden="true" />
         <div>
-          <strong>{clean.length} of {skills.length} skills scanned, nothing found</strong>
-          <p className="ua-muted">No leaked keys, hidden instructions or download-and-run commands found by our checks
+          <strong>{clean.length} of {skills.length} skills passed our checks</strong>
+          <p className="ua-muted">We found no leaked keys, hidden instructions or download-and-run commands in them
             {latest ? ` · last scan ${new Date(latest).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : ""}.
-            A clean scan doesn't mean a skill is safe.</p>
+            Passing our checks doesn't guarantee a skill is safe.</p>
         </div>
       </div>
       {safetyGroups.map(({ group, title, help }) => {
@@ -305,21 +309,72 @@ function SafetyScan({ skills, status, ready, available, open }: {
         if (!items.length) return null;
         return (
           <section key={group} className="ua-safety-group">
-            <h2>{title} <small>{items.length}</small></h2>
+            <div className="ua-safety-group-head">
+              <h2>{title} <small>{items.length}</small></h2>
+              {group === "flagged" && flagged.length > 1 && (
+                <button type="button" className="ua-pill ua-primary" onClick={() => copy(agentReviewPrompt(flagged))}>
+                  <Copy aria-hidden="true" />Copy all for your agent
+                </button>
+              )}
+            </div>
             <p className="ua-muted">{help}</p>
-            <ul>
-              {items.map(({ skill, note }) => (
-                <li key={skill.key}>
-                  <button type="button" className="ua-link" onClick={() => open(skill)}>{skill.name}</button>
-                  {note && <small className="ua-muted">{note}</small>}
-                </li>
-              ))}
-            </ul>
+            {group === "flagged" ? (
+              <ul className="ua-safety-flagged">
+                {flagged.map(item => (
+                  <li key={item.skill.key}>
+                    <div className="ua-safety-flagged-head">
+                      <button type="button" className="ua-link" onClick={() => open(item.skill)}>{item.skill.name}</button>
+                      <button type="button" className="ua-pill ua-safety-copy" onClick={() => copy(agentReviewPrompt([item]))}>
+                        <Copy aria-hidden="true" />Copy for your agent
+                      </button>
+                    </div>
+                    {item.findings.length > 0 && (
+                      <ul className="ua-safety-findings">
+                        {item.findings.map(finding => {
+                          const info = findingInfo(finding);
+                          return (
+                            <li key={`${finding.path}:${finding.line}:${finding.rule}`}>
+                              <span><strong>{info.title}</strong> <span className="ua-muted">· {findingPlace(finding)}</span></span>
+                              <small className="ua-muted">{info.usuallyFine}</small>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <ul>
+                {items.map(({ skill, note }) => (
+                  <li key={skill.key}>
+                    <button type="button" className="ua-link" onClick={() => open(skill)}>{skill.name}</button>
+                    {note && <small className="ua-muted">{note}</small>}
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         );
       })}
     </div>
   );
+}
+/** A flagged skill for the page and the agent note: its findings once each, and where its flagged copies are installed. */
+function flaggedSkill(skill: SkillDisplay, flagged: { key: string; findings: CloudScanFinding[] }[]): FlaggedSkill {
+  const keys = new Set(flagged.map(entry => entry.key));
+  const folders = (skill.installed?.sourceSkills ?? [])
+    .filter(copy => copy.isCurrent !== false && keys.has(installationCloudKey(copy)))
+    .map(skillFolder)
+    .filter((folder): folder is string => !!folder);
+  const seen = new Set<string>();
+  const findings = flagged.flatMap(entry => entry.findings).filter(finding => {
+    const id = `${finding.path}:${finding.line}:${finding.rule}`;
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+  return { name: skill.name, folders: [...new Set(folders)], findings };
 }
 function CollectionCover({ src }: { src: string }) {
   const [loaded, setLoaded] = useState(false);
@@ -1058,6 +1113,14 @@ export function UnifiedApp({
       setNotice("Install command copied");
     } catch {
       setNotice("Could not copy the install command.");
+    }
+  }
+  async function copyAgentNote(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setNotice("Copied. Paste it into your agent.");
+    } catch {
+      setNotice("Could not copy the note.");
     }
   }
   async function share(skill: SkillDisplay) {
@@ -2101,7 +2164,8 @@ export function UnifiedApp({
               ) : nav.view === "safety" ? (
                 <SafetyScan skills={allMine} status={skill => safetyStatus(cloudRows,
                   skill.cloudKey ? [skill.cloudKey] : scanCopyKeys(skill.installed?.sourceSkills ?? []))}
-                  ready={myCountReady} available={!!cloud} open={skill => navigate(openSkillNavigation({ ...nav, view: "all", id: "", query: "" }, skill))} />
+                  ready={myCountReady} available={!!cloud} open={skill => navigate(openSkillNavigation({ ...nav, view: "all", id: "", query: "" }, skill))}
+                  copy={copyAgentNote} />
               ) : ["agents", "devices", "profile", "github", "cloud", "mcp"].includes(
                   nav.view,
                 ) ? (
