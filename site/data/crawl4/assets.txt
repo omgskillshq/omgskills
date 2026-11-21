@@ -563,9 +563,9 @@ skill-equivalence-ebd3d050953e.json
 skills-38fd988c2e51.json
 skills-c458d3d71dea.json
 skills-ce198c639f83.json
-source-trending-093d22c3ad14.json
+source-trending-132359aa8c1e.json
 source-trending-d497e8c56a24.json
+trending-9f43c1771b94.json
 trending-b1da310b8732.json
-trending-ceab74f11791.json
 x-trending-6a6823eff7e0.json
 x-trending-c2ec558d316a.json

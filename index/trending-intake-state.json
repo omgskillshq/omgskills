@@ -1,1194 +1,126 @@
 {
   "version": 1,
-  "policyDigest": "sha256:6f73171923895a3c5c400fdd10204f66864a1523dd6ad6fd7a5ab7a001644a94",
+  "policyDigest": "sha256:d550400d0b058ae3d5b642b570bc59e2f98ec1ecab6cb60ece9f34a5b7939538",
   "reviews": [
     {
-      "sourceId": "101-skills/superpowers:agent-browser",
-      "checkedAt": "2026-11-15T18:47:37.580Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "101-skills/superpowers:ai-avatar-video",
-      "checkedAt": "2026-11-19T20:29:40.734Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "101-skills/superpowers:ai-image-generation",
-      "checkedAt": "2026-11-19T20:29:40.734Z",
-      "outcome": "blocked",
-      "reason": "non-original-provenance"
-    },
-    {
-      "sourceId": "101-skills/superpowers:ai-video-generation",
-      "checkedAt": "2026-11-19T20:29:40.734Z",
-      "outcome": "blocked",
-      "reason": "non-original-provenance"
-    },
-    {
-      "sourceId": "101-skills/superpowers:twitter-automation",
-      "checkedAt": "2026-11-19T20:29:40.734Z",
-      "outcome": "blocked",
-      "reason": "non-original-provenance"
-    },
-    {
-      "sourceId": "2dmurali/review-loop-skill:review-loop",
-      "checkedAt": "2026-11-15T18:47:37.580Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "amplitude/mcp-marketplace:add-analytics-instrumentation",
-      "checkedAt": "2026-11-16T21:57:43.253Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "amplitude/mcp-marketplace:diff-intake",
-      "checkedAt": "2026-11-16T21:57:43.253Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "amplitude/mcp-marketplace:discover-analytics-patterns",
-      "checkedAt": "2026-11-16T21:57:43.253Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "amplitude/mcp-marketplace:discover-event-surfaces",
-      "checkedAt": "2026-11-16T21:57:43.253Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "amplitude/mcp-marketplace:instrument-events",
-      "checkedAt": "2026-11-16T21:57:43.253Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "amplitude/mcp-marketplace:taxonomy",
-      "checkedAt": "2026-11-16T21:57:43.253Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "anthropics/skills:frontend-design",
-      "checkedAt": "2026-11-11T13:17:51.486Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "anthropics/skills:skill-creator",
-      "checkedAt": "2026-11-15T18:47:37.580Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "antibrow/anti-detect-browser-skills:browser-mcp-agent",
-      "checkedAt": "2026-11-14T17:58:59.177Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "antibrow/anti-detect-browser-skills:multi-account-isolation",
-      "checkedAt": "2026-11-14T17:58:59.177Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "bankai-skills/superpowers:agent-browser",
-      "checkedAt": "2026-11-11T13:17:51.486Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "bankai-skills/superpowers:agent-tools",
-      "checkedAt": "2026-11-12T19:52:55.556Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "bankai-skills/superpowers:ai-avatar-video",
-      "checkedAt": "2026-11-19T20:29:40.734Z",
-      "outcome": "blocked",
-      "reason": "non-original-provenance"
-    },
-    {
-      "sourceId": "bankai-skills/superpowers:ai-image-generation",
-      "checkedAt": "2026-11-19T20:29:40.734Z",
-      "outcome": "blocked",
-      "reason": "non-original-provenance"
-    },
-    {
-      "sourceId": "bankai-skills/superpowers:ai-video-generation",
-      "checkedAt": "2026-11-19T20:29:40.734Z",
-      "outcome": "blocked",
-      "reason": "non-original-provenance"
-    },
-    {
-      "sourceId": "bankai-skills/superpowers:infsh-cli",
-      "checkedAt": "2026-11-12T19:52:55.556Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "bankai-skills/superpowers:python-executor",
-      "checkedAt": "2026-11-11T19:33:08.232Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "bankai-skills/superpowers:remotion-render",
-      "checkedAt": "2026-11-12T19:52:55.556Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "bankai-skills/superpowers:twitter-automation",
-      "checkedAt": "2026-11-19T20:29:40.734Z",
-      "outcome": "blocked",
-      "reason": "non-original-provenance"
-    },
-    {
-      "sourceId": "bankai-skills/superpowers:web-search",
-      "checkedAt": "2026-11-12T19:52:55.556Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
       "sourceId": "beltsh/superpowers:agent-browser",
-      "checkedAt": "2026-11-17T20:57:22.742Z",
+      "checkedAt": "2026-11-21T19:08:59.874Z",
       "outcome": "blocked",
       "reason": "confirmed-upstream-copy"
     },
     {
       "sourceId": "beltsh/superpowers:agent-tools",
-      "checkedAt": "2026-11-18T20:26:53.350Z",
+      "checkedAt": "2026-11-21T19:08:59.874Z",
       "outcome": "blocked",
       "reason": "confirmed-upstream-copy"
     },
     {
       "sourceId": "beltsh/superpowers:ai-avatar-video",
-      "checkedAt": "2026-11-13T19:37:36.375Z",
+      "checkedAt": "2026-11-21T19:08:59.874Z",
       "outcome": "blocked",
-      "reason": "reviewed-copy-content"
+      "reason": "confirmed-upstream-copy"
     },
     {
       "sourceId": "beltsh/superpowers:ai-image-generation",
-      "checkedAt": "2026-11-13T19:37:36.375Z",
+      "checkedAt": "2026-11-21T19:08:59.874Z",
       "outcome": "blocked",
-      "reason": "reviewed-copy-content"
+      "reason": "confirmed-upstream-copy"
     },
     {
       "sourceId": "beltsh/superpowers:ai-video-generation",
-      "checkedAt": "2026-11-13T19:37:36.375Z",
+      "checkedAt": "2026-11-21T19:08:59.874Z",
       "outcome": "blocked",
-      "reason": "reviewed-copy-content"
+      "reason": "confirmed-upstream-copy"
     },
     {
       "sourceId": "beltsh/superpowers:app-store-screenshots",
-      "checkedAt": "2026-11-18T20:26:53.350Z",
+      "checkedAt": "2026-11-21T19:08:59.874Z",
       "outcome": "blocked",
       "reason": "confirmed-upstream-copy"
     },
     {
       "sourceId": "beltsh/superpowers:character-design-sheet",
-      "checkedAt": "2026-11-18T20:26:53.350Z",
+      "checkedAt": "2026-11-21T19:08:59.874Z",
       "outcome": "blocked",
       "reason": "confirmed-upstream-copy"
     },
     {
       "sourceId": "beltsh/superpowers:competitor-teardown",
-      "checkedAt": "2026-11-18T20:26:53.350Z",
+      "checkedAt": "2026-11-21T19:08:59.874Z",
       "outcome": "blocked",
       "reason": "confirmed-upstream-copy"
     },
     {
       "sourceId": "beltsh/superpowers:image-to-video",
-      "checkedAt": "2026-11-18T20:26:53.350Z",
+      "checkedAt": "2026-11-21T19:08:59.874Z",
       "outcome": "blocked",
       "reason": "confirmed-upstream-copy"
     },
     {
       "sourceId": "beltsh/superpowers:infsh-cli",
-      "checkedAt": "2026-11-18T20:26:53.350Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "beltsh/superpowers:landing-page-design",
-      "checkedAt": "2026-11-18T20:26:53.350Z",
+      "checkedAt": "2026-11-21T19:08:59.874Z",
       "outcome": "blocked",
       "reason": "confirmed-upstream-copy"
     },
     {
       "sourceId": "beltsh/superpowers:product-hunt-launch",
-      "checkedAt": "2026-11-18T20:26:53.350Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "beltsh/superpowers:product-photography",
-      "checkedAt": "2026-11-18T20:26:53.350Z",
+      "checkedAt": "2026-11-21T19:08:59.874Z",
       "outcome": "blocked",
       "reason": "confirmed-upstream-copy"
     },
     {
       "sourceId": "beltsh/superpowers:python-executor",
-      "checkedAt": "2026-11-18T20:26:53.350Z",
+      "checkedAt": "2026-11-21T19:08:59.874Z",
       "outcome": "blocked",
       "reason": "confirmed-upstream-copy"
     },
     {
       "sourceId": "beltsh/superpowers:remotion-render",
-      "checkedAt": "2026-11-18T20:26:53.350Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "beltsh/superpowers:storyboard-creation",
-      "checkedAt": "2026-11-18T20:26:53.350Z",
+      "checkedAt": "2026-11-21T19:08:59.874Z",
       "outcome": "blocked",
       "reason": "confirmed-upstream-copy"
     },
     {
       "sourceId": "beltsh/superpowers:twitter-automation",
-      "checkedAt": "2026-11-13T19:37:36.375Z",
-      "outcome": "blocked",
-      "reason": "reviewed-copy-content"
-    },
-    {
-      "sourceId": "beltsh/superpowers:video-ad-specs",
-      "checkedAt": "2026-11-18T20:26:53.350Z",
+      "checkedAt": "2026-11-21T19:08:59.874Z",
       "outcome": "blocked",
       "reason": "confirmed-upstream-copy"
     },
     {
       "sourceId": "beltsh/superpowers:web-search",
-      "checkedAt": "2026-11-18T20:26:53.350Z",
+      "checkedAt": "2026-11-21T19:08:59.874Z",
       "outcome": "blocked",
       "reason": "confirmed-upstream-copy"
     },
     {
       "sourceId": "beltsh/superpowers:youtube-thumbnail-design",
-      "checkedAt": "2026-11-18T20:26:53.350Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "cloudflare/security-audit-skill:security-audit",
-      "checkedAt": "2026-11-12T19:52:55.556Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "cloudflare/skills:cloudflare-app-bootstrap",
-      "checkedAt": "2026-11-11T13:17:51.486Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "cloudflare/skills:frameworks-on-cloudflare",
-      "checkedAt": "2026-11-11T13:17:51.486Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "cloudflare/skills:workers-development",
-      "checkedAt": "2026-11-11T13:17:51.486Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "coreyhaines31/marketingskills:ad-creative",
-      "checkedAt": "2026-11-16T21:57:43.253Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "coreyhaines31/marketingskills:ai-seo",
-      "checkedAt": "2026-11-16T21:57:43.253Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "coreyhaines31/marketingskills:content-strategy",
-      "checkedAt": "2026-11-16T21:57:43.253Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "coreyhaines31/marketingskills:conversion-tracking",
-      "checkedAt": "2026-11-11T13:17:51.486Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "coreyhaines31/marketingskills:copy-editing",
-      "checkedAt": "2026-11-16T21:57:43.253Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "coreyhaines31/marketingskills:copywriting",
-      "checkedAt": "2026-11-15T18:47:37.580Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "coreyhaines31/marketingskills:cro",
-      "checkedAt": "2026-11-16T21:57:43.253Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "coreyhaines31/marketingskills:link-building",
-      "checkedAt": "2026-11-12T19:52:55.556Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "coreyhaines31/marketingskills:marketing-psychology",
-      "checkedAt": "2026-11-16T21:57:43.253Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "coreyhaines31/marketingskills:offers",
-      "checkedAt": "2026-11-16T21:57:43.253Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "coreyhaines31/marketingskills:pricing",
-      "checkedAt": "2026-11-16T21:57:43.253Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "coreyhaines31/marketingskills:product-marketing",
-      "checkedAt": "2026-11-16T21:57:43.253Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "coreyhaines31/marketingskills:reverse-engineer-marketing",
-      "checkedAt": "2026-11-11T19:33:08.232Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "coreyhaines31/marketingskills:seo-audit",
-      "checkedAt": "2026-11-15T18:47:37.580Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "coreyhaines31/marketingskills:social",
-      "checkedAt": "2026-11-15T18:47:37.580Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "designed-by-ai/skills:design-mobile-apps",
-      "checkedAt": "2026-11-17T20:57:22.742Z",
-      "outcome": "blocked",
-      "reason": "non-original-provenance"
-    },
-    {
-      "sourceId": "emilkowalski/skills:animation-performance",
-      "checkedAt": "2026-11-12T19:52:55.556Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "emilkowalski/skills:ask-emil",
-      "checkedAt": "2026-11-15T18:47:37.580Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "emilkowalski/skills:break-ui",
-      "checkedAt": "2026-11-12T19:52:55.556Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "emilkowalski/skills:choreograph",
-      "checkedAt": "2026-11-11T13:17:51.486Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "emilkowalski/skills:gestures",
-      "checkedAt": "2026-11-11T13:17:51.486Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "emilkowalski/skills:learn-taste",
-      "checkedAt": "2026-11-12T19:52:55.556Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "emilkowalski/skills:remove-animations",
-      "checkedAt": "2026-11-11T13:17:51.486Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "felipebasurto/unslop-ui:unslop-ui",
-      "checkedAt": "2026-11-19T20:29:40.734Z",
-      "outcome": "unresolved",
-      "reason": "path-unresolved"
-    },
-    {
-      "sourceId": "flowkit-labs/skills:doany-website-builder",
-      "checkedAt": "2026-11-10T11:17:49.752Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "flowkit-labs/skills:reddit-automation",
-      "checkedAt": "2026-11-17T20:57:22.742Z",
-      "outcome": "blocked",
-      "reason": "non-original-provenance"
-    },
-    {
-      "sourceId": "flowkit-labs/skills:website-builder",
-      "checkedAt": "2026-11-11T19:33:08.232Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "gencraft-labs/skills:ai-image-generation",
-      "checkedAt": "2026-11-17T20:57:22.742Z",
-      "outcome": "blocked",
-      "reason": "non-original-provenance"
-    },
-    {
-      "sourceId": "gencraft-labs/skills:ai-music",
-      "checkedAt": "2026-11-17T20:57:22.742Z",
-      "outcome": "blocked",
-      "reason": "non-original-provenance"
-    },
-    {
-      "sourceId": "gencraft-labs/skills:ai-video-generation",
-      "checkedAt": "2026-11-17T20:57:22.742Z",
-      "outcome": "blocked",
-      "reason": "non-original-provenance"
-    },
-    {
-      "sourceId": "gencraft-labs/skills:image-to-video",
-      "checkedAt": "2026-11-17T20:57:22.742Z",
-      "outcome": "blocked",
-      "reason": "non-original-provenance"
-    },
-    {
-      "sourceId": "gencraft-labs/skills:video-edit",
-      "checkedAt": "2026-11-17T20:57:22.742Z",
-      "outcome": "blocked",
-      "reason": "non-original-provenance"
-    },
-    {
-      "sourceId": "greensock/gsap-skills:gsap-core",
-      "checkedAt": "2026-11-16T21:57:43.253Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "greensock/gsap-skills:gsap-scrolltrigger",
-      "checkedAt": "2026-11-16T21:57:43.253Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "heygen-com/hyperframes:media-use",
-      "checkedAt": "2026-11-17T20:57:22.742Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "heygen-com/hyperframes:remotion-to-hyperframes",
-      "checkedAt": "2026-11-19T20:29:40.734Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "heygen-com/hyperframes:reverse-any-video",
-      "checkedAt": "2026-11-10T19:41:25.403Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "heygen-com/hyperframes:style-sampling",
-      "checkedAt": "2026-11-10T19:41:25.403Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "higgsfield-ai/skills:higgsfield-faceless-video",
-      "checkedAt": "2026-11-11T13:17:51.486Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "its-a-skill-issue/superpowers:agent-browser",
-      "checkedAt": "2026-11-12T19:52:55.556Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "its-a-skill-issue/superpowers:agent-tools",
-      "checkedAt": "2026-11-14T17:58:59.177Z",
-      "outcome": "duplicate",
-      "reason": "exact-sha-existing"
-    },
-    {
-      "sourceId": "its-a-skill-issue/superpowers:ai-avatar-video",
-      "checkedAt": "2026-11-18T20:26:53.350Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "its-a-skill-issue/superpowers:ai-image-generation",
-      "checkedAt": "2026-11-19T20:29:40.734Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "its-a-skill-issue/superpowers:ai-video-generation",
-      "checkedAt": "2026-11-18T20:26:53.350Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "its-a-skill-issue/superpowers:infsh-cli",
-      "checkedAt": "2026-11-15T18:47:37.580Z",
-      "outcome": "duplicate",
-      "reason": "exact-sha-existing"
-    },
-    {
-      "sourceId": "its-a-skill-issue/superpowers:python-executor",
-      "checkedAt": "2026-11-15T18:47:37.580Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "its-a-skill-issue/superpowers:remotion-render",
-      "checkedAt": "2026-11-15T18:47:37.580Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "its-a-skill-issue/superpowers:twitter-automation",
-      "checkedAt": "2026-11-19T20:29:40.734Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "its-a-skill-issue/superpowers:web-search",
-      "checkedAt": "2026-11-14T17:58:59.177Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "juliusbrussee/caveman:caveman-compress",
-      "checkedAt": "2026-11-14T17:58:59.177Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "lemomo-ai/lemo-opuscar:lemo-opuscar",
-      "checkedAt": "2026-11-11T19:33:08.232Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "leonxlnx/taste-skill:design-taste-frontend",
-      "checkedAt": "2026-11-11T13:17:51.486Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "liarjsdev/liarjs-skills:browser-fingerprint-audit",
-      "checkedAt": "2026-11-14T17:58:59.177Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "liarjsdev/liarjs-skills:fingerprint-ci-gate",
-      "checkedAt": "2026-11-14T17:58:59.177Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "liarjsdev/liarjs-skills:fingerprint-failure-triage",
-      "checkedAt": "2026-11-14T17:58:59.177Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "liarjsdev/liarjs-skills:playwright-stealth-verify",
-      "checkedAt": "2026-11-14T17:58:59.177Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "magentosh/superpowers:agent-browser",
-      "checkedAt": "2026-11-14T17:58:59.177Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "magentosh/superpowers:ai-avatar-video",
-      "checkedAt": "2026-11-19T20:29:40.734Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "magentosh/superpowers:ai-image-generation",
-      "checkedAt": "2026-11-19T20:29:40.734Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "magentosh/superpowers:ai-video-generation",
-      "checkedAt": "2026-11-19T20:29:40.734Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "magentosh/superpowers:twitter-automation",
-      "checkedAt": "2026-11-19T20:29:40.734Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "mattpocock/skills:ask-matt",
-      "checkedAt": "2026-11-11T19:33:08.232Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "mattpocock/skills:chief-of-staff",
-      "checkedAt": "2026-11-12T19:52:55.556Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "mattpocock/skills:code-review",
-      "checkedAt": "2026-11-11T19:33:08.232Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "mattpocock/skills:codebase-design",
-      "checkedAt": "2026-11-11T19:33:08.232Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "mattpocock/skills:diagnosing-bugs",
-      "checkedAt": "2026-11-11T19:33:08.232Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "mattpocock/skills:domain-modeling",
-      "checkedAt": "2026-11-19T20:29:40.734Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "mattpocock/skills:grill-me",
-      "checkedAt": "2026-11-19T20:29:40.734Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "mattpocock/skills:grilling",
-      "checkedAt": "2026-11-19T20:29:40.734Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "mattpocock/skills:handoff",
-      "checkedAt": "2026-11-11T19:33:08.232Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "mattpocock/skills:implement",
-      "checkedAt": "2026-11-11T19:33:08.232Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "mattpocock/skills:loop-me",
-      "checkedAt": "2026-11-12T19:52:55.556Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "mattpocock/skills:research",
-      "checkedAt": "2026-11-11T19:33:08.232Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "mattpocock/skills:software-factory",
-      "checkedAt": "2026-11-19T20:29:40.734Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "mattpocock/skills:tdd",
-      "checkedAt": "2026-11-11T19:33:08.232Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "mattpocock/skills:teach",
-      "checkedAt": "2026-11-11T19:33:08.232Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "mattpocock/skills:to-questionnaire",
-      "checkedAt": "2026-11-11T19:33:08.232Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "mattpocock/skills:to-spec",
-      "checkedAt": "2026-11-11T19:33:08.232Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "mattpocock/skills:to-tickets",
-      "checkedAt": "2026-11-11T19:33:08.232Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "mattpocock/skills:wayfinder",
-      "checkedAt": "2026-11-11T19:33:08.232Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "mattpocock/skills:wizard",
-      "checkedAt": "2026-11-11T19:33:08.232Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "mattpocock/skills:writing-beats",
-      "checkedAt": "2026-11-12T19:52:55.556Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "mattpocock/skills:writing-fragments",
-      "checkedAt": "2026-11-12T19:52:55.556Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "mattpocock/skills:writing-shape",
-      "checkedAt": "2026-11-12T19:52:55.556Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "mcollina/skills:fastify-best-practices",
-      "checkedAt": "2026-11-16T21:57:43.253Z",
-      "outcome": "unresolved",
-      "reason": "path-unresolved"
-    },
-    {
-      "sourceId": "microsoft/azure-skills:azure-app-onboard",
-      "checkedAt": "2026-11-17T20:57:22.742Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "microsoft/azure-skills:azure-app-onboard-prereq",
-      "checkedAt": "2026-11-17T20:57:22.742Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "microsoft/azure-skills:azure-reliability",
-      "checkedAt": "2026-11-17T20:57:22.742Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "microsoft/azure-skills:discover-azure-skills",
-      "checkedAt": "2026-11-10T11:17:49.752Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "microsoft/azure-skills:python-appservice-deploy",
-      "checkedAt": "2026-11-17T20:57:22.742Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "neondatabase/agent-skills:neon",
-      "checkedAt": "2026-11-15T18:47:37.580Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "nextlevelbuilder/ui-ux-pro-max-skill:ui-ux-pro-max",
-      "checkedAt": "2026-11-12T19:52:55.556Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "nrwl/nx-ai-agents-config:nx-workspace",
-      "checkedAt": "2026-11-16T21:57:43.253Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "prisma/skills:prisma-postgres-upgrade",
-      "checkedAt": "2026-11-11T13:17:51.486Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "qu-skills/superpowers:agent-browser",
-      "checkedAt": "2026-11-12T19:52:55.556Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "qu-skills/superpowers:agent-tools",
-      "checkedAt": "2026-11-14T17:58:59.177Z",
-      "outcome": "duplicate",
-      "reason": "exact-sha-existing"
-    },
-    {
-      "sourceId": "qu-skills/superpowers:ai-avatar-video",
-      "checkedAt": "2026-11-17T20:57:22.742Z",
-      "outcome": "blocked",
-      "reason": "reviewed-copy-content"
-    },
-    {
-      "sourceId": "qu-skills/superpowers:ai-image-generation",
-      "checkedAt": "2026-11-18T20:26:53.350Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "qu-skills/superpowers:ai-video-generation",
-      "checkedAt": "2026-11-18T20:26:53.350Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "qu-skills/superpowers:infsh-cli",
-      "checkedAt": "2026-11-14T17:58:59.177Z",
-      "outcome": "duplicate",
-      "reason": "exact-sha-existing"
-    },
-    {
-      "sourceId": "qu-skills/superpowers:python-executor",
-      "checkedAt": "2026-11-14T17:58:59.177Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "qu-skills/superpowers:remotion-render",
-      "checkedAt": "2026-11-14T17:58:59.177Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "qu-skills/superpowers:twitter-automation",
-      "checkedAt": "2026-11-17T20:57:22.742Z",
-      "outcome": "blocked",
-      "reason": "reviewed-copy-content"
-    },
-    {
-      "sourceId": "qu-skills/superpowers:web-search",
-      "checkedAt": "2026-11-14T17:58:59.177Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "remotion-dev/skills:remotion-docs",
-      "checkedAt": "2026-11-18T20:26:53.350Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "remotion-dev/skills:remotion-license",
-      "checkedAt": "2026-11-10T19:41:25.403Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "revnu-app/revnu-plugin:ads",
-      "checkedAt": "2026-11-13T19:37:36.375Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "revnu-app/revnu-plugin:cold-email",
-      "checkedAt": "2026-11-13T19:37:36.375Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "revnu-app/revnu-plugin:find-leads",
-      "checkedAt": "2026-11-13T19:37:36.375Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "revnu-app/revnu-plugin:first-customers",
-      "checkedAt": "2026-11-13T19:37:36.375Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "revnu-app/revnu-plugin:linkedin-outreach",
-      "checkedAt": "2026-11-13T19:37:36.375Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "revnu-app/revnu-plugin:results",
-      "checkedAt": "2026-11-13T19:37:36.375Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "revnu-app/revnu-plugin:revnu",
-      "checkedAt": "2026-11-13T19:37:36.375Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "revnu-app/revnu-plugin:revnu-ai-crawler-access",
-      "checkedAt": "2026-11-13T19:37:36.375Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "revnu-app/revnu-plugin:revnu-ai-readiness-audit",
-      "checkedAt": "2026-11-13T19:37:36.375Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "revnu-app/revnu-plugin:revnu-fix-ai-claims",
-      "checkedAt": "2026-11-13T19:37:36.375Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "revnu-app/revnu-plugin:revnu-geo-check",
-      "checkedAt": "2026-11-13T19:37:36.375Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "revnu-app/revnu-plugin:revnu-get-listed",
-      "checkedAt": "2026-11-13T19:37:36.375Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "revnu-app/revnu-plugin:revnu-growth-context",
-      "checkedAt": "2026-11-13T19:37:36.375Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "revnu-app/revnu-plugin:revnu-landing-page-audit",
-      "checkedAt": "2026-11-13T19:37:36.375Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "revnu-app/revnu-plugin:seo-ai-answers",
-      "checkedAt": "2026-11-13T19:37:36.375Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "sentry/dev:sentry-cli",
-      "checkedAt": "2026-11-16T21:57:43.253Z",
-      "outcome": "unresolved",
-      "reason": "source-not-found"
-    },
-    {
-      "sourceId": "skills-shell/superpowers:agent-browser",
-      "checkedAt": "2026-11-12T19:52:55.556Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "skills-shell/superpowers:agent-tools",
-      "checkedAt": "2026-11-14T17:58:59.177Z",
-      "outcome": "duplicate",
-      "reason": "exact-sha-existing"
-    },
-    {
-      "sourceId": "skills-shell/superpowers:ai-avatar-video",
-      "checkedAt": "2026-11-17T20:57:22.742Z",
-      "outcome": "blocked",
-      "reason": "non-original-provenance"
-    },
-    {
-      "sourceId": "skills-shell/superpowers:ai-image-generation",
-      "checkedAt": "2026-11-17T20:57:22.742Z",
-      "outcome": "blocked",
-      "reason": "non-original-provenance"
-    },
-    {
-      "sourceId": "skills-shell/superpowers:ai-video-generation",
-      "checkedAt": "2026-11-17T20:57:22.742Z",
-      "outcome": "blocked",
-      "reason": "non-original-provenance"
-    },
-    {
-      "sourceId": "skills-shell/superpowers:infsh-cli",
-      "checkedAt": "2026-11-14T17:58:59.177Z",
-      "outcome": "duplicate",
-      "reason": "exact-sha-existing"
-    },
-    {
-      "sourceId": "skills-shell/superpowers:python-executor",
-      "checkedAt": "2026-11-14T17:58:59.177Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "skills-shell/superpowers:remotion-render",
-      "checkedAt": "2026-11-14T17:58:59.177Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "skills-shell/superpowers:twitter-automation",
-      "checkedAt": "2026-11-17T20:57:22.742Z",
-      "outcome": "blocked",
-      "reason": "non-original-provenance"
-    },
-    {
-      "sourceId": "skills-shell/superpowers:web-search",
-      "checkedAt": "2026-11-14T17:58:59.177Z",
-      "outcome": "blocked",
-      "reason": "confirmed-upstream-copy"
-    },
-    {
-      "sourceId": "uizze/uizze:uizze-ui",
-      "checkedAt": "2026-11-10T11:17:49.752Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "vercel-labs/agent-desktop:agent-desktop",
-      "checkedAt": "2026-11-11T13:17:51.486Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "vercel-labs/agent-skills:deploy-to-vercel",
-      "checkedAt": "2026-11-15T18:47:37.580Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "vercel-labs/agent-skills:vercel-composition-patterns",
-      "checkedAt": "2026-11-12T19:52:55.556Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "vercel-labs/agent-skills:vercel-optimize",
-      "checkedAt": "2026-11-15T18:47:37.580Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "vercel-labs/agent-skills:vercel-react-best-practices",
-      "checkedAt": "2026-11-11T19:33:08.232Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "vercel-labs/agent-skills:vercel-react-native-skills",
-      "checkedAt": "2026-11-15T18:47:37.580Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "vercel-labs/agent-skills:vercel-react-view-transitions",
-      "checkedAt": "2026-11-15T18:47:37.580Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "vercel-labs/agent-skills:web-design-guidelines",
-      "checkedAt": "2026-11-11T19:33:08.232Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "vercel-labs/agent-skills:writing-guidelines",
-      "checkedAt": "2026-11-15T18:47:37.580Z",
-      "outcome": "existing",
-      "reason": "catalog-identity-or-path"
-    },
-    {
-      "sourceId": "vercel-labs/ui:ui-sdk",
-      "checkedAt": "2026-11-13T19:37:36.375Z",
-      "outcome": "added",
-      "reason": "verified-trending"
-    },
-    {
-      "sourceId": "whytryharder/superpowers:agent-browser",
-      "checkedAt": "2026-11-17T20:57:22.742Z",
+      "checkedAt": "2026-11-21T19:08:59.874Z",
       "outcome": "blocked",
       "reason": "confirmed-upstream-copy"
     },
     {
       "sourceId": "whytryharder/superpowers:ai-avatar-video",
-      "checkedAt": "2026-11-15T18:47:37.580Z",
+      "checkedAt": "2026-11-21T19:08:59.874Z",
       "outcome": "blocked",
-      "reason": "reviewed-copy-content"
+      "reason": "confirmed-upstream-copy"
     },
     {
       "sourceId": "whytryharder/superpowers:ai-image-generation",
-      "checkedAt": "2026-11-15T18:47:37.580Z",
+      "checkedAt": "2026-11-21T19:08:59.874Z",
       "outcome": "blocked",
-      "reason": "reviewed-copy-content"
+      "reason": "confirmed-upstream-copy"
     },
     {
       "sourceId": "whytryharder/superpowers:ai-video-generation",
-      "checkedAt": "2026-11-15T18:47:37.580Z",
+      "checkedAt": "2026-11-21T19:08:59.874Z",
       "outcome": "blocked",
-      "reason": "reviewed-copy-content"
+      "reason": "confirmed-upstream-copy"
     },
     {
       "sourceId": "whytryharder/superpowers:twitter-automation",
-      "checkedAt": "2026-11-15T18:47:37.580Z",
+      "checkedAt": "2026-11-21T19:08:59.874Z",
       "outcome": "blocked",
-      "reason": "reviewed-copy-content"
+      "reason": "confirmed-upstream-copy"
     }
   ]
 }
