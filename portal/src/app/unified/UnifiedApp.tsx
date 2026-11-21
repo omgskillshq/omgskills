@@ -339,6 +339,7 @@ function SafetyScan({ skills, status, ready, available, open, copy }: {
                             </li>
                           );
                         })}
+                        {item.more > 0 && <li className="ua-muted">And {item.more} more</li>}
                       </ul>
                     )}
                   </li>
@@ -361,7 +362,7 @@ function SafetyScan({ skills, status, ready, available, open, copy }: {
   );
 }
 /** A flagged skill for the page and the agent note: its findings once each, and where its flagged copies are installed. */
-function flaggedSkill(skill: SkillDisplay, flagged: { key: string; findings: CloudScanFinding[] }[]): FlaggedSkill {
+function flaggedSkill(skill: SkillDisplay, flagged: { key: string; findings: CloudScanFinding[]; more: number }[]): FlaggedSkill {
   const keys = new Set(flagged.map(entry => entry.key));
   const folders = (skill.installed?.sourceSkills ?? [])
     .filter(copy => copy.isCurrent !== false && keys.has(installationCloudKey(copy)))
@@ -374,7 +375,7 @@ function flaggedSkill(skill: SkillDisplay, flagged: { key: string; findings: Clo
     seen.add(id);
     return true;
   });
-  return { name: skill.name, folders: [...new Set(folders)], findings };
+  return { name: skill.name, folders: [...new Set(folders)], findings, more: flagged.reduce((sum, entry) => sum + entry.more, 0) };
 }
 function CollectionCover({ src }: { src: string }) {
   const [loaded, setLoaded] = useState(false);

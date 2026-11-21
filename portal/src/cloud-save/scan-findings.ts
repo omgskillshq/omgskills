@@ -51,7 +51,14 @@ export function skillFolder(copy: { source: string; installationFolder?: string 
   return root ? `${root}/${copy.installationFolder || copy.name}` : null;
 }
 
-export type FlaggedSkill = { name: string; folders: string[]; findings: CloudScanFinding[] };
+export type FlaggedSkill = {
+  name: string;
+  /** Where its flagged copies are usually installed, on whichever computer has them. */
+  folders: string[];
+  findings: CloudScanFinding[];
+  /** Findings found but not listed. */
+  more: number;
+};
 
 /**
  * A note to paste into your agent: what was found where, that it's only a pattern match, and to
@@ -64,14 +71,16 @@ export function agentReviewPrompt(skills: FlaggedSkill[]): string {
     "For each finding below, open the file at that line and tell me:",
     "1. In one sentence, what the line does.",
     "2. Your call: fine as is, worth a small edit, or remove the skill. Say why.",
+    "Line numbers are from the copy saved to omgskills; if your copy changed since, look near that line. A folder may be on another of my computers; if it isn't here, say so.",
     "If something is a real key or password, tell me which file it's in but don't repeat it. Don't change any files until I say so.",
     "",
   ];
   skills.forEach((skill, index) => {
-    const where = skill.folders.length ? ` (${skill.folders.join(", ")})` : " (saved in omgskills, not installed here)";
+    const where = skill.folders.length ? ` (usually at ${skill.folders.join(" or ")})` : " (saved in omgskills, not installed)";
     lines.push(`${index + 1}. ${skill.name}${where}`);
     for (const finding of skill.findings) lines.push(`   - ${findingPlace(finding)}: ${findingInfo(finding).title.toLowerCase()}`);
-    if (!skill.findings.length) lines.push("   - The details aren't available yet; look over the skill's files.");
+    if (skill.more) lines.push(`   - And ${skill.more} more not listed here; look over the rest of the skill's files too.`);
+    if (!skill.findings.length && !skill.more) lines.push("   - The details aren't available yet; look over the skill's files.");
   });
   return lines.join("\n");
 }

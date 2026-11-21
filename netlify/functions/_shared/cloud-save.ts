@@ -142,7 +142,13 @@ export type CloudSavedVersion = {
  * clean: every scanner finished and found nothing above low (an unknown severity counts as serious). flagged: something was found.
  * incomplete: a scanner couldn't finish (never shown as clean).
  */
-export type CloudScanSummary = { status: "clean" | "flagged" | "incomplete"; scannedAt: string; findings: CloudScanFinding[] };
+export type CloudScanSummary = {
+  status: "clean" | "flagged" | "incomplete";
+  scannedAt: string;
+  /** The first findings above low; findingCount says how many there are in all. */
+  findings: CloudScanFinding[];
+  findingCount: number;
+};
 
 /** One thing a scan found worth a look (above low): the rule, file and line, never the matched text. */
 export type CloudScanFinding = { rule: string; label: string; severity: string; path: string; line: number | null };
@@ -227,9 +233,10 @@ const versionColumns = `
       -- What was found, file and line, never the matched text; the first ${MAX_SCAN_FINDINGS}.
       'findings', COALESCE(to_jsonb((array_agg(json_build_object(
           'rule', found.finding->>'rule', 'label', found.finding->>'label', 'severity', found.finding->>'severity',
-          'path', found.finding->>'path', 'line', CASE WHEN jsonb_typeof(found.finding->'line') = 'number' THEN (found.finding->>'line')::int END
-        ) ORDER BY found.finding->>'path', CASE WHEN jsonb_typeof(found.finding->'line') = 'number' THEN (found.finding->>'line')::int END NULLS FIRST, found.finding->>'rule'
-      ) FILTER (WHERE found.finding IS NOT NULL))[1:${MAX_SCAN_FINDINGS}]), '[]'::jsonb)
+          'path', found.finding->>'path', 'line', CASE WHEN found.finding->>'line' ~ '^[0-9]{1,9}$' THEN (found.finding->>'line')::int END
+        ) ORDER BY found.finding->>'path', CASE WHEN found.finding->>'line' ~ '^[0-9]{1,9}$' THEN (found.finding->>'line')::int END NULLS FIRST, found.finding->>'rule'
+      ) FILTER (WHERE found.finding IS NOT NULL))[1:${MAX_SCAN_FINDINGS}]), '[]'::jsonb),
+      'findingCount', count(found.finding)
     ) END
     FROM (
       SELECT DISTINCT ON (scan.scanner) scan.status, scan.finished_at,

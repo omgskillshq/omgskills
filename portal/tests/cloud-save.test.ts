@@ -368,32 +368,33 @@ test("the Safety scan page puts each skill under its worst copy", () => {
 test("a flagged skill lists what each flagged copy's scan found", () => {
   const download = { rule: "download_and_run", label: "download_and_run", severity: "high", path: "SKILL.md", line: 37 };
   const rows = new Map<string, any>([
-    ["one", { key: "one", status: "saved", scan: { status: "flagged", scannedAt: "2026-11-21T00:00:00Z", findings: [download] } }],
+    ["one", { key: "one", status: "saved", scan: { status: "flagged", scannedAt: "2026-11-21T00:00:00Z", findings: [download], findingCount: 3 } }],
     ["two", { key: "two", status: "saved", scan: { status: "flagged", scannedAt: "2026-11-21T00:00:00Z" } }],
     ["fine", { key: "fine", status: "saved", scan: { status: "clean", scannedAt: "2026-11-21T00:00:00Z", findings: [] } }],
   ]);
   assert.deepEqual(safetyStatus(rows, ["fine", "one", "two"]).flagged, [
-    { key: "one", findings: [download] },
-    { key: "two", findings: [] },
+    { key: "one", findings: [download], more: 2 },
+    { key: "two", findings: [], more: 0 },
   ], "an older server's scan without findings still counts as flagged");
   assert.equal(safetyStatus(rows, ["fine"]).flagged, undefined);
 });
 
 test("the note for your agent says where to look, that a match isn't proof, and never to repeat a key", () => {
   const note = agentReviewPrompt([
-    { name: "choreograph", folders: ["~/.claude/skills/choreograph"], findings: [
+    { name: "choreograph", folders: ["~/.claude/skills/choreograph", "~/.codex/skills/choreograph"], more: 4, findings: [
       { rule: "hidden_instructions", label: "hidden_instructions", severity: "high", path: "SKILL.md", line: 31 },
       { rule: "scripts", label: "something-new", severity: "medium", path: "run.sh", line: null },
     ] },
-    { name: "cloud-only", folders: [], findings: [] },
+    { name: "cloud-only", folders: [], findings: [], more: 0 },
   ]);
   assert.match(note, /these 2 skills/);
   assert.match(note, /doesn't mean a skill is harmful/);
   assert.match(note, /don't repeat it/);
   assert.match(note, /Don't change any files until I say so/);
-  assert.match(note, /1\. choreograph \(~\/\.claude\/skills\/choreograph\)\n {3}- SKILL\.md, line 31: instructions aimed at the agent\n {3}- run\.sh: matched one of our checks/);
-  assert.match(note, /2\. cloud-only \(saved in omgskills, not installed here\)\n {3}- The details aren't available yet/);
-  assert.match(agentReviewPrompt([{ name: "x", folders: [], findings: [] }]), /flagged this skill/);
+  assert.match(note, /Line numbers are from the copy saved to omgskills/);
+  assert.match(note, /1\. choreograph \(usually at ~\/\.claude\/skills\/choreograph or ~\/\.codex\/skills\/choreograph\)\n {3}- SKILL\.md, line 31: instructions aimed at the agent\n {3}- run\.sh: matched one of our checks\n {3}- And 4 more not listed here/);
+  assert.match(note, /2\. cloud-only \(saved in omgskills, not installed\)\n {3}- The details aren't available yet/);
+  assert.match(agentReviewPrompt([{ name: "x", folders: [], findings: [], more: 0 }]), /flagged this skill/);
 });
 
 test("an installed copy's folder comes from its agent", () => {
