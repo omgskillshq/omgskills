@@ -50,6 +50,7 @@ const GITHUB_TIMEOUT_MS = 6_000;
 const LEASE = "2 minutes";
 const BATCH = 5;
 export const MAX_ATTEMPTS = 6;
+const REVIVE_AFTER = "6 hours";
 const SWEEP_LIMIT = 500;
 
 export function scanDriverConfigFromEnv(env: Record<string, string | undefined> = process.env): ScanDriverConfig | null {
@@ -190,7 +191,10 @@ async function leaseJobs(pool: Pool, scanners: ScannerInfo[], limit: number, ski
     `
       WITH due AS (
         SELECT release_id FROM scan_jobs
-        WHERE not_before <= now() AND (lease_until IS NULL OR lease_until < now()) AND attempts < $3
+        WHERE not_before <= now() AND (lease_until IS NULL OR lease_until < now())
+          -- Out of tries after timing out (a big skill, a slow scanner): one more try every
+          -- ${REVIVE_AFTER} rather than never, so it doesn't stay unscanned for good.
+          AND (attempts < $3 OR (last_error = 'unreachable' AND not_before <= now() - interval '${REVIVE_AFTER}'))
           AND NOT (release_id = ANY($6::uuid[]))
         -- One that timed out goes first, while the run still has time for its longer try.
         ORDER BY (last_error = 'unreachable') IS TRUE DESC, queued_at DESC

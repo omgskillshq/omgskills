@@ -374,3 +374,19 @@ test("a new save is scanned before older jobs that failed for other reasons", as
     assert.deepEqual((await scans(pool)).map((s) => s.tree_sha), [fresh.status === "saved" ? fresh.skill.currentVersion.treeSha : ""]);
   });
 });
+
+test("a skill that ran out of tries by timing out gets one more try every 6 hours; others stay stopped", async () => {
+  await withMigratedSchema(async (pool) => {
+    const store = new MemoryStore();
+    await saveSkill(pool, store, await createUser(pool), "big", risky);
+    await saveSkill(pool, store, await createUser(pool), "rejected", [{ ...risky[0], text: `${risky[0].text}Other.\n` }]);
+    await pool.query("UPDATE scan_jobs SET attempts = $1, not_before = now() - interval '1 hour'", [MAX_ATTEMPTS]);
+    await pool.query("UPDATE scan_jobs SET last_error = 'unreachable' WHERE release_id = (SELECT release_id FROM scan_jobs ORDER BY queued_at LIMIT 1)");
+    await pool.query("UPDATE scan_jobs SET last_error = 'scanner_failed' WHERE last_error IS NULL");
+    assert.equal((await runScanQueue(pool, deps(scanner(store).fetchImpl))).scanned, 0, "not yet: under 6 hours");
+
+    await pool.query("UPDATE scan_jobs SET not_before = now() - interval '7 hours'");
+    assert.equal((await runScanQueue(pool, deps(scanner(store).fetchImpl))).scanned, 1, "the timed-out one, once");
+    assert.deepEqual((await pool.query("SELECT last_error FROM scan_jobs")).rows, [{ last_error: "scanner_failed" }], "the rejected one stays");
+  });
+});

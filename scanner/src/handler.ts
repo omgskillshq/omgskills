@@ -28,6 +28,7 @@ const MAX_REQUEST_BYTES = 20 * 1024 * 1024;
 /** What one scan holds in memory at once; a bigger skill gets a partial result, never a crash. */
 export const MAX_SCAN_BYTES = 32 * 1024 * 1024;
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const READ_CONCURRENCY = 16;
 const CLOUD_KEY = new RegExp(`^cloud/${UUID}/([0-9a-f]{40})(?:/${UUID})?$`);
 const SHA = /^[0-9a-f]{40}$/;
 
@@ -105,7 +106,23 @@ async function loadFiles(request: ScanRequest, deps: ScanDependencies): Promise<
   if (manifest.totalBytes > MAX_SCAN_BYTES) return null;
 
   const { body, offsets } = frameFiles(request.files);
-  for (const [index, file] of request.files.entries()) {
+  // Stored files are read a few at a time: one by one, a skill with hundreds of files ran out of time.
+  // After one read fails the others stop taking new files; the first error is the answer.
+  let next = 0;
+  let failed = false;
+  const readNext = async (): Promise<void> => {
+    while (!failed && next < request.files.length) {
+      const index = next++;
+      try {
+        await readInto(index);
+      } catch (error) {
+        failed = true;
+        throw error;
+      }
+    }
+  };
+  const readInto = async (index: number) => {
+    const file = request.files[index];
     let data: Uint8Array | null;
     if (typeof file.storageKey === "string") {
       const match = CLOUD_KEY.exec(file.storageKey);
@@ -121,7 +138,8 @@ async function loadFiles(request: ScanRequest, deps: ScanDependencies): Promise<
       throw new RequestError(422, "file_mismatch");
     }
     body.set(data, offsets[index]);
-  }
+  };
+  await Promise.all(Array.from({ length: Math.min(READ_CONCURRENCY, request.files.length) }, readNext));
   return body;
 }
 
