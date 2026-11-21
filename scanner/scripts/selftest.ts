@@ -18,7 +18,7 @@ async function get(path: string): Promise<unknown> {
     let response: Response | undefined;
     let problem: string;
     try {
-      response = await fetch(`${url}${path}`, { headers, signal: AbortSignal.timeout(Math.max(1_000, Math.min(60_000, deadline - Date.now()))) });
+      response = await fetch(`${url}${path}`, { headers, signal: AbortSignal.timeout(60_000) });
       problem = `answered ${response.status}`;
     } catch (error) {
       problem = `did not answer (${error instanceof Error ? error.message : String(error)})`;
