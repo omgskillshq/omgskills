@@ -8,7 +8,7 @@ export function accountNavigation(nav: Navigation, signedIn: boolean): Navigatio
     return { ...nav, source: "all", selected: nav.selected.startsWith("catalog:") || personalResult ? nav.selected : "" };
   }
   if (!signedIn) return { ...initialNavigation, view: "discover" };
-  if (!["all", "favorites", "sets", "set", "agents", "profile", "devices", "github", "cloud", "mcp"].includes(nav.view)) return { ...initialNavigation };
+  if (!["all", "favorites", "sets", "set", "agents", "profile", "devices", "github", "cloud", "safety", "mcp"].includes(nav.view)) return { ...initialNavigation };
   if (nav.view === "set" && !/^[a-zA-Z0-9_-]+$/.test(nav.id)) return { ...initialNavigation, view: "sets" };
   const list = ["all", "favorites", "set"].includes(nav.view);
   // "attention" is the only list filter My skills keeps in the address.

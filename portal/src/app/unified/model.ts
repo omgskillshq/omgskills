@@ -128,6 +128,7 @@ export type View =
   | "profile"
   | "github"
   | "cloud"
+  | "safety"
   | "mcp";
 const views: View[] = [
   "all",
@@ -148,6 +149,7 @@ const views: View[] = [
   "profile",
   "github",
   "cloud",
+  "safety",
   "mcp",
 ];
 export type Navigation = {

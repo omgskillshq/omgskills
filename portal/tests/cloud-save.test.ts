@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { PortalApiError } from "../src/api-error";
-import { cleanScan, scanCopyKeys, cloudSkillKey, cloudSkillRows, deleteCloudSaved, loadSavedSkillMd, formatBytes, isDeletingAllCloudSkills, isDeletingCloudSkill, loadCloudSave, type CloudSaveState } from "../src/cloud-save/cloud-save";
+import { cleanScan, safetyStatus, scanCopyKeys, cloudSkillKey, cloudSkillRows, deleteCloudSaved, loadSavedSkillMd, formatBytes, isDeletingAllCloudSkills, isDeletingCloudSkill, loadCloudSave, type CloudSaveState } from "../src/cloud-save/cloud-save";
 import type { SyncedSkill } from "../src/synced-skill-grouping";
 import { savedSkillKeys } from "../src/app/unified/SkillReadme";
 import { notInstalledSkills } from "../src/app/unified/model";
@@ -335,4 +335,29 @@ test("the scan badge counts every current copy, with or without a library ID", (
   ];
   assert.deepEqual(scanCopyKeys(copies), ["ai-seo", "ai-seo-2", "mine-folder"]);
   assert.deepEqual(scanCopyKeys([]), []);
+});
+
+test("the Safety scan page puts each skill under its worst copy", () => {
+  const row = (key: string, status: string, scan: { status: "clean" | "flagged" | "incomplete"; scannedAt: string } | null) =>
+    [key, { key, name: key, description: "", status, versionCount: 1, setCount: 0, savedAt: "2026-11-21", labels: [], scan, findings: [], onMac: true, origin: null }] as const;
+  const rows = new Map<string, any>([
+    row("a", "saved", { status: "clean", scannedAt: "2026-11-20T00:00:00Z" }),
+    row("b", "library", { status: "clean", scannedAt: "2026-11-21T00:00:00Z" }),
+    row("bad", "saved", { status: "flagged", scannedAt: "2026-11-21T00:00:00Z" }),
+    row("part", "saved", { status: "incomplete", scannedAt: "2026-11-21T00:00:00Z" }),
+    row("new", "saved", null),
+    row("held", "review", null),
+    row("off", "excluded", null),
+    row("big", "too_large", null),
+  ]);
+  assert.deepEqual(safetyStatus(rows, ["a", "b"]), { group: "clean", scannedAt: "2026-11-21T00:00:00Z" });
+  assert.equal(safetyStatus(rows, ["a", "bad"]).group, "flagged");
+  assert.equal(safetyStatus(rows, ["part"]).group, "incomplete");
+  assert.equal(safetyStatus(rows, ["a", "new"]).group, "not_scanned");
+  assert.equal(safetyStatus(rows, ["held", "bad"]).group, "flagged");
+  assert.equal(safetyStatus(rows, ["held"]).group, "held");
+  assert.equal(safetyStatus(rows, ["off"]).group, "off");
+  assert.deepEqual(safetyStatus(rows, ["big"]), { group: "not_saved", note: "Can't sync: too large" });
+  assert.equal(safetyStatus(rows, ["missing"]).group, "not_saved");
+  assert.deepEqual(safetyStatus(rows, []), { group: "no_copy" });
 });

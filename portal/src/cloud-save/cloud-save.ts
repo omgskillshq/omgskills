@@ -330,3 +330,41 @@ export function formatBytes(bytes: number) {
   while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit += 1; }
   return `${value < 10 ? value.toFixed(1) : Math.round(value)} ${units[unit]}`;
 }
+
+/** Where one skill stands with the background scan, for the Safety scan page. Worst copy wins. */
+export type SafetyGroup = "flagged" | "held" | "incomplete" | "not_scanned" | "not_saved" | "off" | "no_copy" | "clean";
+
+/** Sections of the Safety scan page, worst first. */
+export const safetyGroups: { group: Exclude<SafetyGroup, "clean">; title: string; help: string }[] = [
+  { group: "flagged", title: "Flagged", help: "The scan found something to check, like a key, hidden instructions or a command that downloads and runs code." },
+  { group: "held", title: "Held back", help: "A file looks like it holds a key or password, so it wasn't saved or scanned." },
+  { group: "incomplete", title: "Scan didn't finish", help: "Part of the skill was scanned; the rest was too big or couldn't be read." },
+  { group: "not_scanned", title: "Not scanned yet", help: "Saved, but the scan hasn't finished. It keeps trying in the background." },
+  { group: "not_saved", title: "Not saved", help: "Only saved copies are scanned." },
+  { group: "off", title: "Saving turned off", help: "You turned off saving for these, so they aren't scanned." },
+  { group: "no_copy", title: "No copy of yours to scan", help: "In My skills, but nothing of yours is saved or installed to scan." },
+];
+
+const safetyRank: Record<SafetyGroup, number> = {
+  clean: 0, no_copy: 1, off: 2, not_saved: 3, not_scanned: 4, incomplete: 5, held: 6, flagged: 7,
+};
+
+/** One skill's scan state from its saved copies (keys). No keys means nothing of yours to scan. */
+export function safetyStatus(rows: Map<string, CloudSkillRow>, keys: string[]): { group: SafetyGroup; note?: string; scannedAt?: string } {
+  if (keys.length === 0) return { group: "no_copy" };
+  let worst: { group: SafetyGroup; note?: string; scannedAt?: string } = { group: "clean" };
+  for (const key of keys) {
+    const row = rows.get(key);
+    const next: { group: SafetyGroup; note?: string; scannedAt?: string } =
+      !row ? { group: "not_saved", note: "Not synced yet" }
+      : row.status === "excluded" ? { group: "off" }
+      : row.status === "review" || row.status === "confirmed" ? { group: "held", note: statusText[row.status] }
+      : !["saved", "deleted", "set", "library"].includes(row.status) ? { group: "not_saved", note: statusText[row.status] }
+      : !row.scan ? { group: "not_scanned" }
+      : row.scan.status === "clean" ? { group: "clean", scannedAt: row.scan.scannedAt }
+      : { group: row.scan.status, scannedAt: row.scan.scannedAt };
+    if (safetyRank[next.group] > safetyRank[worst.group]) worst = next;
+    else if (next.group === "clean" && worst.group === "clean" && (!worst.scannedAt || (next.scannedAt ?? "") > worst.scannedAt)) worst = next;
+  }
+  return worst;
+}
