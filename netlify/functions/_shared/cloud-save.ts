@@ -142,7 +142,19 @@ export type CloudSavedVersion = {
  * clean: every scanner finished and found nothing above low (an unknown severity counts as serious). flagged: something was found.
  * incomplete: a scanner couldn't finish (never shown as clean).
  */
-export type CloudScanSummary = { status: "clean" | "flagged" | "incomplete"; scannedAt: string };
+export type CloudScanSummary = {
+  status: "clean" | "flagged" | "incomplete";
+  scannedAt: string;
+  /** The first findings above low; findingCount says how many there are in all. */
+  findings: CloudScanFinding[];
+  findingCount: number;
+};
+
+/** One thing a scan found worth a look (above low): the rule, file and line, never the matched text. */
+export type CloudScanFinding = { rule: string; label: string; severity: string; path: string; line: number | null };
+
+/** Findings sent per version; the rest are counted by the scan, not listed. */
+const MAX_SCAN_FINDINGS = 50;
 
 export type CloudSavedSkill = {
   key: string;
@@ -217,15 +229,27 @@ const versionColumns = `
         WHEN bool_or(latest.status <> 'complete') THEN 'incomplete'
         WHEN bool_or(latest.serious) THEN 'flagged'
         ELSE 'clean' END,
-      'scannedAt', to_char(max(latest.finished_at) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+      'scannedAt', to_char(max(latest.finished_at) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+      -- What was found, file and line, never the matched text; the first ${MAX_SCAN_FINDINGS}.
+      'findings', COALESCE(to_jsonb((array_agg(json_build_object(
+          'rule', found.finding->>'rule', 'label', found.finding->>'label', 'severity', found.finding->>'severity',
+          'path', found.finding->>'path', 'line', CASE WHEN found.finding->>'line' ~ '^[0-9]{1,9}$' THEN (found.finding->>'line')::int END
+        ) ORDER BY found.finding->>'path', CASE WHEN found.finding->>'line' ~ '^[0-9]{1,9}$' THEN (found.finding->>'line')::int END NULLS FIRST, found.finding->>'rule'
+      ) FILTER (WHERE found.finding IS NOT NULL))[1:${MAX_SCAN_FINDINGS}]), '[]'::jsonb),
+      'findingCount', count(found.finding)
     ) END
     FROM (
       SELECT DISTINCT ON (scan.scanner) scan.status, scan.finished_at,
-        EXISTS (SELECT 1 FROM jsonb_array_elements(scan.findings) finding WHERE finding->>'severity' IS DISTINCT FROM 'low' AND finding->>'severity' IS DISTINCT FROM 'info') AS serious
+        EXISTS (SELECT 1 FROM jsonb_array_elements(scan.findings) finding WHERE finding->>'severity' IS DISTINCT FROM 'low' AND finding->>'severity' IS DISTINCT FROM 'info') AS serious,
+        scan.findings
       FROM skill_scans scan
       WHERE scan.tree_sha = release.tree_sha
       ORDER BY scan.scanner, scan.finished_at DESC, scan.scanner_version DESC
     ) latest
+    LEFT JOIN LATERAL (
+      SELECT finding FROM jsonb_array_elements(latest.findings) finding
+      WHERE finding->>'severity' IS DISTINCT FROM 'low' AND finding->>'severity' IS DISTINCT FROM 'info'
+    ) found ON true
   ) AS scan
 `;
 

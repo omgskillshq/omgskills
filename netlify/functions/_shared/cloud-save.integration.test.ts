@@ -899,11 +899,26 @@ test("a saved version carries its scan: none yet, then clean, flagged or incompl
     );
     const info = { rule: "scripts", label: "scripts", severity: "info", path: "scripts/run.sh", line: null };
     await put("omg-rules", "1", "complete", [info], "2026-11-21T10:00:00Z");
-    assert.deepEqual(await scanOf(), { status: "clean", scannedAt: "2026-11-21T10:00:00.000Z" });
+    assert.deepEqual(await scanOf(), { status: "clean", scannedAt: "2026-11-21T10:00:00.000Z", findings: [], findingCount: 0 }, "info findings aren't listed");
     await put("other", "1", "partial", [], "2026-11-21T11:00:00Z");
     assert.equal((await scanOf())?.status, "incomplete", "partial never shows as clean");
-    await put("other", "2", "complete", [{ ...info, rule: "download_and_run", label: "download_and_run", severity: "high" }], "2026-11-21T12:00:00Z");
-    assert.deepEqual(await scanOf(), { status: "flagged", scannedAt: "2026-11-21T12:00:00.000Z" });
+    const download = { ...info, rule: "download_and_run", label: "download_and_run", severity: "high", path: "SKILL.md", line: 12 };
+    const key = { rule: "openai_key", label: "secret", severity: "high", path: "SKILL.md", line: 3, text: "never sent" };
+    await put("other", "2", "complete", [download, key], "2026-11-21T12:00:00Z");
+    assert.deepEqual(await scanOf(), {
+      status: "flagged",
+      scannedAt: "2026-11-21T12:00:00.000Z",
+      findings: [
+        { rule: "openai_key", label: "secret", severity: "high", path: "SKILL.md", line: 3 },
+        { rule: "download_and_run", label: "download_and_run", severity: "high", path: "SKILL.md", line: 12 }
+      ],
+      findingCount: 2
+    }, "by file and line, only the known fields");
+    await put("other", "3", "complete", Array.from({ length: 60 }, (_, line) => ({ ...download, line })), "2026-11-21T12:30:00Z");
+    assert.equal((await scanOf())?.findings.length, 50, "at most 50 listed");
+    assert.equal((await scanOf())?.findingCount, 60, "but all of them counted");
+    await put("other", "4", "complete", [{ ...download, line: 3.5 }, { ...download, line: 1e12 }, { ...download, line: "7" }], "2026-11-21T12:45:00Z");
+    assert.deepEqual((await scanOf())?.findings.map((finding) => finding.line), [null, null, 7], "a line that isn't a whole number never breaks the read");
     await put("third", "1", "complete", [{ ...info, severity: "critical" }], "2026-11-21T13:00:00Z");
     await pool.query("DELETE FROM skill_scans WHERE scanner = 'other'");
     assert.equal((await scanOf())?.status, "flagged", "an unknown severity never counts as clean");
