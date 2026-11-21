@@ -128,7 +128,7 @@ test("candidate navigation keeps supported account views and clears unsupported 
     assert.equal(connectedCandidateNavigation(nav, true).view, view);
     assert.equal(connectedCandidateNavigation(nav, false).view, "discover");
   }
-  for (const view of ["github", "mcp", "set", "sets", "favorites"] as const) {
+  for (const view of ["github", "safety", "mcp", "set", "sets", "favorites"] as const) {
     const nav = connectedCandidateNavigation({ ...initialNavigation, view, id: "private-set", query: "private query", selected: "set-item:private" }, true);
     assert.deepEqual(nav, { ...initialNavigation, view: "discover" });
   }
