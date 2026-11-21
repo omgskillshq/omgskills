@@ -206,3 +206,22 @@ test("an oversized body is cut off even without a length, and a missing key fail
   assert.ok(sent <= 22, "stops reading soon after the limit");
   assert.equal((await handle(await signed("GET", "/scanners"), deps({ signingKey: "" }))).status, 503);
 });
+
+test("saved files are read several at a time, and the scan matches reading them one by one", async () => {
+  const stored = new Map(skill.map((file) => [storeKey(file.blobSha), file.data]));
+  let inFlight = 0;
+  let most = 0;
+  const slow = deps({
+    async readStoredFile(key) {
+      inFlight += 1;
+      most = Math.max(most, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight -= 1;
+      return stored.get(key) ?? null;
+    }
+  });
+  const parallel = await (await handle(await signed("POST", "/scan", { treeSha, files: requestFiles() }), slow)).json() as ScanResponse;
+  const inline = await (await handle(await signed("POST", "/scan", { treeSha, files: requestFiles(true) }), deps())).json() as ScanResponse;
+  assert.ok(skill.length < 2 || most > 1, "reads overlap");
+  assert.deepEqual(parallel.results.map((r) => r.findings), inline.results.map((r) => r.findings));
+});

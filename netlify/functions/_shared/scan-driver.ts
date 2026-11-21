@@ -50,6 +50,7 @@ const GITHUB_TIMEOUT_MS = 6_000;
 const LEASE = "2 minutes";
 const BATCH = 5;
 export const MAX_ATTEMPTS = 6;
+const REVIVE_AFTER = "6 hours";
 const SWEEP_LIMIT = 500;
 
 export function scanDriverConfigFromEnv(env: Record<string, string | undefined> = process.env): ScanDriverConfig | null {
@@ -190,15 +191,21 @@ async function leaseJobs(pool: Pool, scanners: ScannerInfo[], limit: number, ski
     `
       WITH due AS (
         SELECT release_id FROM scan_jobs
-        WHERE not_before <= now() AND (lease_until IS NULL OR lease_until < now()) AND attempts < $3
+        WHERE not_before <= now() AND (lease_until IS NULL OR lease_until < now())
+          -- Out of tries after timing out (a big skill, a slow scanner): one more try every
+          -- ${REVIVE_AFTER} rather than never, so it doesn't stay unscanned for good.
+          AND (attempts < $3 OR (last_error = 'unreachable' AND not_before <= now() - interval '${REVIVE_AFTER}'))
           AND NOT (release_id = ANY($6::uuid[]))
-        -- One that timed out goes first, while the run still has time for its longer try.
-        ORDER BY (last_error = 'unreachable') IS TRUE DESC, queued_at DESC
+        -- An extra try for one out of tries waits behind everything else. Otherwise one that timed
+        -- out goes first, while the run still has time for its longer try.
+        ORDER BY attempts >= $3, (last_error = 'unreachable') IS TRUE DESC, queued_at DESC
         LIMIT $2
         FOR UPDATE SKIP LOCKED
       ), leased AS (
         UPDATE scan_jobs job
-        SET lease_token = $1, lease_until = now() + interval '${LEASE}', attempts = job.attempts + 1
+        SET lease_token = $1, lease_until = now() + interval '${LEASE}', attempts = job.attempts + 1,
+          -- An extra try starts its 6-hour wait now, so a run that dies holding it can't retry it every run.
+          not_before = CASE WHEN job.attempts >= $3 THEN now() ELSE job.not_before END
         FROM due WHERE job.release_id = due.release_id
         RETURNING job.release_id, job.tree_sha, job.attempts, job.lease_token, job.last_error, job.queued_at
       )
@@ -216,7 +223,7 @@ async function leaseJobs(pool: Pool, scanners: ScannerInfo[], limit: number, ski
       FROM leased
       JOIN skill_releases release ON release.id = leased.release_id
       JOIN skill_sources source ON source.id = release.source_id
-      ORDER BY (leased.last_error = 'unreachable') IS TRUE DESC, leased.queued_at DESC
+      ORDER BY leased.attempts > $3, (leased.last_error = 'unreachable') IS TRUE DESC, leased.queued_at DESC
     `,
     [leaseToken, limit, MAX_ATTEMPTS, scanners.map((s) => s.scanner), scanners.map((s) => s.version), skip]
   );
@@ -325,10 +332,12 @@ async function retryLater(client: Pick<Pool, "query">, job: LeasedJob, code: str
     `
       UPDATE scan_jobs
       SET lease_token = NULL, lease_until = NULL, last_error = $3,
-          not_before = now() + make_interval(mins => power(2, LEAST(attempts, 8))::int)
+          -- An extra try that failed waits 6 hours from now (that wait is in the lease), not a backoff on top.
+          not_before = CASE WHEN attempts > $4 THEN now()
+            ELSE now() + make_interval(mins => power(2, LEAST(attempts, 8))::int) END
       WHERE release_id = $1 AND lease_token = $2
     `,
-    [job.releaseId, job.leaseToken, code]
+    [job.releaseId, job.leaseToken, code, MAX_ATTEMPTS]
   );
 }
 
@@ -351,8 +360,11 @@ export async function runScanQueue(pool: Pool, deps: ScanDriverDeps, runLimitMs 
   const handBack = (job: LeasedJob) => {
     handedBack.push(job.releaseId);
     return pool.query(
-      "UPDATE scan_jobs SET lease_token = NULL, lease_until = NULL, attempts = attempts - 1 WHERE release_id = $1 AND lease_token = $2",
-      [job.releaseId, job.leaseToken]
+      // An extra try handed back unused is due again at once, not 6 hours later.
+      `UPDATE scan_jobs SET lease_token = NULL, lease_until = NULL, attempts = attempts - 1,
+         not_before = CASE WHEN attempts > $3 THEN now() - interval '${REVIVE_AFTER}' ELSE not_before END
+       WHERE release_id = $1 AND lease_token = $2`,
+      [job.releaseId, job.leaseToken, MAX_ATTEMPTS]
     );
   };
   let stopped = false;
