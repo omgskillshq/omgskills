@@ -276,13 +276,16 @@ function ScanTip({ scannedAt, yourCopy }: { scannedAt: string; yourCopy: boolean
  * Safety scan: how many of your skills the background scan found nothing in, then every other
  * skill by what stopped it, so nothing is hidden. Advisory only; it never says a skill is safe.
  */
-function SafetyScan({ skills, status, ready, open }: {
+function SafetyScan({ skills, status, ready, available, open }: {
   skills: SkillDisplay[];
+  /** Your saved copies loaded; without them there's nothing to report. */
+  available: boolean;
   status: (skill: SkillDisplay) => { group: SafetyGroup; note?: string; scannedAt?: string };
   ready: boolean;
   open: (skill: SkillDisplay) => void;
 }) {
   if (!ready) return <div className="ua-account-page"><p className="ua-muted">Loading scan results…</p></div>;
+  if (!available) return <Empty title="Scan results aren't available right now">They come from your synced skills. Try again in a moment.</Empty>;
   const results = skills.map(skill => ({ skill, ...status(skill) }));
   const clean = results.filter(result => result.group === "clean");
   const latest = clean.reduce((newest, result) => (result.scannedAt ?? "") > newest ? result.scannedAt! : newest, "");
@@ -2098,7 +2101,7 @@ export function UnifiedApp({
               ) : nav.view === "safety" ? (
                 <SafetyScan skills={allMine} status={skill => safetyStatus(cloudRows,
                   skill.cloudKey ? [skill.cloudKey] : scanCopyKeys(skill.installed?.sourceSkills ?? []))}
-                  ready={!!cloud && myCountReady} open={skill => navigate(openSkillNavigation({ ...nav, view: "all", id: "", query: "" }, skill))} />
+                  ready={myCountReady} available={!!cloud} open={skill => navigate(openSkillNavigation({ ...nav, view: "all", id: "", query: "" }, skill))} />
               ) : ["agents", "devices", "profile", "github", "cloud", "mcp"].includes(
                   nav.view,
                 ) ? (
