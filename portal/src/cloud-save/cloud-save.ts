@@ -341,7 +341,7 @@ export const safetyGroups: { group: Exclude<SafetyGroup, "clean">; title: string
   { group: "incomplete", title: "Scan didn't finish", help: "Part of the skill was scanned; the rest was too big or couldn't be read." },
   { group: "not_scanned", title: "Not scanned yet", help: "Saved, but the scan hasn't finished. It keeps trying in the background." },
   { group: "not_saved", title: "Not saved", help: "Only saved copies are scanned." },
-  { group: "off", title: "Saving turned off", help: "You turned off saving for these, so they aren't scanned." },
+  { group: "off", title: "Saving turned off", help: "Saving is turned off for these, or for all your skills, so they aren't scanned." },
   { group: "no_copy", title: "No copy of yours to scan", help: "In My skills, but nothing of yours is saved or installed to scan." },
 ];
 
@@ -357,7 +357,7 @@ export function safetyStatus(rows: Map<string, CloudSkillRow>, keys: string[]): 
     const row = rows.get(key);
     const next: { group: SafetyGroup; note?: string; scannedAt?: string } =
       !row ? { group: "not_saved", note: "Not synced yet" }
-      : row.status === "excluded" ? { group: "off" }
+      : row.status === "excluded" || row.status === "off" ? { group: "off" }
       : row.status === "review" || row.status === "confirmed" ? { group: "held", note: statusText[row.status] }
       : !["saved", "deleted", "set", "library"].includes(row.status) ? { group: "not_saved", note: statusText[row.status] }
       : !row.scan ? { group: "not_scanned" }

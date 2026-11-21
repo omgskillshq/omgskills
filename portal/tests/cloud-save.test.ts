@@ -348,6 +348,7 @@ test("the Safety scan page puts each skill under its worst copy", () => {
     row("new", "saved", null),
     row("held", "review", null),
     row("off", "excluded", null),
+    row("all-off", "off", null),
     row("big", "too_large", null),
   ]);
   assert.deepEqual(safetyStatus(rows, ["a", "b"]), { group: "clean", scannedAt: "2026-11-21T00:00:00Z" });
@@ -357,6 +358,7 @@ test("the Safety scan page puts each skill under its worst copy", () => {
   assert.equal(safetyStatus(rows, ["held", "bad"]).group, "flagged");
   assert.equal(safetyStatus(rows, ["held"]).group, "held");
   assert.equal(safetyStatus(rows, ["off"]).group, "off");
+  assert.equal(safetyStatus(rows, ["all-off"]).group, "off", "saving off for everything");
   assert.deepEqual(safetyStatus(rows, ["big"]), { group: "not_saved", note: "Can't sync: too large" });
   assert.equal(safetyStatus(rows, ["missing"]).group, "not_saved");
   assert.deepEqual(safetyStatus(rows, []), { group: "no_copy" });
