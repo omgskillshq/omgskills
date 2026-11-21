@@ -6,14 +6,29 @@ const url = process.env.SCAN_WORKER_URL?.replace(/\/+$/, "");
 const key = process.env.SCAN_SIGNING_KEY;
 if (!url || !key) throw new Error("SCAN_WORKER_URL and SCAN_SIGNING_KEY are required");
 
+// A deploy that changes the container can take several minutes to swap the old one out, and the
+// scanner answers 5xx (or not at all) until then. Keep asking for up to 10 minutes; a 401 or other
+// 4xx means a wrong key or URL, so fail at once.
+const WAIT_MS = 10 * 60_000;
+const RETRY_MS = 15_000;
+
 async function get(path: string): Promise<unknown> {
-  // The first call may start a container; give it time.
-  for (let attempt = 1; ; attempt += 1) {
+  const deadline = Date.now() + WAIT_MS;
+  for (;;) {
     const headers = await signRequest(key!, "GET", path, new Uint8Array());
-    const response = await fetch(`${url}${path}`, { headers, signal: AbortSignal.timeout(60_000) });
-    if (response.ok) return response.json();
-    if (attempt >= 5) throw new Error(`${path} answered ${response.status}`);
-    await new Promise((resolve) => setTimeout(resolve, 10_000));
+    let response: Response | undefined;
+    let problem: string;
+    try {
+      response = await fetch(`${url}${path}`, { headers, signal: AbortSignal.timeout(60_000) });
+      problem = `answered ${response.status}`;
+    } catch (error) {
+      problem = `did not answer (${error instanceof Error ? error.message : String(error)})`;
+    }
+    if (response?.ok) return response.json();
+    if (response && response.status < 500) throw new Error(`${path} ${problem}`);
+    if (Date.now() + RETRY_MS > deadline) throw new Error(`${path} ${problem} for 10 minutes`);
+    console.log(`${path} ${problem}; the new container may still be starting. Trying again.`);
+    await new Promise((resolve) => setTimeout(resolve, RETRY_MS));
   }
 }
 
