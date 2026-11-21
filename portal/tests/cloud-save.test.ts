@@ -325,16 +325,14 @@ test("the shield needs every copy saved as it is now and scanned clean", () => {
   assert.equal(cleanScan(rows, []), null);
 });
 
-test("the scan badge counts your copies without a library ID, and leaves out other library skills", () => {
-  const lib = "owner/repo:skills/ai-seo";
+test("the scan badge counts every current copy, with or without a library ID", () => {
   const copies = [
     { name: "ai-seo", catalogSkillId: null, cloudKey: "ai-seo", isCurrent: true },
-    { name: "ai-seo", catalogSkillId: lib, cloudKey: "ai-seo", isCurrent: true },
+    { name: "ai-seo", catalogSkillId: "owner/repo:skills/ai-seo", cloudKey: "ai-seo", isCurrent: true },
     { name: "ai-seo", catalogSkillId: "other/repo:ai-seo", cloudKey: "ai-seo-2", isCurrent: true },
     { name: "ai-seo", catalogSkillId: null, cloudKey: "old", isCurrent: false },
-    { name: "Mine", catalogSkillId: "  ", installationFolder: "Mine-Folder" },
+    { name: "Mine", installationFolder: "Mine-Folder" },
   ];
-  assert.deepEqual(scanCopyKeys(copies, lib), ["ai-seo", "mine-folder"]);
   assert.deepEqual(scanCopyKeys(copies), ["ai-seo", "ai-seo-2", "mine-folder"]);
-  assert.deepEqual(scanCopyKeys([], lib), []);
+  assert.deepEqual(scanCopyKeys([]), []);
 });

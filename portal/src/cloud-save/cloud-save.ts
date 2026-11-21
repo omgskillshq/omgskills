@@ -280,17 +280,14 @@ export function skillCloudRow(rows: Map<string, CloudSkillRow>, keys: string[]):
  * is what's installed now and whose scan came back clean. Returns the newest scan time, or null.
  */
 /**
- * The saved keys of your installed copies of a skill, for its scan badge. Copies are grouped by name,
- * and most Macs don't report a library ID, so on a library skill leave out only copies that say
- * they're a different library skill. cleanScan then needs every one saved and scanned clean.
+ * The saved keys of your installed copies of a skill, for its scan badge: every current copy the
+ * panel groups under it (most Macs don't report a library ID, so copies are grouped by name).
+ * cleanScan then needs every one saved and scanned clean, so any flagged copy hides the badge.
  */
 export function scanCopyKeys(
-  copies: { isCurrent?: boolean | null; catalogSkillId?: string | null; cloudKey?: string | null; installationFolder?: string | null; name: string }[],
-  catalogId?: string,
+  copies: { isCurrent?: boolean | null; cloudKey?: string | null; installationFolder?: string | null; name: string }[],
 ): string[] {
-  const mine = copies.filter(copy => copy.isCurrent !== false
-    && (!catalogId || !copy.catalogSkillId?.trim() || copy.catalogSkillId.trim() === catalogId));
-  return [...new Set(mine.map(installationCloudKey))];
+  return [...new Set(copies.filter(copy => copy.isCurrent !== false).map(installationCloudKey))];
 }
 
 export function cleanScan(rows: Map<string, CloudSkillRow>, keys: string[]): string | null {

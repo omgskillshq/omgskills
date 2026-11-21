@@ -2295,7 +2295,7 @@ export function UnifiedApp({
                           )}
                           {!detail.setItemReleaseId && cloudRows.size > 0 && (() => {
                             // On a library skill the words say it's your copy; the library itself isn't scanned yet.
-                            const keys = detail.cloudKey ? [detail.cloudKey] : scanCopyKeys(detail.installed?.sourceSkills ?? [], detail.catalogId);
+                            const keys = detail.cloudKey ? [detail.cloudKey] : scanCopyKeys(detail.installed?.sourceSkills ?? []);
                             const scannedAt = cleanScan(cloudRows, keys);
                             return scannedAt ? <ScanTip scannedAt={scannedAt} yourCopy={!!detail.catalogId || discovery} /> : null;
                           })()}
