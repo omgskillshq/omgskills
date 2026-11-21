@@ -410,13 +410,36 @@ test("an extra try waits behind new saves, and a run that dies holding it doesn'
     assert.equal((await runScanQueue(pool, deps(watching))).scanned, 2);
     assert.deepEqual(order, [0, MAX_ATTEMPTS], "the new save is scanned before the extra try");
 
-    // A run that stops while holding an extra try (here: the keys stop matching) doesn't get it
-    // again on the next run: the extra try's 6-hour wait started when it was taken.
+    // While an extra try is being scanned its 6-hour wait has already started, so if the run dies
+    // here the job isn't picked up again on the next run.
     await saveSkill(pool, store, await createUser(pool), "big-again", [{ ...risky[0], text: `${risky[0].text}Again.\n` }]);
     await pool.query("UPDATE scan_jobs SET attempts = $1, last_error = 'unreachable', not_before = now() - interval '7 hours'", [MAX_ATTEMPTS]);
-    assert.equal((await runScanQueue(pool, deps(scanner(store, { scanStatus: 401 }).fetchImpl))).stoppedBy, "unauthorized");
-    const { calls: scanCalls, fetchImpl } = scanner(store);
-    await runScanQueue(pool, deps(fetchImpl));
-    assert.deepEqual(scanCalls, ["/scanners"], "not retried straight away");
+    let during: unknown;
+    const watched = scanner(store, { onScan: async () => {
+      during = (await pool.query("SELECT not_before > now() - interval '1 minute' AS waiting FROM scan_jobs")).rows;
+    } });
+    assert.equal((await runScanQueue(pool, deps(watched.fetchImpl))).scanned, 1);
+    assert.deepEqual(during, [{ waiting: true }]);
+  });
+});
+
+test("an extra try handed back for lack of time is due again at once; a failed one waits 6 hours from the failure", async () => {
+  await withMigratedSchema(async (pool) => {
+    const store = new MemoryStore();
+    await saveSkill(pool, store, await createUser(pool), "big", risky);
+    await pool.query("UPDATE scan_jobs SET attempts = $1, last_error = 'unreachable', not_before = now() - interval '7 hours'", [MAX_ATTEMPTS]);
+    // The scanner list took 12 s: no time left for the extra try's long slot, so it's handed back.
+    const start = Date.now();
+    let calls = 0;
+    const late = { ...deps(scanner(store).fetchImpl), now: () => start + (calls++ === 0 ? 0 : 12_000) };
+    assert.equal((await runScanQueue(pool, late)).scanned, 0);
+    assert.deepEqual((await pool.query("SELECT attempts, not_before <= now() - interval '6 hours' AS due FROM scan_jobs")).rows,
+      [{ attempts: MAX_ATTEMPTS, due: true }]);
+
+    // It fails: the next extra try is 6 hours from now, no backoff on top.
+    await runScanQueue(pool, deps(scanner(store, { scanStatus: 503 }).fetchImpl));
+    const job = (await pool.query(
+      "SELECT not_before BETWEEN now() - interval '1 minute' AND now() + interval '1 minute' AS now_ish FROM scan_jobs")).rows;
+    assert.deepEqual(job, [{ now_ish: true }]);
   });
 });

@@ -332,10 +332,12 @@ async function retryLater(client: Pick<Pool, "query">, job: LeasedJob, code: str
     `
       UPDATE scan_jobs
       SET lease_token = NULL, lease_until = NULL, last_error = $3,
-          not_before = now() + make_interval(mins => power(2, LEAST(attempts, 8))::int)
+          -- An extra try that failed waits 6 hours from now (that wait is in the lease), not a backoff on top.
+          not_before = CASE WHEN attempts > $4 THEN now()
+            ELSE now() + make_interval(mins => power(2, LEAST(attempts, 8))::int) END
       WHERE release_id = $1 AND lease_token = $2
     `,
-    [job.releaseId, job.leaseToken, code]
+    [job.releaseId, job.leaseToken, code, MAX_ATTEMPTS]
   );
 }
 
@@ -358,8 +360,11 @@ export async function runScanQueue(pool: Pool, deps: ScanDriverDeps, runLimitMs 
   const handBack = (job: LeasedJob) => {
     handedBack.push(job.releaseId);
     return pool.query(
-      "UPDATE scan_jobs SET lease_token = NULL, lease_until = NULL, attempts = attempts - 1 WHERE release_id = $1 AND lease_token = $2",
-      [job.releaseId, job.leaseToken]
+      // An extra try handed back unused is due again at once, not 6 hours later.
+      `UPDATE scan_jobs SET lease_token = NULL, lease_until = NULL, attempts = attempts - 1,
+         not_before = CASE WHEN attempts > $3 THEN now() - interval '${REVIVE_AFTER}' ELSE not_before END
+       WHERE release_id = $1 AND lease_token = $2`,
+      [job.releaseId, job.leaseToken, MAX_ATTEMPTS]
     );
   };
   let stopped = false;
