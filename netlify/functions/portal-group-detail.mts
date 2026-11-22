@@ -3,7 +3,7 @@ import { getPgPool } from "./_shared/db.js";
 import { assertGroupCanBeDeleted, parseGroupPatch } from "./_shared/group-behavior.js";
 import { requireGroupAccess } from "./_shared/group-access.js";
 import { errorResponse, jsonResponse, optionsResponse, secretJsonResponse } from "./_shared/http.js";
-import { portalGroupItem, type PortalGroupItemRow } from "./_shared/portal-group-item.js";
+import { readPortalGroupItems } from "./_shared/portal-group-item.js";
 import { requirePortalUser } from "./_shared/user.js";
 import { requireJsonObject } from "./_shared/validation.js";
 import { publicGroupAppDeepLink } from "./_shared/public-group-routes.js";
@@ -66,40 +66,7 @@ export async function portalGroupDetail(req: Request, _context: Context, depende
       }
       const { ownerHandle, ...publicGroup } = group;
 
-      const itemsResult = await pool.query<PortalGroupItemRow>(
-        `
-          SELECT
-            i.id,
-            i.kind,
-            CASE WHEN $2 = 'owner' THEN i.synced_skill_id ELSE NULL END AS "syncedSkillId",
-            i.catalog_skill_id AS "catalogSkillId",
-            i.github_url AS "itemGithubUrl",
-            i.name AS "snapshotName",
-            i.description AS "snapshotDescription",
-            i.note,
-            i.position,
-            s.name AS "skillName",
-            s.description AS "skillDescription",
-            s.github_url AS "githubUrl",
-            s.source,
-            src.kind AS "sourceKind",
-            i.metadata_only_reason AS "metadataOnlyReason",
-            i.release_id AS "releaseId",
-        -- A duplicated Set holds someone else's version, which only that person's Sets can share.
-        (src.owner_user_id = (SELECT owner_user_id FROM skill_groups WHERE id = $1)) AS "sharedByOwner",
-            CASE WHEN $2 = 'owner' THEN saved.current_release_id ELSE NULL END AS "savedReleaseId",
-            CASE WHEN $2 = 'owner' THEN saved.skill_key ELSE NULL END AS "savedKey"
-          FROM skill_group_items i
-          LEFT JOIN synced_skills s ON s.id = i.synced_skill_id
-          LEFT JOIN skill_sources src ON src.id = i.source_id
-          LEFT JOIN cloud_saved_skills saved ON saved.source_id = i.source_id
-          WHERE i.group_id = $1
-          ORDER BY i.position ASC
-        `,
-        [groupId, access.accessRole]
-      );
-
-      const items = itemsResult.rows.map((row) => portalGroupItem(row, access.accessRole));
+      const items = await readPortalGroupItems(pool, groupId, access.accessRole);
 
       return secretJsonResponse(req, {
         group: {

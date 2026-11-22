@@ -54,3 +54,18 @@ test("only the owner learns which saved skill a cloud item is, so My skills can 
   assert.equal(portalGroupItem(row({ savedKey: "notes" }), "owner").cloudKey, undefined, "only cloud-shared items");
   assert.equal(portalGroupItem({ ...shared, sharedByOwner: false }, "owner").cloudKey, undefined, "not someone else's, in a duplicated Set");
 });
+
+test("people who can install a private item see its scan result first; public viewers don't", () => {
+  const scan = { status: "flagged" as const, scannedAt: "2026-11-21T10:00:00.000Z", findingCount: 1,
+    findings: [{ rule: "download_and_run", label: "download_and_run", severity: "high", path: "SKILL.md", line: 3 }] };
+  const item = row({ sourceKind: "cloud", releaseId: "r1", sharedByOwner: true, scan });
+  assert.deepEqual(portalGroupItem(item, "invited").scan, scan);
+  assert.deepEqual(portalGroupItem(item, "owner").scan, scan);
+  assert.equal(portalGroupItem(item, "public").scan, undefined);
+  // Not scanned yet reads as null, never as clean.
+  assert.equal(portalGroupItem({ ...item, scan: null }, "invited").scan, null);
+  assert.equal(portalGroupItem({ ...item, scan: undefined }, "invited").scan, null);
+  // No shared version, no scan.
+  assert.equal(portalGroupItem({ ...item, metadataOnlyReason: "cloud_deleted" }, "invited").scan, undefined);
+  assert.equal(portalGroupItem({ ...item, sharedByOwner: false }, "owner").scan, undefined);
+});

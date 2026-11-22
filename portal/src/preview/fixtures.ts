@@ -168,7 +168,17 @@ export function makeFixtures(scenario: Scenario = "populated"): PortalData {
       role: "invited",
       ownerName: "Alex Morgan",
       emails: [],
-      items: [item(2), item(8), item(10)],
+      // Private skills shared from the owner's saved copies, each with a different scan result.
+      items: [
+        { ...item(2), syncedSkillId: null, cloudShared: true, sharedReleaseId: "00000000-0000-4000-8000-000000000002", scan: {
+          status: "flagged", scannedAt: "2026-11-21T10:00:00.000Z", findingCount: 2, findings: [
+            { rule: "download_and_run", label: "download_and_run", severity: "high", path: "SKILL.md", line: 37 },
+            { rule: "hidden_instructions", label: "hidden_instructions", severity: "high", path: "references/workflows.md", line: 83 },
+          ] } },
+        { ...item(8), syncedSkillId: null, cloudShared: true, sharedReleaseId: "00000000-0000-4000-8000-000000000008",
+          scan: { status: "clean", scannedAt: "2026-11-21T10:00:00.000Z", findings: [], findingCount: 0 } },
+        { ...item(10), syncedSkillId: null, cloudShared: true, sharedReleaseId: "00000000-0000-4000-8000-000000000010", scan: null },
+      ],
     },
   ];
   const data: PortalData = {
