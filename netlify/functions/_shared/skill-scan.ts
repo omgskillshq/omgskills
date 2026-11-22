@@ -353,7 +353,8 @@ function markdownCode(lines: string[]): CodeLine[] {
       if (marker && marker[1][0] === fence[0] && marker[1].length >= fence.length && !marker[2].trim()) fence = null;
       return fence ? "block" : null;
     }
-    if (marker) {
+    // A backtick fence's info can't hold a backtick, so ```x``` on one line is inline code, not a fence.
+    if (marker && !(marker[1][0] === "`" && marker[2].includes("`"))) {
       fence = marker[1];
       return null;
     }
