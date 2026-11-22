@@ -54,7 +54,8 @@ const SECRET_RULES: SecretRule[] = [
   // A header with key data under it; the header alone is docs naming the format.
   { rule: "private_key", kind: "Private key", pattern: /-----BEGIN (?:[A-Z]+ )*PRIVATE KEY(?: BLOCK)?-----/g,
     // Line breaks may be real or written as \n, as in service-account JSON and .env files.
-    check: (match) => /^(?:\s|\\r|\\n)+(?:[\w-]+:[^\n\\]{0,200}(?:\r?\n|(?:\\r)?\\n)(?:\s|\\r|\\n)*)*[A-Za-z0-9+/=]{40,}/.test(
+    // Also when split across code strings ("..." + "..."), quoted (# or >), or with / escaped as \/.
+    check: (match) => /^(?:[\s"'+#>]|\\r|\\n)+(?:[\w-]+:[^\n\\]{0,200}(?:\r?\n|(?:\\r)?\\n)(?:[\s"'+#>]|\\r|\\n)*)*(?:[A-Za-z0-9+/=]|\\\/){40,}/.test(
       match.input.slice(match.index + match[0].length, match.index + match[0].length + 600)) },
   // AWS's documentation key ends in EXAMPLE.
   { rule: "aws_access_key", kind: "AWS access key", pattern: /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/g,
@@ -99,8 +100,9 @@ const DOWNLOAD_AND_RUN = [
   // "summarize.sh "$(curl …)"" passes a download to a script as text; it doesn't run it.
   /(?<![\w.-])(?:ba|z)?sh\s+(?:-c\s+)?["']?\$\(\s*(?:curl|wget)\b/i,
   // Downloading a program (Windows or Android) or a file from a chat or paste host.
-  /\b(?:curl|wget|iwr|Invoke-WebRequest)\b[^\n]{0,300}https?:\/\/[^\s"'`)]+\.(?:exe|scr|msi|bat|cmd|dll|apk)\b/i,
-  /\b(?:curl|wget|iwr|Invoke-WebRequest)\b[^\n]{0,300}https?:\/\/(?:cdn\.discordapp\.com\/attachments|pastebin\.com\/raw|transfer\.sh|paste\.ee\/r)\//i,
+  // The address is capped too: uncapped, one long line with no spaces took minutes.
+  /\b(?:curl|wget|iwr|irm|Invoke-WebRequest|Invoke-RestMethod|Start-BitsTransfer|certutil)\b[^\n]{0,300}https?:\/\/[^\s"'`)]{1,300}\.(?:exe|scr|msi|bat|cmd|dll|apk)(?![\w-])/i,
+  /\b(?:curl|wget|iwr|irm|Invoke-WebRequest|Invoke-RestMethod|Start-BitsTransfer|certutil)\b[^\n]{0,300}https?:\/\/(?:(?:cdn|media)\.discordapp\.(?:com|net)\/attachments|pastebin\.com\/raw|transfer\.sh|paste\.ee\/r)\//i,
   /\b(?:iex|Invoke-Expression)\b[^\n]{0,1000}(?:irm|iwr|Invoke-RestMethod|Invoke-WebRequest|DownloadString)\b/i,
   /\bpowershell(?:\.exe)?\b[^\n]{0,1000}\s-(?:e|enc|encodedcommand)\s+[A-Za-z0-9+/=]{20,}/i
 ];
@@ -182,7 +184,7 @@ const INJECTION = [
   /\bwithout\s+the\s+user\s+(?:noticing|knowing)\b/i,
   /\b(?:do\s+not|don't|never)\s+let\s+the\s+user\s+(?:know|notice|find\s+out)\b/i,
   // Running things with the user's say-so switched off.
-  /(?<!\b(?:do\s+not|don't|never)\b[^.!?;\n]{0,60})\b(?:execute|run)\b(?:(?!\b(?:do\s+not|don't|never|not)\b)[^.!?;\n]){0,80}\bwithout\s+(?:any\s+)?(?:user\s+)?(?:confirmation|approval|prompting)\b/i,
+  /(?<!\b(?:not|never|don't|cannot|can't|won't)\b[^.!?;\n]{0,60})\b(?:execute|run)\b(?:(?!\b(?:do\s+not|don't|never)\b)[^.!?;\n]){0,80}\bwithout\s+(?:any\s+|the\s+user's\s+|your\s+|waiting\s+for\s+)?(?:user\s+)?(?:confirmation|approval|prompting)\b/i,
   /\b(?:whitelisted|allowlisted|trusted)\s+for\s+(?:automatic|auto)[\s-]?execution\b/i,
   /\bkeep\s+(?:this|it)\s+(?:step\s+)?(?:silent|secret|hidden|quiet)\b/i,
   // "Do not silently install anything" is a safety rule.
