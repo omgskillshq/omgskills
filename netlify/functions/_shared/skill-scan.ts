@@ -53,7 +53,9 @@ const WARNING_LINE = /\b(?:never|don'?t|do\s+not)\s+do\s+this\b|\u274C|\b(?:bad|
 const SECRET_RULES: SecretRule[] = [
   // A header with key data under it; the header alone is docs naming the format.
   { rule: "private_key", kind: "Private key", pattern: /-----BEGIN (?:[A-Z]+ )*PRIVATE KEY(?: BLOCK)?-----/g,
-    check: (match) => /^-----[^\n]*-----[ \t]*\r?\n(?:[\w-]+:[^\n]*\r?\n|[ \t]*\r?\n)*[ \t]*[A-Za-z0-9+/=]{40,}/.test(match.input.slice(match.index, match.index + 600)) },
+    // Line breaks may be real or written as \n, as in service-account JSON and .env files.
+    check: (match) => /^(?:\s|\\r|\\n)+(?:[\w-]+:[^\n\\]{0,200}(?:\r?\n|(?:\\r)?\\n)(?:\s|\\r|\\n)*)*[A-Za-z0-9+/=]{40,}/.test(
+      match.input.slice(match.index + match[0].length, match.index + match[0].length + 600)) },
   // AWS's documentation key ends in EXAMPLE.
   { rule: "aws_access_key", kind: "AWS access key", pattern: /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/g,
     check: (match) => !match[0].endsWith("EXAMPLE") },
@@ -180,7 +182,7 @@ const INJECTION = [
   /\bwithout\s+the\s+user\s+(?:noticing|knowing)\b/i,
   /\b(?:do\s+not|don't|never)\s+let\s+the\s+user\s+(?:know|notice|find\s+out)\b/i,
   // Running things with the user's say-so switched off.
-  /(?<!\b(?:do\s+not|don't|never)\b[^.!?;\n]{0,60})\b(?:execute|run)\b[^.\n]{0,80}\bwithout\s+(?:any\s+)?(?:user\s+)?(?:confirmation|approval|prompting)\b/i,
+  /(?<!\b(?:do\s+not|don't|never)\b[^.!?;\n]{0,60})\b(?:execute|run)\b(?:(?!\b(?:do\s+not|don't|never|not)\b)[^.!?;\n]){0,80}\bwithout\s+(?:any\s+)?(?:user\s+)?(?:confirmation|approval|prompting)\b/i,
   /\b(?:whitelisted|allowlisted|trusted)\s+for\s+(?:automatic|auto)[\s-]?execution\b/i,
   /\bkeep\s+(?:this|it)\s+(?:step\s+)?(?:silent|secret|hidden|quiet)\b/i,
   // "Do not silently install anything" is a safety rule.
