@@ -42,6 +42,8 @@ function looksGenerated(value: string): boolean {
     && /[A-Za-z]/.test(value) && /[0-9]/.test(value)
     && !/[()[\]{}<>]/.test(value)
     && !/example/i.test(value)
+    // Typed-out sample values: 1234567890, abcdefghij, your-api-key-here.
+    && !/1234567890|0123456789|abcdefghij|^your[-_]|-here$/i.test(value)
     && !/^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)+!?$/.test(value);
 }
 
@@ -49,14 +51,16 @@ function looksGenerated(value: string): boolean {
 const WARNING_LINE = /\b(?:never|don'?t|do\s+not)\s+do\s+this\b|\u274C|\b(?:bad|wrong|insecure|unsafe)\s+(?:example|practice)\b/i;
 
 const SECRET_RULES: SecretRule[] = [
-  { rule: "private_key", kind: "Private key", pattern: /-----BEGIN (?:[A-Z]+ )*PRIVATE KEY(?: BLOCK)?-----/g },
+  // A header with key data under it; the header alone is docs naming the format.
+  { rule: "private_key", kind: "Private key", pattern: /-----BEGIN (?:[A-Z]+ )*PRIVATE KEY(?: BLOCK)?-----/g,
+    check: (match) => /^-----[^\n]*-----[ \t]*\r?\n(?:[\w-]+:[^\n]*\r?\n|[ \t]*\r?\n)*[ \t]*[A-Za-z0-9+/=]{40,}/.test(match.input.slice(match.index, match.index + 600)) },
   // AWS's documentation key ends in EXAMPLE.
   { rule: "aws_access_key", kind: "AWS access key", pattern: /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/g,
     check: (match) => !match[0].endsWith("EXAMPLE") },
   { rule: "github_token", kind: "GitHub token", pattern: /\b(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{60,})\b/g },
   { rule: "anthropic_key", kind: "Anthropic API key", pattern: /\bsk-ant-[A-Za-z0-9_-]{30,}/g },
   { rule: "openai_key", kind: "OpenAI API key", pattern: /\bsk-(?:proj-|svcacct-|admin-)?[A-Za-z0-9_-]{32,}/g,
-    check: (match) => !match[0].startsWith("sk-ant-") },
+    check: (match) => !match[0].startsWith("sk-ant-") && !/^sk-test-|1234567890|0123456789|abcdefghij/i.test(match[0]) },
   { rule: "stripe_key", kind: "Stripe secret key", pattern: /\b[sr]k_live_[A-Za-z0-9]{20,}\b/g },
   { rule: "slack_token", kind: "Slack token", pattern: /\bxox[abposr]-[A-Za-z0-9-]{10,}/g },
   { rule: "google_api_key", kind: "Google API key", pattern: /\bAIza[0-9A-Za-z_-]{35}\b/g },
@@ -90,7 +94,11 @@ const SECRET_RULES: SecretRule[] = [
 const DOWNLOAD_AND_RUN = [
   /\b(?:curl|wget)\b[^\n|]{0,1000}\|\s*(?:sudo\s+)?(?:ba|z|da|k)?sh\b/i,
   /\b(?:curl|wget)\b[^\n|]{0,1000}\|\s*(?:sudo\s+)?(?:python[0-9.]*|node|perl|ruby)\b/i,
-  /\b(?:ba|z)?sh\s+(?:-c\s+)?["']?\$\(\s*(?:curl|wget)\b/i,
+  // "summarize.sh "$(curl …)"" passes a download to a script as text; it doesn't run it.
+  /(?<![\w.-])(?:ba|z)?sh\s+(?:-c\s+)?["']?\$\(\s*(?:curl|wget)\b/i,
+  // Downloading a program (Windows or Android) or a file from a chat or paste host.
+  /\b(?:curl|wget|iwr|Invoke-WebRequest)\b[^\n]{0,300}https?:\/\/[^\s"'`)]+\.(?:exe|scr|msi|bat|cmd|dll|apk)\b/i,
+  /\b(?:curl|wget|iwr|Invoke-WebRequest)\b[^\n]{0,300}https?:\/\/(?:cdn\.discordapp\.com\/attachments|pastebin\.com\/raw|transfer\.sh|paste\.ee\/r)\//i,
   /\b(?:iex|Invoke-Expression)\b[^\n]{0,1000}(?:irm|iwr|Invoke-RestMethod|Invoke-WebRequest|DownloadString)\b/i,
   /\bpowershell(?:\.exe)?\b[^\n]{0,1000}\s-(?:e|enc|encodedcommand)\s+[A-Za-z0-9+/=]{20,}/i
 ];
@@ -171,6 +179,9 @@ const INJECTION = [
   /(?<!\b(?:do\s+not|don't|never)\b[^.!?;\n]{0,60})\bwithout\s+(?:telling|informing|asking)\s+the\s+user\b/i,
   /\bwithout\s+the\s+user\s+(?:noticing|knowing)\b/i,
   /\b(?:do\s+not|don't|never)\s+let\s+the\s+user\s+(?:know|notice|find\s+out)\b/i,
+  // Running things with the user's say-so switched off.
+  /(?<!\b(?:do\s+not|don't|never)\b[^.!?;\n]{0,60})\b(?:execute|run)\b[^.\n]{0,80}\bwithout\s+(?:any\s+)?(?:user\s+)?(?:confirmation|approval|prompting)\b/i,
+  /\b(?:whitelisted|allowlisted|trusted)\s+for\s+(?:automatic|auto)[\s-]?execution\b/i,
   /\bkeep\s+(?:this|it)\s+(?:step\s+)?(?:silent|secret|hidden|quiet)\b/i,
   // "Do not silently install anything" is a safety rule.
   /(?<!\b(?:do\s+not|don't|never)\s+)\b(?:secretly|covertly|quietly|silently)\s+(?:run|execute|send|upload|post|install)\b/i,
