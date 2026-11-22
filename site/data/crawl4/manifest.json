@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-22T14:31:32.368Z",
+  "generatedAt": "2026-11-22T19:31:47.783Z",
   "skills": {
-    "path": "skills-b08aac9464d2.json",
-    "sha256": "b08aac9464d2fb94983d5377239a35f706140ef31f9bebe8148178c52e8c81f6",
-    "bytes": 88433729
+    "path": "skills-a6769d341f26.json",
+    "sha256": "a6769d341f26a6f9dfc2470244aa2fd12982e69e92e3f854b360aaabdd4e6d23",
+    "bytes": 88441079
   },
   "trending": {
-    "path": "trending-400dc8b80b9a.json",
-    "sha256": "400dc8b80b9a63939b8b71724594cc7f97cdbd9eba58975a8d0a297fb240555b",
-    "bytes": 50601
+    "path": "trending-94eb8e0a9050.json",
+    "sha256": "94eb8e0a905059c5dc58846ff021a2a5f9139be8d8b15822091174391350eba9",
+    "bytes": 50180
   },
   "xTrending": {
     "path": "x-trending-c2ec558d316a.json",
@@ -32,13 +32,13 @@
     "bytes": 18837
   },
   "searchCatalog": {
-    "path": "search-catalog-648feeb697df.json",
-    "sha256": "648feeb697df5dcd7b03e1ebf113bd126eb12251c5caf65f3ddbeb2921cfadd2",
+    "path": "search-catalog-563d54387c12.json",
+    "sha256": "563d54387c12a3c2ba77f6ca972053d4ac630e304e9b05b31ad21795556505c7",
     "bytes": 813
   },
   "sourceTrending": {
-    "path": "source-trending-529f0df4f081.json",
-    "sha256": "529f0df4f081305355014c91a72cf6929249de7e02f2cd306469b7370a1a8336",
-    "bytes": 142251
+    "path": "source-trending-80505f9f4e4e.json",
+    "sha256": "80505f9f4e4e4e3e61350449a11ee4f0c8cabd9813cc481aea3dd63ab50549c4",
+    "bytes": 138375
   }
 }

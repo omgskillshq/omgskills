@@ -3,6 +3,12 @@
   "policyDigest": "sha256:d550400d0b058ae3d5b642b570bc59e2f98ec1ecab6cb60ece9f34a5b7939538",
   "reviews": [
     {
+      "sourceId": "addyosmani/agent-skills:accessibility-engineering",
+      "checkedAt": "2026-11-22T19:31:05.026Z",
+      "outcome": "added",
+      "reason": "verified-trending"
+    },
+    {
       "sourceId": "beltsh/superpowers:agent-browser",
       "checkedAt": "2026-11-21T19:08:59.874Z",
       "outcome": "blocked",
@@ -63,8 +69,20 @@
       "reason": "confirmed-upstream-copy"
     },
     {
+      "sourceId": "beltsh/superpowers:landing-page-design",
+      "checkedAt": "2026-11-22T19:31:05.026Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
       "sourceId": "beltsh/superpowers:product-hunt-launch",
       "checkedAt": "2026-11-21T19:08:59.874Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
+      "sourceId": "beltsh/superpowers:product-photography",
+      "checkedAt": "2026-11-22T19:31:05.026Z",
       "outcome": "blocked",
       "reason": "confirmed-upstream-copy"
     },
@@ -81,8 +99,20 @@
       "reason": "confirmed-upstream-copy"
     },
     {
+      "sourceId": "beltsh/superpowers:storyboard-creation",
+      "checkedAt": "2026-11-22T19:31:05.026Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
       "sourceId": "beltsh/superpowers:twitter-automation",
       "checkedAt": "2026-11-21T19:08:59.874Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
+      "sourceId": "beltsh/superpowers:video-ad-specs",
+      "checkedAt": "2026-11-22T19:31:05.026Z",
       "outcome": "blocked",
       "reason": "confirmed-upstream-copy"
     },
@@ -95,6 +125,96 @@
     {
       "sourceId": "beltsh/superpowers:youtube-thumbnail-design",
       "checkedAt": "2026-11-21T19:08:59.874Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
+      "sourceId": "designed-by-ai/skills:design-mobile-apps",
+      "checkedAt": "2026-11-22T19:31:05.026Z",
+      "outcome": "blocked",
+      "reason": "non-original-provenance"
+    },
+    {
+      "sourceId": "flowkit-labs/skills:reddit-automation",
+      "checkedAt": "2026-11-22T19:31:05.026Z",
+      "outcome": "blocked",
+      "reason": "non-original-provenance"
+    },
+    {
+      "sourceId": "gencraft-labs/skills:ai-image-generation",
+      "checkedAt": "2026-11-22T19:31:05.026Z",
+      "outcome": "blocked",
+      "reason": "non-original-provenance"
+    },
+    {
+      "sourceId": "gencraft-labs/skills:ai-music",
+      "checkedAt": "2026-11-22T19:31:05.026Z",
+      "outcome": "blocked",
+      "reason": "non-original-provenance"
+    },
+    {
+      "sourceId": "gencraft-labs/skills:ai-video-generation",
+      "checkedAt": "2026-11-22T19:31:05.026Z",
+      "outcome": "blocked",
+      "reason": "non-original-provenance"
+    },
+    {
+      "sourceId": "gencraft-labs/skills:image-to-video",
+      "checkedAt": "2026-11-22T19:31:05.026Z",
+      "outcome": "blocked",
+      "reason": "non-original-provenance"
+    },
+    {
+      "sourceId": "gencraft-labs/skills:video-edit",
+      "checkedAt": "2026-11-22T19:31:05.026Z",
+      "outcome": "blocked",
+      "reason": "non-original-provenance"
+    },
+    {
+      "sourceId": "heygen-com/hyperframes:media-use",
+      "checkedAt": "2026-11-22T19:31:05.026Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "nexu-io/openmotion:openmotion",
+      "checkedAt": "2026-11-22T19:31:05.026Z",
+      "outcome": "added",
+      "reason": "verified-trending"
+    },
+    {
+      "sourceId": "qu-skills/superpowers:ai-avatar-video",
+      "checkedAt": "2026-11-22T19:31:05.026Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
+      "sourceId": "qu-skills/superpowers:ai-image-generation",
+      "checkedAt": "2026-11-22T19:31:05.026Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
+      "sourceId": "qu-skills/superpowers:ai-video-generation",
+      "checkedAt": "2026-11-22T19:31:05.026Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
+      "sourceId": "qu-skills/superpowers:twitter-automation",
+      "checkedAt": "2026-11-22T19:31:05.026Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
+      "sourceId": "stripe/link-cli:link-balance",
+      "checkedAt": "2026-11-22T19:31:05.026Z",
+      "outcome": "added",
+      "reason": "verified-trending"
+    },
+    {
+      "sourceId": "whytryharder/superpowers:agent-browser",
+      "checkedAt": "2026-11-22T19:31:05.026Z",
       "outcome": "blocked",
       "reason": "confirmed-upstream-copy"
     },
