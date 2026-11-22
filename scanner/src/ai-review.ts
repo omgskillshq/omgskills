@@ -1,3 +1,4 @@
+import { isBinary } from "../../netlify/functions/_shared/skill-scan.js";
 import type { ContainerFile, Finding, ScannerResult, Severity } from "./protocol.js";
 
 /*
@@ -94,14 +95,15 @@ export type AskClaude = (request: {
 
 const SEVERITY: Record<Verdict, Severity> = { clear: "info", caution: "info", suspicious: "medium", malicious: "high" };
 
-/** Text is valid UTF-8 with no NUL bytes; anything else is skipped (the rules scanner labels programs). */
-function asText(data: Uint8Array): string | null {
-  if (data.includes(0)) return null;
-  try {
-    return new TextDecoder("utf-8", { fatal: true, ignoreBOM: false }).decode(data);
-  } catch {
-    return null;
-  }
+/**
+ * Which files are text, decided as the rules scanner decides (container/src/scanners/omg-rules.ts): by
+ * name or the executable bit, else no zero byte near the start. A stray zero byte or bad UTF-8 in a
+ * text file can't hide it from the review.
+ */
+const TEXT_FILE = /(?:^|\/)(?:SKILL\.md|[^/]*\.(?:md|markdown|txt|rst|json|jsonc|ya?ml|toml|ini|cfg|conf|env|xml|html?|css|csv|tsv|sql|sh|bash|zsh|fish|py|js|mjs|cjs|ts|tsx|jsx|rb|pl|php|ps1|psm1|bat|cmd|applescript|lua|go|rs|swift|java|kt|c|h|cpp|hpp|cs))$/i;
+
+function isText(file: ContainerFile): boolean {
+  return TEXT_FILE.test(file.path) || file.mode === "100755" || !isBinary(file.data);
 }
 
 /** The description from SKILL.md's frontmatter: what the skill says it is for. */
@@ -151,11 +153,10 @@ export async function aiReview(files: ContainerFile[], ask: AskClaude, now: () =
   let chars = 0;
   let tooBig = false;
   for (const file of [...files].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))) {
-    if (file.mode === "120000") continue; // links are never followed
+    if (file.mode === "120000" || !isText(file)) continue; // links are never followed; images and such have no text
     // A UTF-8 character is at most 4 bytes: stop before decoding a file that can't fit.
     if (file.data.byteLength > 4 * (AI_REVIEW_MAX_CHARS - chars)) { tooBig = true; break; }
-    const text = asText(file.data);
-    if (text === null) continue;
+    const text = new TextDecoder().decode(file.data).replaceAll("\0", "");
     chars += text.length;
     if (chars > AI_REVIEW_MAX_CHARS) { tooBig = true; break; }
     texts.push({ path: file.path, text });
