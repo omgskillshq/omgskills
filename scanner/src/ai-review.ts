@@ -2,8 +2,8 @@ import type { ContainerFile, Finding, ScannerResult, Severity } from "./protocol
 
 /*
  * AI review: Claude reads a skill's text files, answers a fixed checklist with quoted evidence, then
- * gives one of four verdicts. Runs in the Worker (the container has no internet) and only when a scan
- * asks for it; private skills never do. Tested in the scanner trial (RESULTS.md, round 4) before use:
+ * gives one of four verdicts. Runs in the Worker (the container has no internet) on its own route,
+ * POST /review, which only the public scan queue calls; private skills never go to it. Tested in the scanner trial (RESULTS.md, round 4) before use:
  * on attacks from sources it never saw it caught 71%, against 3–8% for rule scanners.
  *
  * Results follow the scanner rule: findings name the check, never the quoted text. A verdict of
@@ -16,6 +16,8 @@ export const AI_REVIEW_MODEL = "claude-haiku-5-5";
 export const AI_REVIEW_VERSION = "haiku-5-5.v2";
 /** Bigger skills are held as partial, never cut short and passed. */
 export const AI_REVIEW_MAX_CHARS = 500_000;
+/** One call's limit; the public queue's wait must be longer than this. */
+export const AI_REVIEW_TIMEOUT_MS = 45_000;
 
 /**
  * The checklist. The model sees only the names (as the answer's fields), exactly as tested; the
@@ -146,10 +148,17 @@ export function reviewFindings(review: Review): Finding[] {
 export async function aiReview(files: ContainerFile[], ask: AskClaude, now: () => number = Date.now): Promise<ScannerResult> {
   const startedAt = new Date(now()).toISOString();
   const texts: { path: string; text: string }[] = [];
+  let chars = 0;
+  let tooBig = false;
   for (const file of [...files].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))) {
     if (file.mode === "120000") continue; // links are never followed
+    // A UTF-8 character is at most 4 bytes: stop before decoding a file that can't fit.
+    if (file.data.byteLength > 4 * (AI_REVIEW_MAX_CHARS - chars)) { tooBig = true; break; }
     const text = asText(file.data);
-    if (text !== null) texts.push({ path: file.path, text });
+    if (text === null) continue;
+    chars += text.length;
+    if (chars > AI_REVIEW_MAX_CHARS) { tooBig = true; break; }
+    texts.push({ path: file.path, text });
   }
   const result = (status: ScannerResult["status"], findings: Finding[] = []): ScannerResult => ({
     scanner: AI_REVIEW_SCANNER, version: AI_REVIEW_VERSION, status, findings,
@@ -157,11 +166,11 @@ export async function aiReview(files: ContainerFile[], ask: AskClaude, now: () =
     filesSkipped: status === "complete" ? files.length - texts.length : files.length,
     startedAt, finishedAt: new Date(now()).toISOString()
   });
-  if (texts.reduce((sum, file) => sum + file.text.length, 0) > AI_REVIEW_MAX_CHARS) return result("partial");
+  if (tooBig) return result("partial");
   try {
     const response = await ask({
       model: AI_REVIEW_MODEL,
-      max_tokens: 4000,
+      max_tokens: 8000,
       system: SYSTEM,
       output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },
       messages: [{ role: "user", content: buildPrompt(texts) }]
@@ -173,7 +182,10 @@ export async function aiReview(files: ContainerFile[], ask: AskClaude, now: () =
     const text = response.content.find((block) => block.type === "text")?.text;
     if (!text || response.stop_reason === "max_tokens") return result("failed");
     return result("complete", reviewFindings(parseReview(text)));
-  } catch {
+  } catch (error) {
+    // Too long for the model (dense text can pass the character limit): held like any too-big skill.
+    const message = error instanceof Error ? error.message : "";
+    if ((error as { status?: number }).status === 400 && /prompt is too long|too many tokens|context/i.test(message)) return result("partial");
     return result("failed");
   }
 }

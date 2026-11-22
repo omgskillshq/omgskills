@@ -15,14 +15,16 @@ Scans skill files and reports findings. It runs on our Cloudflare account, separ
 - `omg-rules` is versioned by a hash of `netlify/functions/_shared/skill-scan.ts`, so any rule change re-scans.
 - `ai-review` (`src/ai-review.ts`): Claude Haiku answers a fixed checklist, then gives a verdict: clear, caution,
   suspicious or malicious. It runs in the Worker, because the container has no internet.
-  - Only when a scan sends `aiReview: true`. Public skills only: it sends the files to Anthropic, so private scans never ask.
-  - Needs the `ANTHROPIC_API_KEY` secret; a scan that asks without it gets a 503.
+  - On its own route, `POST /review`, so it never slows or re-runs the rule scans. Public skills only: it sends the
+    files to Anthropic, so the private queue never calls it. `GET /scanners` lists it apart, under `review`.
+  - One try per call (45 s limit, no SDK retries); the caller retries later.
+  - Needs the `ANTHROPIC_API_KEY` secret; without it `/review` returns 503.
   - Text files only. Skills over 500k characters get `partial`, never a cut-short pass.
   - Findings name the verdict and checks, never the quoted text.
   - "Suspicious", "malicious" or a refusal means a second look, never a public label on its own.
   - The prompt is the one tested in the scanner trial; its hash is pinned in the tests, so a change needs a new trial and version.
 
-Routes (all signed): `POST /scan`, `GET /scanners`, `GET /selftest` (shows the container can't reach the internet).
+Routes (all signed): `POST /scan`, `POST /review`, `GET /scanners`, `GET /selftest` (shows the container can't reach the internet).
 
 ## Run
 

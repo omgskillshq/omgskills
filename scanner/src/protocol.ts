@@ -36,8 +36,7 @@ export type ScanRequestFile = {
   contentBase64?: string;
 };
 
-/** aiReview: also run the AI review (public skills only; it sends the files to Anthropic). */
-export type ScanRequest = { treeSha: string; files: ScanRequestFile[]; aiReview?: boolean };
+export type ScanRequest = { treeSha: string; files: ScanRequestFile[] };
 
 export type ScanResponse = { treeSha: string; results: ScannerResult[] };
 

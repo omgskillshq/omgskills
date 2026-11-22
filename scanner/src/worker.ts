@@ -1,6 +1,6 @@
 import { Container, getContainer } from "@cloudflare/containers";
 import Anthropic from "@anthropic-ai/sdk";
-import { aiReview, type AskClaude } from "./ai-review.js";
+import { AI_REVIEW_TIMEOUT_MS, aiReview, type AskClaude } from "./ai-review.js";
 import { handle } from "./handler.js";
 
 /** The scanner: files in, findings out. No internet, no keys, never runs skill code. */
@@ -34,7 +34,8 @@ export default {
       },
       aiReview: env.ANTHROPIC_API_KEY
         ? (files) => {
-          const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, timeout: 60_000, maxRetries: 2 });
+          // One try, well inside the caller's wait; the queue retries later rather than paying for answers it dropped.
+          const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, timeout: AI_REVIEW_TIMEOUT_MS, maxRetries: 0 });
           const ask: AskClaude = (request) => client.messages.create(request);
           return aiReview(files, ask);
         }

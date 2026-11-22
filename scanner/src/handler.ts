@@ -23,7 +23,7 @@ export type ScanDependencies = {
   readStoredFile(key: string): Promise<Uint8Array | null>;
   /** Sends a request to the scanner container (no internet, no keys). */
   container(path: string, init?: { method: string; body?: Uint8Array }): Promise<Response>;
-  /** The AI review, when the Worker has an Anthropic key; only public scans ask for it. */
+  /** The AI review, when the Worker has an Anthropic key; only the public scan queue calls it. */
   aiReview?(files: ContainerFile[]): Promise<ScannerResult>;
   now?: () => number;
 };
@@ -85,8 +85,7 @@ function parseScanRequest(body: Uint8Array): ScanRequest {
   } catch {
     throw new RequestError(400, "bad_json");
   }
-  if (!parsed || typeof parsed.treeSha !== "string" || !SHA.test(parsed.treeSha) || !Array.isArray(parsed.files)
-    || (parsed.aiReview !== undefined && typeof parsed.aiReview !== "boolean")) {
+  if (!parsed || typeof parsed.treeSha !== "string" || !SHA.test(parsed.treeSha) || !Array.isArray(parsed.files)) {
     throw new RequestError(400, "bad_request");
   }
   return parsed;
@@ -174,14 +173,15 @@ function tooBigReview(request: ScanRequest, deps: ScanDependencies): ScannerResu
 
 /**
  * The Worker's routes, all signed:
- *   POST /scan       files (stored or inline) → every scanner's results (plus the AI review if asked)
+ *   POST /scan       files (stored or inline) → every scanner's results
+ *   POST /review     the same files → the AI review alone (public skills only; it sends them to Anthropic)
  *   GET  /scanners   the scanners and versions the container runs now
  *   GET  /selftest   proves the container can't reach the internet
  */
 export async function handle(request: Request, deps: ScanDependencies): Promise<Response> {
   const url = new URL(request.url);
   const route = `${request.method} ${url.pathname}`;
-  if (!["POST /scan", "GET /scanners", "GET /selftest"].includes(route)) return json(404, { error: "not_found" });
+  if (!["POST /scan", "POST /review", "GET /scanners", "GET /selftest"].includes(route)) return json(404, { error: "not_found" });
   if (typeof deps.signingKey !== "string" || deps.signingKey.length < 32) return json(503, { error: "not_configured" });
 
   try {
@@ -198,21 +198,25 @@ export async function handle(request: Request, deps: ScanDependencies): Promise<
     }
 
     if (route === "GET /scanners") {
-      return json(200, await readContainerJson<{ scanners: ScannerInfo[] }>(await deps.container("/scanners")));
+      // The AI review is listed apart: the private queue must never wait on it.
+      const listed = await readContainerJson<{ scanners: ScannerInfo[] }>(await deps.container("/scanners"));
+      return json(200, { ...listed, review: deps.aiReview ? { scanner: AI_REVIEW_SCANNER, version: AI_REVIEW_VERSION } : null });
     }
     if (route === "GET /selftest") {
       return json(200, await readContainerJson<{ internet: boolean }>(await deps.container("/selftest")));
     }
     const scanRequest = parseScanRequest(body);
-    // Asked for but not set up: an error the caller retries, never a missing result read as clean.
-    if (scanRequest.aiReview && !deps.aiReview) return json(503, { error: "ai_review_not_configured" });
+    if (route === "POST /review") {
+      // Not set up: an error the caller retries, never a missing result read as clean.
+      if (!deps.aiReview) return json(503, { error: "ai_review_not_configured" });
+      const files = await loadFiles(scanRequest, deps);
+      const result = files ? await deps.aiReview(decodeFiles(files)) : tooBigReview(scanRequest, deps);
+      return json(200, { treeSha: scanRequest.treeSha, results: [result] } satisfies ScanResponse);
+    }
     const files = await loadFiles(scanRequest, deps);
     const results = files
       ? (await readContainerJson<{ results: ScannerResult[] }>(await deps.container("/scan", { method: "POST", body: files }))).results
       : await tooBig(scanRequest, deps);
-    if (scanRequest.aiReview && deps.aiReview) {
-      results.push(files ? await deps.aiReview(decodeFiles(files)) : tooBigReview(scanRequest, deps));
-    }
     const response: ScanResponse = { treeSha: scanRequest.treeSha, results };
     return json(200, response);
   } catch (error) {

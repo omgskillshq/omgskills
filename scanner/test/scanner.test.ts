@@ -153,7 +153,7 @@ test("a scanner that throws reports failed, never clean, and the others still ru
 
 test("scanner list and self-test pass through, signed", async () => {
   const list = await handle(await signed("GET", "/scanners"), deps());
-  assert.deepEqual(await list.json(), { scanners: [{ scanner: "omg-rules", version: "test" }] });
+  assert.deepEqual(await list.json(), { scanners: [{ scanner: "omg-rules", version: "test" }], review: null });
   const self = await handle(await signed("GET", "/selftest"), deps());
   assert.deepEqual(await self.json(), { internet: false });
   assert.equal(await internetReachable(async () => { throw new TypeError("blocked"); }), false);
@@ -293,16 +293,27 @@ test("AI review: a refusal goes to a person, a bad answer or error fails, and a 
   assert.equal(called, false);
 });
 
-test("the AI review runs only when a scan asks for it, and fails loudly when it isn't set up", async () => {
+test("the AI review has its own route; scans never call it, and it fails loudly when it isn't set up", async () => {
   let reviewed = 0;
   const withReview = deps({ async aiReview(input) { reviewed += 1; assert.equal(input.length, skill.length); return aiReview(input, answer("clear")); } });
   const plain = await (await handle(await signed("POST", "/scan", { treeSha, files: requestFiles() }), withReview)).json() as ScanResponse;
   assert.equal(reviewed, 0);
   assert.ok(!plain.results.some((r) => r.scanner === "ai-review"));
-  const asked = await (await handle(await signed("POST", "/scan", { treeSha, files: requestFiles(true), aiReview: true }), withReview)).json() as ScanResponse;
+  const review = await (await handle(await signed("POST", "/review", { treeSha, files: requestFiles(true) }), withReview)).json() as ScanResponse;
   assert.equal(reviewed, 1);
-  assert.deepEqual(asked.results.map((r) => r.scanner), [...plain.results.map((r) => r.scanner), "ai-review"]);
-  const missing = await handle(await signed("POST", "/scan", { treeSha, files: requestFiles(true), aiReview: true }), deps());
-  assert.equal(missing.status, 503);
-  assert.equal((await handle(await signed("POST", "/scan", { treeSha, files: requestFiles(true), aiReview: "yes" }), withReview)).status, 400);
+  assert.deepEqual(review.results.map((r) => [r.scanner, r.version, r.status]), [["ai-review", AI_REVIEW_VERSION, "complete"]]);
+  assert.equal((await handle(await signed("POST", "/review", { treeSha, files: requestFiles(true) }), deps())).status, 503);
+  // Listed apart, so the private queue never waits on it.
+  const listed = await (await handle(await signed("GET", "/scanners"), withReview)).json() as { scanners: unknown[]; review: unknown };
+  assert.ok(!JSON.stringify(listed.scanners).includes("ai-review"));
+  assert.deepEqual(listed.review, { scanner: "ai-review", version: AI_REVIEW_VERSION });
+  assert.equal(((await (await handle(await signed("GET", "/scanners"), deps())).json()) as { review: unknown }).review, null);
+});
+
+test("AI review stops before decoding a skill that can't fit, and too long for the model is partial", async () => {
+  const huge = [{ path: "a.md", mode: "100644", data: new Uint8Array(4 * AI_REVIEW_MAX_CHARS + 4) }];
+  assert.equal((await aiReview(huge, answer("clear"))).status, "partial");
+  const overflow = Object.assign(new Error("400 prompt is too long: 250000 tokens > 200000 maximum"), { status: 400 });
+  assert.equal((await aiReview(files, async () => { throw overflow; })).status, "partial");
+  assert.equal((await aiReview(files, async () => { throw Object.assign(new Error("400 bad schema"), { status: 400 }); })).status, "failed");
 });
