@@ -1,4 +1,4 @@
-import { isBinary, labelLines, pathLabels, scanFileContents } from "../../../../netlify/functions/_shared/skill-scan.js";
+import { isBinary, labelLines, pathLabels, riskLines, scanFileContents } from "../../../../netlify/functions/_shared/skill-scan.js";
 import type { Finding, Severity } from "../../../src/protocol.js";
 import type { Scanner } from "./types.js";
 
@@ -7,6 +7,8 @@ const SEVERITY: Record<string, Severity> = {
   download_and_run: "high",
   hidden_instructions: "high",
   invisible_characters: "medium",
+  sends_private_data: "high",
+  hidden_code: "high",
   scripts: "info"
 };
 
@@ -26,6 +28,9 @@ export function omgRules(version: string): Scanner {
           findings.push({ rule: label, label, severity: SEVERITY[label], path: file.path, line: null });
         }
         const text = TEXT_FILE.test(file.path) || file.mode === "100755";
+        for (const risk of riskLines(file.path, file.data, { text })) {
+          findings.push({ rule: risk.label, label: risk.label, severity: SEVERITY[risk.label], path: file.path, line: risk.line });
+        }
         if (!text && isBinary(file.data)) {
           filesSkipped += 1;
           continue;
