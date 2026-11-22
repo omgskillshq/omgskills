@@ -1,4 +1,6 @@
 import { Container, getContainer } from "@cloudflare/containers";
+import Anthropic from "@anthropic-ai/sdk";
+import { aiReview, type AskClaude } from "./ai-review.js";
 import { handle } from "./handler.js";
 
 /** The scanner: files in, findings out. No internet, no keys, never runs skill code. */
@@ -12,6 +14,8 @@ type Env = {
   SCANNER: DurableObjectNamespace<Scanner>;
   CLOUD_FILES: R2Bucket;
   SCAN_SIGNING_KEY: string;
+  /** For the AI review of public skills; without it, scans that ask for one get a 503. */
+  ANTHROPIC_API_KEY?: string;
 };
 
 /**
@@ -28,6 +32,13 @@ export default {
         const object = await env.CLOUD_FILES.get(key);
         return object ? new Uint8Array(await object.arrayBuffer()) : null;
       },
+      aiReview: env.ANTHROPIC_API_KEY
+        ? (files) => {
+          const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, timeout: 60_000, maxRetries: 2 });
+          const ask: AskClaude = (request) => client.messages.create(request);
+          return aiReview(files, ask);
+        }
+        : undefined,
       async container(path, init) {
         const stub = getContainer(env.SCANNER, INSTANCE);
         return stub.fetch(new Request(`http://scanner${path}`, { method: init?.method ?? "GET", body: init?.body }));

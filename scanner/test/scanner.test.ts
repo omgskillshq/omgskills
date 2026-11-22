@@ -7,6 +7,10 @@ import { signRequest, verifyRequest } from "../src/signature.js";
 import { internetReachable, runScanners } from "../container/src/server.js";
 import { scanners } from "../container/src/scanners/index.js";
 import type { Scanner } from "../container/src/scanners/types.js";
+import { createHash } from "node:crypto";
+import {
+  AI_REVIEW_MAX_CHARS, AI_REVIEW_MODEL, AI_REVIEW_VERSION, SCHEMA, SYSTEM, aiReview, statedPurpose, type AskClaude
+} from "../src/ai-review.js";
 
 const KEY = "k".repeat(40);
 const USER = "11111111-2222-4333-8444-555555555555";
@@ -224,4 +228,81 @@ test("saved files are read several at a time, and the scan matches reading them 
   const inline = await (await handle(await signed("POST", "/scan", { treeSha, files: requestFiles(true) }), deps())).json() as ScanResponse;
   assert.ok(skill.length < 2 || most > 1, "reads overlap");
   assert.deepEqual(parallel.results.map((r) => r.findings), inline.results.map((r) => r.findings));
+});
+
+const checks = (found: Record<string, boolean> = {}) => Object.fromEntries(
+  ["sends_data_out", "reads_secrets", "runs_downloaded_or_hidden_code", "changes_system_or_persists", "hides_from_user",
+    "manipulates_agent_or_reviewer", "fetches_remote_instructions", "destructive_or_account_actions"]
+    .map((name) => [name, { found: name in found, evidence: name in found ? "quoted text" : "", fits_purpose: found[name] ?? true }])
+);
+const answer = (verdict: string, found?: Record<string, boolean>): AskClaude => async () => ({
+  stop_reason: "end_turn",
+  content: [{ type: "text", text: JSON.stringify({ stated_purpose: "Notes.", checks: checks(found), verdict, reason: "r" }) }]
+});
+const files = skill.map(({ path, mode, data }) => ({ path, mode, data }));
+
+test("the AI review prompt is the one we tested; changing it means a new version", () => {
+  const hash = createHash("sha256").update(AI_REVIEW_MODEL + SYSTEM + JSON.stringify(SCHEMA)).digest("hex").slice(0, 16);
+  assert.deepEqual([AI_REVIEW_VERSION, hash], ["haiku-5-5.v2", "d0ee17ced73c0d79"],
+    "prompt changed: rerun the trial, then bump AI_REVIEW_VERSION and this hash");
+});
+
+test("AI review sends text files only, inside random tags, with the stated purpose", async () => {
+  let sent = "";
+  const result = await aiReview(files, async (request) => {
+    sent = request.messages[0].content;
+    assert.equal(request.model, AI_REVIEW_MODEL);
+    assert.equal(request.output_config.effort, "low");
+    return answer("clear")(request);
+  });
+  assert.equal(result.status, "complete");
+  assert.deepEqual(result.findings, []);
+  assert.equal(result.filesScanned, 2);
+  assert.equal(result.filesSkipped, 1);
+  const token = /^Token: ([0-9a-f]{12})$/m.exec(sent)?.[1];
+  assert.ok(token);
+  assert.match(sent, new RegExp(`<file-${token} path="run.sh">`));
+  assert.doesNotMatch(sent, /logo\.png/);
+  assert.match(sent, /states its purpose as: "Notes\."/);
+  assert.equal(statedPurpose("---\nname: a\ndescription: Takes\n  two lines.\n---\n"), "Takes\n  two lines.");
+  assert.equal(statedPurpose("# no frontmatter"), "(no description given)");
+});
+
+test("AI review findings name the verdict and checks, never the quoted text", async () => {
+  const suspicious = await aiReview(files, answer("suspicious", { sends_data_out: false, fetches_remote_instructions: true }));
+  assert.deepEqual(suspicious.findings.map((f) => [f.rule, f.label, f.severity]), [
+    ["ai-review/verdict", "ai_suspicious", "medium"],
+    ["ai-review/sends_data_out", "sends_data_out", "medium"],
+    ["ai-review/fetches_remote_instructions", "fetches_remote_instructions", "info"]
+  ]);
+  assert.doesNotMatch(JSON.stringify(suspicious), /quoted text/);
+  assert.equal((await aiReview(files, answer("malicious", { reads_secrets: false }))).findings[0].severity, "high");
+  assert.deepEqual((await aiReview(files, answer("caution", { runs_downloaded_or_hidden_code: true }))).findings.map((f) => f.severity), ["info", "info"]);
+});
+
+test("AI review: a refusal goes to a person, a bad answer or error fails, and a huge skill is partial", async () => {
+  const refused = await aiReview(files, async () => ({ stop_reason: "refusal", content: [] }));
+  assert.deepEqual(refused.findings.map((f) => f.label), ["ai_refused"]);
+  assert.equal((await aiReview(files, async () => ({ stop_reason: "end_turn", content: [{ type: "text", text: "{}" }] }))).status, "failed");
+  assert.equal((await aiReview(files, async () => ({ stop_reason: "max_tokens", content: [{ type: "text", text: "{" }] }))).status, "failed");
+  assert.equal((await aiReview(files, async () => { throw new Error("529"); })).status, "failed");
+  let called = false;
+  const big = [{ path: "SKILL.md", mode: "100644", data: new Uint8Array(Buffer.from("a".repeat(AI_REVIEW_MAX_CHARS + 1))) }];
+  const partial = await aiReview(big, async (request) => { called = true; return answer("clear")(request); });
+  assert.equal(partial.status, "partial");
+  assert.equal(called, false);
+});
+
+test("the AI review runs only when a scan asks for it, and fails loudly when it isn't set up", async () => {
+  let reviewed = 0;
+  const withReview = deps({ async aiReview(input) { reviewed += 1; assert.equal(input.length, skill.length); return aiReview(input, answer("clear")); } });
+  const plain = await (await handle(await signed("POST", "/scan", { treeSha, files: requestFiles() }), withReview)).json() as ScanResponse;
+  assert.equal(reviewed, 0);
+  assert.ok(!plain.results.some((r) => r.scanner === "ai-review"));
+  const asked = await (await handle(await signed("POST", "/scan", { treeSha, files: requestFiles(true), aiReview: true }), withReview)).json() as ScanResponse;
+  assert.equal(reviewed, 1);
+  assert.deepEqual(asked.results.map((r) => r.scanner), [...plain.results.map((r) => r.scanner), "ai-review"]);
+  const missing = await handle(await signed("POST", "/scan", { treeSha, files: requestFiles(true), aiReview: true }), deps());
+  assert.equal(missing.status, 503);
+  assert.equal((await handle(await signed("POST", "/scan", { treeSha, files: requestFiles(true), aiReview: "yes" }), withReview)).status, 400);
 });

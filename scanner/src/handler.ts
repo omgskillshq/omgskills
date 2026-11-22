@@ -3,8 +3,11 @@ import {
   gitObjectSha,
   validateSkillManifest
 } from "../../netlify/functions/_shared/skill-package.js";
+import { AI_REVIEW_SCANNER, AI_REVIEW_VERSION } from "./ai-review.js";
 import {
+  decodeFiles,
   frameFiles,
+  type ContainerFile,
   type ScanRequest,
   type ScanRequestFile,
   type ScanResponse,
@@ -20,6 +23,8 @@ export type ScanDependencies = {
   readStoredFile(key: string): Promise<Uint8Array | null>;
   /** Sends a request to the scanner container (no internet, no keys). */
   container(path: string, init?: { method: string; body?: Uint8Array }): Promise<Response>;
+  /** The AI review, when the Worker has an Anthropic key; only public scans ask for it. */
+  aiReview?(files: ContainerFile[]): Promise<ScannerResult>;
   now?: () => number;
 };
 
@@ -80,7 +85,8 @@ function parseScanRequest(body: Uint8Array): ScanRequest {
   } catch {
     throw new RequestError(400, "bad_json");
   }
-  if (!parsed || typeof parsed.treeSha !== "string" || !SHA.test(parsed.treeSha) || !Array.isArray(parsed.files)) {
+  if (!parsed || typeof parsed.treeSha !== "string" || !SHA.test(parsed.treeSha) || !Array.isArray(parsed.files)
+    || (parsed.aiReview !== undefined && typeof parsed.aiReview !== "boolean")) {
     throw new RequestError(400, "bad_request");
   }
   return parsed;
@@ -158,9 +164,17 @@ async function tooBig(request: ScanRequest, deps: ScanDependencies): Promise<Sca
   }));
 }
 
+function tooBigReview(request: ScanRequest, deps: ScanDependencies): ScannerResult {
+  const now = new Date(deps.now?.() ?? Date.now()).toISOString();
+  return {
+    scanner: AI_REVIEW_SCANNER, version: AI_REVIEW_VERSION, status: "partial", findings: [],
+    filesScanned: 0, filesSkipped: request.files.length, startedAt: now, finishedAt: now
+  };
+}
+
 /**
  * The Worker's routes, all signed:
- *   POST /scan       files (stored or inline) → every scanner's results
+ *   POST /scan       files (stored or inline) → every scanner's results (plus the AI review if asked)
  *   GET  /scanners   the scanners and versions the container runs now
  *   GET  /selftest   proves the container can't reach the internet
  */
@@ -190,10 +204,15 @@ export async function handle(request: Request, deps: ScanDependencies): Promise<
       return json(200, await readContainerJson<{ internet: boolean }>(await deps.container("/selftest")));
     }
     const scanRequest = parseScanRequest(body);
+    // Asked for but not set up: an error the caller retries, never a missing result read as clean.
+    if (scanRequest.aiReview && !deps.aiReview) return json(503, { error: "ai_review_not_configured" });
     const files = await loadFiles(scanRequest, deps);
     const results = files
       ? (await readContainerJson<{ results: ScannerResult[] }>(await deps.container("/scan", { method: "POST", body: files }))).results
       : await tooBig(scanRequest, deps);
+    if (scanRequest.aiReview && deps.aiReview) {
+      results.push(files ? await deps.aiReview(decodeFiles(files)) : tooBigReview(scanRequest, deps));
+    }
     const response: ScanResponse = { treeSha: scanRequest.treeSha, results };
     return json(200, response);
   } catch (error) {
