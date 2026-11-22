@@ -95,6 +95,16 @@ const INVISIBLE_ALWAYS = /[\u202A-\u202E\u2066-\u2069\u{E0000}-\u{E007F}]/gu;
 const ZERO_WIDTH = /[\u200B-\u200F\u2060-\u2064]|(?<!^)\uFEFF/g;
 const ZERO_WIDTH_MIN = 3;
 
+// Letters, digits and the joiners in keys and names: a zero-width character between two of these splits a word or key.
+const WORD_CHAR = /^[\p{L}\p{N}_-]$/u;
+const ZERO_WIDTH_ONE = /^(?:[\u200B-\u200F\u2060-\u2064]|\uFEFF)$/;
+
+/** The nearest character from `index` in `step` direction that isn't zero-width, or "". */
+function neighbor(text: string, index: number, step: 1 | -1): string {
+  while (index >= 0 && index < text.length && ZERO_WIDTH_ONE.test(text[index])) index += step;
+  return text[index] ?? "";
+}
+
 /** Where the first hiding character is, or -1. */
 function invisibleAt(text: string): number {
   INVISIBLE_ALWAYS.lastIndex = 0;
@@ -105,7 +115,7 @@ function invisibleAt(text: string): number {
   ZERO_WIDTH.lastIndex = 0;
   for (let match = ZERO_WIDTH.exec(text); match; match = ZERO_WIDTH.exec(text)) {
     if (first === -1) first = match.index;
-    const splitsWord = /\p{L}/u.test(text[match.index - 1] ?? "") && /\p{L}/u.test(text[match.index + match[0].length] ?? "");
+    const splitsWord = WORD_CHAR.test(neighbor(text, match.index - 1, -1)) && WORD_CHAR.test(neighbor(text, match.index + match[0].length, 1));
     if (splitsWord) count = ZERO_WIDTH_MIN;
     if (++count >= ZERO_WIDTH_MIN) break;
   }
