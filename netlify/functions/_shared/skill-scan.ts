@@ -65,15 +65,17 @@ const SECRET_RULES: SecretRule[] = [
   {
     rule: "credential_in_url",
     kind: "Password in a URL",
-    pattern: /\b[a-z][a-z0-9+.-]*:\/\/[^\s:/@]+:([^\s:/@]{6,})@/gi,
+    // Starts only where a scheme can start, so a long run of letters and dots stays fast.
+    pattern: /(?<![a-z0-9+.-])[a-z][a-z0-9+.-]*:\/\/[^\s:/@]+:([^\s:/@]{6,})@/gi,
     check: (match) => !placeholder.test(match[1]) && !/[${}<>]/.test(match[1])
   },
   {
     rule: "assigned_secret",
     kind: "Key or password",
     pattern: /(?<![A-Za-z])(?:api[_-]?key|secret(?:[_-]?key)?|access[_-]?token|auth[_-]?token|client[_-]?secret)\b["']?\s*[:=]\s*["']?([A-Za-z0-9/+_.~-]{16,})/gi,
-    // Algolia's search keys are public by design: they ship in every site that uses Algolia search.
-    check: (match, line) => looksGenerated(match[1]) && entropy(match[1]) >= 3.5 && !WARNING_LINE.test(line) && !/algolia/i.test(line)
+    // Algolia's search keys are public by design: they ship in every site that uses Algolia search. Its admin and write keys aren't.
+    check: (match, line) => looksGenerated(match[1]) && entropy(match[1]) >= 3.5 && !WARNING_LINE.test(line)
+      && !(/algolia/i.test(line) && !/admin|write/i.test(line))
   },
   {
     rule: "assigned_password",
@@ -84,12 +86,13 @@ const SECRET_RULES: SecretRule[] = [
   }
 ];
 
+// Gaps inside one command are capped at 1000 characters, so a file that repeats "curl" on one huge line stays fast.
 const DOWNLOAD_AND_RUN = [
-  /\b(?:curl|wget)\b[^\n|]*\|\s*(?:sudo\s+)?(?:ba|z|da|k)?sh\b/i,
-  /\b(?:curl|wget)\b[^\n|]*\|\s*(?:sudo\s+)?(?:python[0-9.]*|node|perl|ruby)\b/i,
+  /\b(?:curl|wget)\b[^\n|]{0,1000}\|\s*(?:sudo\s+)?(?:ba|z|da|k)?sh\b/i,
+  /\b(?:curl|wget)\b[^\n|]{0,1000}\|\s*(?:sudo\s+)?(?:python[0-9.]*|node|perl|ruby)\b/i,
   /\b(?:ba|z)?sh\s+(?:-c\s+)?["']?\$\(\s*(?:curl|wget)\b/i,
-  /\b(?:iex|Invoke-Expression)\b[^\n]*(?:irm|iwr|Invoke-RestMethod|Invoke-WebRequest|DownloadString)\b/i,
-  /\bpowershell(?:\.exe)?\b[^\n]*\s-(?:e|enc|encodedcommand)\s+[A-Za-z0-9+/=]{20,}/i
+  /\b(?:iex|Invoke-Expression)\b[^\n]{0,1000}(?:irm|iwr|Invoke-RestMethod|Invoke-WebRequest|DownloadString)\b/i,
+  /\bpowershell(?:\.exe)?\b[^\n]{0,1000}\s-(?:e|enc|encodedcommand)\s+[A-Za-z0-9+/=]{20,}/i
 ];
 
 // Bidirectional overrides and Unicode tag characters can reorder or hide text from readers, so one is enough.
@@ -124,7 +127,9 @@ function invisibleAt(text: string): number {
   let first = -1;
   ZERO_WIDTH.lastIndex = 0;
   for (let match = ZERO_WIDTH.exec(text); match; match = ZERO_WIDTH.exec(text)) {
-    if (match[0] === "\u200D" && EMOJI_PART.test(neighbor(text, match.index - 1, -1)) && EMOJI_PART.test(neighbor(text, match.index + 1, 1))) continue;
+    // Only a single joiner between two emoji parts; a run of them is hiding something.
+    const single = !ZERO_WIDTH_ONE.test(text[match.index - 1] ?? "") && !ZERO_WIDTH_ONE.test(text[match.index + 1] ?? "");
+    if (match[0] === "\u200D" && single && EMOJI_PART.test(neighbor(text, match.index - 1, -1)) && EMOJI_PART.test(neighbor(text, match.index + 1, 1))) continue;
     if (first === -1) first = match.index;
     const splitsWord = WORD_CHAR.test(neighbor(text, match.index - 1, -1)) && WORD_CHAR.test(neighbor(text, match.index + match[0].length, 1));
     if (splitsWord) count = ZERO_WIDTH_MIN;
@@ -143,7 +148,7 @@ const OTHER_LANGUAGES = [
   /ユーザーに(?:は)?(?:知らせ|伝え|言わ)ないで/u,
   /(?:이전의?|앞의|위의)\s*(?:모든\s*)?(?:지시|명령|지침)(?:을|를|은|는)?\s*(?:모두\s*)?무시/u,
   /사용자에게\s*(?:알리지|말하지)\s*마/u,
-  /(?<!\p{L})ignor(?:a|e|ar|ad)\s+(?:todas\s+)?las\s+instrucciones\s+anteriores/iu,
+  /(?<!\p{L})ignor(?:a|e|ar|ad)\s+(?:todas\s+)?las\s+instrucciones\s+(?:anteriores|previas)/iu,
   /(?<!\p{L})no\s+se\s+lo\s+(?:digas|diga|cuentes|menciones)\s+al\s+usuario/iu,
   /(?<!\p{L})ignor(?:e|ez|er)\s+(?:toutes\s+)?les\s+instructions\s+pr[ée]c[ée]dentes/iu,
   /(?<!\p{L})ignorier(?:e|en)?\s+(?:alle\s+)?(?:vorherigen|bisherigen|obigen)\s+(?:Anweisungen|Instruktionen)/iu,
@@ -163,15 +168,14 @@ const INJECTION = [
   // reinstall" or "don't tell the user the swap succeeded yet" is advice about what to say.
   /\b(?:do\s+not|don't|never)\s+(?:tell|inform|mention\s+(?:this\s+)?to|alert|show)\s+the\s+user\b(?=\s*(?:[.,;:!)\n]|$)|\s+(?:about\b|anything\b|what\s+you\b|that\s+you\b|this\b|it\b))/i,
   // "Never do X without asking the user" is a safety rule, not hiding.
-  /(?<!\b(?:do\s+not|don't|never)\b[^.\n]{0,160})\bwithout\s+(?:telling|informing|asking)\s+the\s+user\b/i,
+  /(?<!\b(?:do\s+not|don't|never)\b[^.!?;,\n]{0,60})\bwithout\s+(?:telling|informing|asking)\s+the\s+user\b/i,
   /\bwithout\s+the\s+user\s+(?:noticing|knowing)\b/i,
+  /\b(?:do\s+not|don't|never)\s+let\s+the\s+user\s+(?:know|notice|find\s+out)\b/i,
   /\bkeep\s+(?:this|it)\s+(?:step\s+)?(?:silent|secret|hidden|quiet)\b/i,
   // "Do not silently install anything" is a safety rule.
   /(?<!\b(?:do\s+not|don't|never)\s+)\b(?:secretly|covertly|quietly|silently)\s+(?:run|execute|send|upload|post|install)\b/i,
   // Text aimed at a scanner or reviewer, asking it to pass the skill.
   /\b(?:note|message)\s+to\s+(?:the\s+)?(?:security\s+)?(?:scanners?|reviewers?|auditors?)\b|\breport\s+(?:it|this(?:\s+skill)?)\s+as\s+safe\b/i,
-  // An HTML comment (hidden when the page is shown) that talks to the agent.
-  /<!--(?:(?!-->)[\s\S]){0,2000}?\b(?:agent|assistant|claude|llm)\s*[:,](?:(?!-->)[\s\S]){0,2000}?-->/i,
   ...OTHER_LANGUAGES,
   EXFILTRATE
 ];
@@ -205,11 +209,33 @@ function firstIndex(text: string, patterns: RegExp[], accept: (match: RegExpExec
   return first;
 }
 
+// An HTML comment is hidden when the page is shown. One that tells the agent to do something is hiding instructions.
+const TO_AGENT = /(?:^|[\s,;(])(?:agent|assistant|claude|llm|ai)\s*(?:[:,]\s*(?:please\s+)?|\s+(?:please|must|should)\s+)(?:run|execute|send|upload|post|ignore|read|install|delete|always|never|before|silently|quietly|do\s+not|don't)\b/i;
+
+/** Where the first HTML comment that talks to the agent starts, or -1. Plain string search, so a huge file stays fast. */
+function agentCommentAt(text: string): number {
+  for (let start = text.indexOf("<!--"); start !== -1; ) {
+    const end = text.indexOf("-->", start + 4);
+    if (TO_AGENT.test(text.slice(start + 4, end === -1 ? text.length : end))) return start;
+    if (end === -1) return -1;
+    start = text.indexOf("<!--", end + 3);
+  }
+  return -1;
+}
+
+function earliest(...indexes: number[]): number {
+  const found = indexes.filter((index) => index !== -1);
+  return found.length ? Math.min(...found) : -1;
+}
+
 function contentLabelIndexes(text: string): [SkillLabel, number][] {
   return [
     ["download_and_run", firstIndex(text, DOWNLOAD_AND_RUN)],
     ["invisible_characters", invisibleAt(text)],
-    ["hidden_instructions", firstIndex(text, INJECTION, (match, pattern) => pattern === EXFILTRATE || !quotedAlone(text, match.index, match[0].length))]
+    ["hidden_instructions", earliest(
+      firstIndex(text, INJECTION, (match, pattern) => pattern === EXFILTRATE || !quotedAlone(text, match.index, match[0].length)),
+      agentCommentAt(text)
+    )]
   ];
 }
 
@@ -283,42 +309,78 @@ export function labelLines(data: Uint8Array, options: { text?: boolean } = {}): 
 export type RiskLabel = "sends_private_data" | "hidden_code";
 
 // Private files and whole environments: keys, cloud logins, the GitHub CLI's token.
-const PRIVATE_DATA = /(?:~|\$HOME|\$\{HOME\}|homedir\(\)|expanduser\(\s*['"]~)[^\n]{0,40}?\.(?:ssh|aws|netrc|npmrc|pypirc|docker\/config\.json|kube\/config|config\/gh|gnupg)\b|\bid_(?:rsa|ed25519|ecdsa)\b|\.config\/gh\/hosts\.yml|JSON\.stringify\(\s*process\.env\b|\benv\s*:\s*process\.env\b|(?:dict|str)\(\s*(?:dict\(\s*)?os\.environ\s*\)|\b(?:env|printenv)\s*\|\s*(?:curl|wget|nc)\b|login\.keychain|\bsecurity\s+find-(?:generic|internet)-password\b/i;
+const PRIVATE_DATA = /(?:~|\$HOME|\$\{HOME\}|homedir\(\)|Path\.home\(\)|expanduser\(\s*['"]~)[^\n]{0,40}?\.(?:ssh|aws|netrc|npmrc|pypirc|docker\/config\.json|kube\/config|config\/gh|gnupg)\b|\bid_(?:rsa|ed25519|ecdsa)\b|\.config\/gh\/hosts\.yml|JSON\.stringify\(\s*(?:\{\s*\.\.\.)?process\.env\b|\benv\s*:\s*process\.env\b|\.\.\.process\.env\b|(?:dict|str)\(\s*(?:dict\(\s*)?os\.environ\s*\)|\*\*os\.environ\b|\bos\.environ\.copy\(\)|\b(?:env|printenv)\s*\|\s*(?:curl|wget|nc)\b|login\.keychain|\bsecurity\s+find-(?:generic|internet)-password\b/i;
 // Sending something out: an upload, a POST, a raw socket.
-const SENDS = /\bcurl\b[^\n]*(?:\s-d\b|--data|\s-F\b|--form|\s-T\b|--upload-file|-X\s*POST)|\|\s*(?:curl|nc)\b|\bwget\b[^\n]*--post|\bfetch\s*\(|\baxios\.(?:post|put)\b|\brequests\.(?:post|put)\b|\burlopen\s*\(|\bhttps?\.request\s*\(|\bsocket\.(?:connect|send)|\bInvoke-(?:RestMethod|WebRequest)\b[^\n]*-Method\s+Post/i;
+const SENDS = /\bcurl\b[^\n]{0,1000}(?:\s-d\b|--data|\s-F\b|--form|\s-T\b|--upload-file|-X\s*POST)|\|\s*(?:curl|nc)\b|\bwget\b[^\n]{0,1000}--post|\bfetch\s*\(|\baxios\.(?:post|put)\b|\brequests\.(?:post|put)\b|\burlopen\s*\(|\bhttps?\.request\s*\(|\bsocket\.(?:connect|send)|\bInvoke-(?:RestMethod|WebRequest)\b[^\n]{0,1000}-Method\s+Post/i;
 /** How close (in lines) reading private data and sending it must be to count. */
 const SEND_WINDOW = 5;
+// A public key (id_ed25519.pub) is meant to be shared.
+// Matched from the start of a word only, so a long line without spaces stays fast.
+const PUBLIC_KEY_FILE = /(?<![^\s"'=@])[^\s"']+\.pub\b/g;
 
 // Code that decodes a hidden command and runs it.
 const HIDDEN_CODE = [
-  /\bbase64\s+(?:-d|-D|--decode)\b[^\n]*\|\s*(?:sudo\s+)?(?:ba|z|da|k)?sh\b/i,
-  /\b(?:exec|eval)\s*\(\s*(?:base64\.b64decode|codecs\.decode|zlib\.decompress|bytes\.fromhex|marshal\.loads)\b/,
-  /\b(?:eval|new\s+Function)\s*\(\s*(?:atob\s*\(|Buffer\.from\([^)\n]*['"](?:base64|hex)['"])/
+  /\bbase64\s+(?:-d|-D|--decode)\b[^\n]{0,1000}\|\s*(?:sudo\s+)?(?:(?:ba|z|da|k)?sh|python[0-9.]*|node|perl|ruby)\b/i,
+  /\b(?:(?:ba|z)?sh\s+-c|eval)\s+["']?\$\([^)\n]{0,1000}\bbase64\s+(?:-d|-D|--decode)\b/i,
+  /\b(?:exec|eval)\s*\(\s*(?:(?:base64\.)?b64decode|codecs\.decode|zlib\.decompress|bytes\.fromhex|marshal\.loads)\b/,
+  /\b(?:eval|new\s+Function)\s*\(\s*(?:atob\s*\(|Buffer\.from\([^)\n]{0,1000}['"](?:base64|hex)['"])/
 ];
-// Compiled programs: what they do can't be read. Python's own cache (__pycache__) is left over from running the scripts beside it.
-const COMPILED = /\.(?:pyc|pyo|class|exe|dll|scr|msi)$/i;
-const PYTHON_CACHE = /(?:^|\/)__pycache__\/[^/]+\.pyc$/;
+// Compiled programs: what they do can't be read.
+const COMPILED = /\.(?:pyc|pyo|class|exe|dll|scr|msi|so|dylib|jar|wasm|node)$/i;
+// Programs by their first bytes: ELF (Linux), Mach-O and fat binaries (Mac), MZ (Windows).
+function isProgram(data: Uint8Array): boolean {
+  const head = Array.from(data.subarray(0, 4), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return head === "7f454c46" || ["feedface", "feedfacf", "cefaedfe", "cffaedfe", "cafebabe"].includes(head) || head.startsWith("4d5a");
+}
+/** Python's own cache (__pycache__/x.cpython-313.pyc), left over from running x.py beside it; the source it came from. */
+function pythonCacheSource(path: string): string | null {
+  const match = /^(?:(.*)\/)?__pycache__\/([^/.]+)\.[^/]*\.pyc$/.exec(path);
+  return match ? `${match[1] ? `${match[1]}/` : ""}${match[2]}.py` : null;
+}
 
-function sendsPrivateDataAt(text: string): number {
+/** Lines inside fenced code blocks (``` or ~~~) of a Markdown file. */
+function codeBlockLines(lines: string[]): boolean[] {
+  let fence: string | null = null;
+  return lines.map((line) => {
+    const marker = /^\s{0,3}(`{3,}|~{3,})/.exec(line)?.[1];
+    if (marker && (!fence || marker[0] === fence[0])) {
+      fence = fence ? null : marker;
+      return false;
+    }
+    return fence !== null;
+  });
+}
+
+/** Where a file reads private data and sends it out nearby, or -1. In Markdown only code blocks count; prose mentions paths. */
+function sendsPrivateDataAt(text: string, markdown: boolean): number {
   const lines = text.split("\n");
+  const code = markdown ? codeBlockLines(lines) : lines.map(() => true);
   let offset = 0;
   for (let index = 0; index < lines.length; index += 1) {
-    if (PRIVATE_DATA.test(lines[index])) {
-      const near = lines.slice(Math.max(0, index - SEND_WINDOW), index + SEND_WINDOW + 1);
-      if (near.some((line) => SENDS.test(line))) return offset;
+    if (code[index] && PRIVATE_DATA.test(lines[index].includes(".pub") ? lines[index].replace(PUBLIC_KEY_FILE, "") : lines[index])) {
+      const from = Math.max(0, index - SEND_WINDOW);
+      const near = lines.slice(from, index + SEND_WINDOW + 1);
+      if (near.some((line, at) => code[from + at] && SENDS.test(line))) return offset;
     }
     offset += lines[index].length + 1;
   }
   return -1;
 }
 
-/** The background scan's extra checks: where a file sends private data out, or runs hidden code. */
-export function riskLines(path: string, data: Uint8Array, options: { text?: boolean } = {}): { label: RiskLabel; line: number | null }[] {
+/**
+ * The background scan's extra checks: where a file sends private data out, or runs hidden code.
+ * `paths` is every file in the skill, so Python's cache beside its source isn't counted as hidden.
+ */
+export function riskLines(
+  path: string, data: Uint8Array, options: { text?: boolean; paths?: ReadonlySet<string> } = {}
+): { label: RiskLabel; line: number | null }[] {
   const found: { label: RiskLabel; line: number | null }[] = [];
-  if (COMPILED.test(path) && !PYTHON_CACHE.test(path)) found.push({ label: "hidden_code", line: null });
+  const cacheOf = pythonCacheSource(path);
+  const cached = cacheOf !== null && (options.paths?.has(cacheOf) ?? false);
+  if (!cached && (COMPILED.test(path) || (isBinary(data) && isProgram(data)))) found.push({ label: "hidden_code", line: null });
   if (!options.text && isBinary(data)) return found;
   const text = Buffer.from(data).toString("utf8");
-  const sends = sendsPrivateDataAt(text);
+  const sends = sendsPrivateDataAt(text, /\.(?:md|markdown)$/i.test(path));
   if (sends !== -1) found.push({ label: "sends_private_data", line: lineAt(text, sends) });
   const hidden = firstIndex(text, HIDDEN_CODE);
   if (hidden !== -1) found.push({ label: "hidden_code", line: lineAt(text, hidden) });
