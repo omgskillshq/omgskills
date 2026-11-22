@@ -168,7 +168,7 @@ const INJECTION = [
   // reinstall" or "don't tell the user the swap succeeded yet" is advice about what to say.
   /\b(?:do\s+not|don't|never)\s+(?:tell|inform|mention\s+(?:this\s+)?to|alert|show)\s+the\s+user\b(?=\s*(?:[.,;:!)\n]|$)|\s+(?:about\b|anything\b|what\s+you\b|that\s+you\b|this\b|it\b))/i,
   // "Never do X without asking the user" is a safety rule, not hiding.
-  /(?<!\b(?:do\s+not|don't|never)\b[^.!?;,\n]{0,60})\bwithout\s+(?:telling|informing|asking)\s+the\s+user\b/i,
+  /(?<!\b(?:do\s+not|don't|never)\b[^.!?;\n]{0,60})\bwithout\s+(?:telling|informing|asking)\s+the\s+user\b/i,
   /\bwithout\s+the\s+user\s+(?:noticing|knowing)\b/i,
   /\b(?:do\s+not|don't|never)\s+let\s+the\s+user\s+(?:know|notice|find\s+out)\b/i,
   /\bkeep\s+(?:this|it)\s+(?:step\s+)?(?:silent|secret|hidden|quiet)\b/i,
@@ -210,7 +210,7 @@ function firstIndex(text: string, patterns: RegExp[], accept: (match: RegExpExec
 }
 
 // An HTML comment is hidden when the page is shown. One that tells the agent to do something is hiding instructions.
-const TO_AGENT = /(?:^|[\s,;(])(?:agent|assistant|claude|llm|ai)\s*(?:[:,]\s*(?:please\s+)?|\s+(?:please|must|should)\s+)(?:run|execute|send|upload|post|ignore|read|install|delete|always|never|before|silently|quietly|do\s+not|don't)\b/i;
+const TO_AGENT = /(?:^|[\s,;(])(?:agent|assistant|claude|llm)\s*(?:[:,]\s*(?:please\s+)?|\s+(?:please|must|should)\s+)(?:before\s+[^,\n]{0,40},\s*)?(?:run|execute|send|upload|post|ignore|read|install|delete|silently|quietly|do\s+not|don't)\b/i;
 
 /** Where the first HTML comment that talks to the agent starts, or -1. Plain string search, so a huge file stays fast. */
 function agentCommentAt(text: string): number {
@@ -316,7 +316,7 @@ const SENDS = /\bcurl\b[^\n]{0,1000}(?:\s-d\b|--data|\s-F\b|--form|\s-T\b|--uplo
 const SEND_WINDOW = 5;
 // A public key (id_ed25519.pub) is meant to be shared.
 // Matched from the start of a word only, so a long line without spaces stays fast.
-const PUBLIC_KEY_FILE = /(?<![^\s"'=@])[^\s"']+\.pub\b/g;
+const PUBLIC_KEY_FILE = /(?<![^\s"'=@])[\w.\/~${}-]+\.pub\b/g;
 
 // Code that decodes a hidden command and runs it.
 const HIDDEN_CODE = [
@@ -338,29 +338,47 @@ function pythonCacheSource(path: string): string | null {
   return match ? `${match[1] ? `${match[1]}/` : ""}${match[2]}.py` : null;
 }
 
-/** Lines inside fenced code blocks (``` or ~~~) of a Markdown file. */
-function codeBlockLines(lines: string[]): boolean[] {
+type CodeLine = "block" | "inline" | null;
+
+/**
+ * Which lines of a Markdown file are code: in a fenced block (closed only by a fence as long as the
+ * opening one), indented 4 spaces after a blank line, or holding `inline code`.
+ */
+function markdownCode(lines: string[]): CodeLine[] {
   let fence: string | null = null;
-  return lines.map((line) => {
-    const marker = /^\s{0,3}(`{3,}|~{3,})/.exec(line)?.[1];
-    if (marker && (!fence || marker[0] === fence[0])) {
-      fence = fence ? null : marker;
-      return false;
+  let indented = false;
+  return lines.map((line, index): CodeLine => {
+    const marker = /^\s{0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+    if (fence) {
+      if (marker && marker[1][0] === fence[0] && marker[1].length >= fence.length && !marker[2].trim()) fence = null;
+      return fence ? "block" : null;
     }
-    return fence !== null;
+    if (marker) {
+      fence = marker[1];
+      return null;
+    }
+    if (/^(?: {4}|\t)/.test(line) && (indented || !(lines[index - 1] ?? "").trim())) {
+      indented = true;
+      return "block";
+    }
+    indented = indented && !line.trim() ? true : false;
+    return /`[^`]+`/.test(line) ? "inline" : null;
   });
 }
 
-/** Where a file reads private data and sends it out nearby, or -1. In Markdown only code blocks count; prose mentions paths. */
+/**
+ * Where a file reads private data and sends it out nearby, or -1. In Markdown only code counts, since
+ * prose mentions paths; inline code only when one line does both.
+ */
 function sendsPrivateDataAt(text: string, markdown: boolean): number {
   const lines = text.split("\n");
-  const code = markdown ? codeBlockLines(lines) : lines.map(() => true);
+  const code: CodeLine[] = markdown ? markdownCode(lines) : lines.map(() => "block");
   let offset = 0;
   for (let index = 0; index < lines.length; index += 1) {
     if (code[index] && PRIVATE_DATA.test(lines[index].includes(".pub") ? lines[index].replace(PUBLIC_KEY_FILE, "") : lines[index])) {
-      const from = Math.max(0, index - SEND_WINDOW);
-      const near = lines.slice(from, index + SEND_WINDOW + 1);
-      if (near.some((line, at) => code[from + at] && SENDS.test(line))) return offset;
+      const from = code[index] === "block" ? Math.max(0, index - SEND_WINDOW) : index;
+      const near = lines.slice(from, code[index] === "block" ? index + SEND_WINDOW + 1 : index + 1);
+      if (near.some((line, at) => code[from + at] === "block" || from + at === index ? SENDS.test(line) : false)) return offset;
     }
     offset += lines[index].length + 1;
   }
@@ -376,7 +394,9 @@ export function riskLines(
 ): { label: RiskLabel; line: number | null }[] {
   const found: { label: RiskLabel; line: number | null }[] = [];
   const cacheOf = pythonCacheSource(path);
-  const cached = cacheOf !== null && (options.paths?.has(cacheOf) ?? false);
+  // A normal cache is checked against its source's timestamp (flags 0); a hash-only one can run without its source.
+  const timestamped = data.byteLength >= 8 && data[4] === 0 && data[5] === 0 && data[6] === 0 && data[7] === 0;
+  const cached = cacheOf !== null && timestamped && (options.paths?.has(cacheOf) ?? false);
   if (!cached && (COMPILED.test(path) || (isBinary(data) && isProgram(data)))) found.push({ label: "hidden_code", line: null });
   if (!options.text && isBinary(data)) return found;
   const text = Buffer.from(data).toString("utf8");
