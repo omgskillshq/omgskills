@@ -37,6 +37,8 @@ export default async (request: Request) => {
     // The last report stays: one bad run doesn't blank it.
     return;
   }
+  // Likewise when the AI review isn't set up: every skill would read "not reviewed".
+  if (!result.versions.review) return;
   try {
     // For people checking the results: verdicts and check names, never file contents. Only results from
     // the scanner versions this run used count. Read with: netlify blobs:get public-scan report.json
