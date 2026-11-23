@@ -3209,16 +3209,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 18127,
-      "avgStars": 18127,
+      "totalStars": 18329,
+      "avgStars": 18329,
       "bestSkill": {
         "id": "a2ui-project/a2ui:a2ui",
         "name": "a2ui",
-        "stars": 18127
+        "stars": 18329
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 18127,
-      "bestRepoStars": 18127,
+      "medianRepoStars": 18329,
+      "bestRepoStars": 18329,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -4652,16 +4652,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 4,
-      "totalStars": 192529,
-      "avgStars": 48132,
+      "totalStars": 192548,
+      "avgStars": 48137,
       "bestSkill": {
         "id": "abhigyanpatwari/gitnexus:gitnexus-impact-analysis",
         "name": "gitnexus-impact-analysis",
-        "stars": 48736
+        "stars": 48755
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 48736,
-      "bestRepoStars": 48736,
+      "medianRepoStars": 48755,
+      "bestRepoStars": 48755,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -4912,16 +4912,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 18,
-      "totalStars": 260361,
-      "avgStars": 14465,
+      "totalStars": 260359,
+      "avgStars": 14464,
       "bestSkill": {
         "id": "abpframework/abp:.claude/skills/abp-angular",
         "name": "abp-angular",
-        "stars": 14473
+        "stars": 14471
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 14473,
-      "bestRepoStars": 14473,
+      "medianRepoStars": 14471,
+      "bestRepoStars": 14471,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -6327,8 +6327,8 @@
     "leaderboardCategories": {
       "most-used": {
         "rank": 17,
-        "value": "1.1M installs",
-        "detail": "36 skills · 13 with installs"
+        "value": "999.8k installs",
+        "detail": "36 skills · 12 with installs"
       },
       "consistent": {
         "rank": 12,
@@ -6337,26 +6337,26 @@
       },
       "efficient": {
         "rank": 16,
-        "value": "30.0k installs/skill",
-        "detail": "13 skills with installs"
+        "value": "27.8k installs/skill",
+        "detail": "12 skills with installs"
       }
     },
     "isGoat": true,
     "stats": {
       "skillCount": 36,
-      "totalStars": 2962563,
-      "avgStars": 82293,
+      "totalStars": 2962746,
+      "avgStars": 82299,
       "bestSkill": {
         "id": "addyosmani/agent-skills:accessibility-engineering",
         "name": "accessibility-engineering",
-        "stars": 119772
+        "stars": 119955
       },
       "distinctRepoCount": 3,
       "medianRepoStars": 3004,
-      "bestRepoStars": 119772,
-      "totalInstalls": 1079425,
-      "skillsWithInstalls": 13,
-      "avgInstallsPerSkill": 29984,
+      "bestRepoStars": 119955,
+      "totalInstalls": 999769,
+      "skillsWithInstalls": 12,
+      "avgInstallsPerSkill": 27771,
       "goldBasketCount": 1,
       "editorialScore": 188,
       "editorialScoreReasons": [
@@ -7954,7 +7954,7 @@
       },
       "peak": {
         "rank": 3,
-        "value": "309.0k ⭐",
+        "value": "309.4k ⭐",
         "detail": "\"security-review\""
       },
       "consistent": {
@@ -7971,16 +7971,16 @@
     "isGoat": true,
     "stats": {
       "skillCount": 299,
-      "totalStars": 84641863,
-      "avgStars": 283083,
+      "totalStars": 84642293,
+      "avgStars": 283085,
       "bestSkill": {
         "id": "affaan-m/ecc:security-review",
         "name": "security-review",
-        "stars": 309007
+        "stars": 309437
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 301183,
-      "bestRepoStars": 309007,
+      "medianRepoStars": 301398,
+      "bestRepoStars": 309437,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -9555,16 +9555,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 3,
-      "totalStars": 126121,
-      "avgStars": 42040,
+      "totalStars": 126144,
+      "avgStars": 42048,
       "bestSkill": {
         "id": "agno-agi/agno:git-workflow",
         "name": "git-workflow",
-        "stars": 43246
+        "stars": 43269
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 43246,
-      "bestRepoStars": 43246,
+      "medianRepoStars": 43269,
+      "bestRepoStars": 43269,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -9662,23 +9662,23 @@
     "leaderboardCategories": {
       "influential": {
         "rank": 16,
-        "value": "894.1k ⭐",
+        "value": "894.3k ⭐",
         "detail": "80 skills · avg 11.2k ⭐"
       }
     },
     "isGoat": false,
     "stats": {
       "skillCount": 80,
-      "totalStars": 894129,
-      "avgStars": 11177,
+      "totalStars": 894341,
+      "avgStars": 11179,
       "bestSkill": {
         "id": "agricidaniel/claude-seo:seo",
         "name": "seo",
-        "stars": 31643
+        "stars": 31855
       },
       "distinctRepoCount": 5,
       "medianRepoStars": 2417,
-      "bestRepoStars": 31643,
+      "bestRepoStars": 31855,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -13005,16 +13005,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 2,
-      "totalStars": 30519,
-      "avgStars": 15260,
+      "totalStars": 30552,
+      "avgStars": 15276,
       "bestSkill": {
         "id": "akitaonrails/ai-memory:ai-memory-routing-install",
         "name": "ai-memory-routing-install",
-        "stars": 16264
+        "stars": 16297
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 16264,
-      "bestRepoStars": 16264,
+      "medianRepoStars": 16297,
+      "bestRepoStars": 16297,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -13745,8 +13745,8 @@
     "isGoat": false,
     "stats": {
       "skillCount": 28,
-      "totalStars": 139073,
-      "avgStars": 4967,
+      "totalStars": 139362,
+      "avgStars": 4977,
       "bestSkill": {
         "id": "alchaincyf/nuwa-skill",
         "name": "huashu-nuwa",
@@ -15248,16 +15248,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 3,
-      "totalStars": 56877,
-      "avgStars": 18959,
+      "totalStars": 57111,
+      "avgStars": 19037,
       "bestSkill": {
         "id": "alibaba/open-code-review:open-code-review-delegate",
         "name": "open-code-review-delegate",
-        "stars": 55406
+        "stars": 55640
       },
       "distinctRepoCount": 3,
       "medianRepoStars": 1386,
-      "bestRepoStars": 55406,
+      "bestRepoStars": 55640,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -15464,16 +15464,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 135,
-      "totalStars": 2919805,
-      "avgStars": 21628,
+      "totalStars": 2919856,
+      "avgStars": 21629,
       "bestSkill": {
         "id": "alirezarezvani/claude-skills:quality-documentation-manager",
         "name": "quality-documentation-manager",
-        "stars": 30292
+        "stars": 30343
       },
       "distinctRepoCount": 4,
       "medianRepoStars": 800,
-      "bestRepoStars": 30292,
+      "bestRepoStars": 30343,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -19727,22 +19727,22 @@
       "consistent": {
         "rank": 19,
         "value": "72.4k avg ⭐",
-        "detail": "7 skills · 507.0k total ⭐"
+        "detail": "7 skills · 507.1k total ⭐"
       }
     },
     "isGoat": false,
     "stats": {
       "skillCount": 7,
-      "totalStars": 507020,
-      "avgStars": 72431,
+      "totalStars": 507111,
+      "avgStars": 72444,
       "bestSkill": {
         "id": "angular/angular:adev-writing-guide",
         "name": "adev-writing-guide",
-        "stars": 101471
+        "stars": 101562
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 51080,
-      "bestRepoStars": 101471,
+      "medianRepoStars": 51126,
+      "bestRepoStars": 101562,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -20190,16 +20190,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 13888,
-      "avgStars": 13888,
+      "totalStars": 13892,
+      "avgStars": 13892,
       "bestSkill": {
         "id": "anomalyco/opentui:opentui",
         "name": "opentui",
-        "stars": 13888
+        "stars": 13892
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 13888,
-      "bestRepoStars": 13888,
+      "medianRepoStars": 13892,
+      "bestRepoStars": 13892,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -20423,16 +20423,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 71518,
-      "avgStars": 71518,
+      "totalStars": 71665,
+      "avgStars": 71665,
       "bestSkill": {
         "id": "ansible/ansible:review",
         "name": "review",
-        "stars": 71518
+        "stars": 71665
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 71518,
-      "bestRepoStars": 71518,
+      "medianRepoStars": 71665,
+      "bestRepoStars": 71665,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -20715,7 +20715,7 @@
       },
       "peak": {
         "rank": 7,
-        "value": "199.0k ⭐",
+        "value": "199.4k ⭐",
         "detail": "\"pptx\""
       },
       "prolific": {
@@ -20727,16 +20727,16 @@
     "isGoat": true,
     "stats": {
       "skillCount": 371,
-      "totalStars": 13980562,
-      "avgStars": 37683,
+      "totalStars": 13981109,
+      "avgStars": 37685,
       "bestSkill": {
         "id": "anthropics/skills:pptx",
         "name": "pptx",
-        "stars": 198988
+        "stars": 199373
       },
       "distinctRepoCount": 20,
       "medianRepoStars": 13868,
-      "bestRepoStars": 198988,
+      "bestRepoStars": 199373,
       "totalInstalls": 1424516,
       "skillsWithInstalls": 7,
       "avgInstallsPerSkill": 3840,
@@ -22077,16 +22077,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 20,
-      "totalStars": 42141,
-      "avgStars": 2107,
+      "totalStars": 42338,
+      "avgStars": 2117,
       "bestSkill": {
         "id": "apify/apify-mcp-server:bug-triage",
         "name": "bug-triage",
-        "stars": 17380
+        "stars": 17577
       },
       "distinctRepoCount": 5,
       "medianRepoStars": 1049,
-      "bestRepoStars": 17380,
+      "bestRepoStars": 17577,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -22208,16 +22208,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 16,
-      "totalStars": 21617,
+      "totalStars": 21614,
       "avgStars": 1351,
       "bestSkill": {
         "id": "apollographql/apollo-client:apollo-client",
         "name": "apollo-client",
-        "stars": 19790
+        "stars": 19787
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 9957,
-      "bestRepoStars": 19790,
+      "medianRepoStars": 9955,
+      "bestRepoStars": 19787,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -23467,16 +23467,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 29080,
-      "avgStars": 29080,
+      "totalStars": 29083,
+      "avgStars": 29083,
       "bestSkill": {
         "id": "archivebox/archivebox:archivebox",
         "name": "archivebox",
-        "stars": 29080
+        "stars": 29083
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 29080,
-      "bestRepoStars": 29080,
+      "medianRepoStars": 29083,
+      "bestRepoStars": 29083,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -25806,16 +25806,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 3,
-      "totalStars": 206405,
-      "avgStars": 68802,
+      "totalStars": 206685,
+      "avgStars": 68895,
       "bestSkill": {
         "id": "asgeirtj/system_prompts_leaks:update-config",
         "name": "update-config",
-        "stars": 72226
+        "stars": 72506
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 72226,
-      "bestRepoStars": 72226,
+      "medianRepoStars": 72506,
+      "bestRepoStars": 72506,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -26466,16 +26466,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 30864,
-      "avgStars": 30864,
+      "totalStars": 30877,
+      "avgStars": 30877,
       "bestSkill": {
         "id": "assafelovic/gpt-researcher:gpt-researcher",
         "name": "gpt-researcher",
-        "stars": 30864
+        "stars": 30877
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 30864,
-      "bestRepoStars": 30864,
+      "medianRepoStars": 30877,
+      "bestRepoStars": 30877,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -30451,16 +30451,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 54,
-      "totalStars": 145478,
-      "avgStars": 2694,
+      "totalStars": 145687,
+      "avgStars": 2698,
       "bestSkill": {
         "id": "backnotprop/plannotator:plannotator-visual-explainer",
         "name": "plannotator-visual-explainer",
-        "stars": 14419
+        "stars": 14628
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 8741,
-      "bestRepoStars": 14419,
+      "medianRepoStars": 8845,
+      "bestRepoStars": 14628,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -35895,16 +35895,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 53,
-      "totalStars": 171305,
+      "totalStars": 171313,
       "avgStars": 3232,
       "bestSkill": {
         "id": "bitwarden/clients:angular-modernization",
         "name": "angular-modernization",
-        "stars": 14302
+        "stars": 14310
       },
       "distinctRepoCount": 3,
       "medianRepoStars": 9677,
-      "bestRepoStars": 14302,
+      "bestRepoStars": 14310,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -37430,16 +37430,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 31,
-      "totalStars": 1683903,
-      "avgStars": 54319,
+      "totalStars": 1683931,
+      "avgStars": 54320,
       "bestSkill": {
         "id": "bmad-code-org/bmad-method:bmad",
         "name": "bmad",
-        "stars": 55631
+        "stars": 55659
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 55631,
-      "bestRepoStars": 55631,
+      "medianRepoStars": 55659,
+      "bestRepoStars": 55659,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -40368,16 +40368,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 14,
-      "totalStars": 895593,
-      "avgStars": 63971,
+      "totalStars": 895667,
+      "avgStars": 63976,
       "bestSkill": {
         "id": "browser-use/browser-use:browser-use",
         "name": "browser-use",
-        "stars": 121772
+        "stars": 121846
       },
       "distinctRepoCount": 6,
       "medianRepoStars": 9988,
-      "bestRepoStars": 121772,
+      "bestRepoStars": 121846,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -40425,16 +40425,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 14447,
-      "avgStars": 14447,
+      "totalStars": 14458,
+      "avgStars": 14458,
       "bestSkill": {
         "id": "browseros-ai/browseros:browseros-neo",
         "name": "browseros-neo",
-        "stars": 14447
+        "stars": 14458
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 14447,
-      "bestRepoStars": 14447,
+      "medianRepoStars": 14458,
+      "bestRepoStars": 14458,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -42197,27 +42197,27 @@
       "influential": {
         "rank": 18,
         "value": "1.9M ⭐",
-        "detail": "23 skills · avg 80.6k ⭐"
+        "detail": "23 skills · avg 80.7k ⭐"
       },
       "consistent": {
         "rank": 13,
-        "value": "80.6k avg ⭐",
+        "value": "80.7k avg ⭐",
         "detail": "23 skills · 1.9M total ⭐"
       }
     },
     "isGoat": false,
     "stats": {
       "skillCount": 23,
-      "totalStars": 1854896,
-      "avgStars": 80648,
+      "totalStars": 1854964,
+      "avgStars": 80651,
       "bestSkill": {
         "id": "bytedance/deer-flow:ppt-generation",
         "name": "ppt-generation",
-        "stars": 85617
+        "stars": 85685
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 43047,
-      "bestRepoStars": 85617,
+      "medianRepoStars": 43081,
+      "bestRepoStars": 85685,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -43469,16 +43469,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 5,
-      "totalStars": 55755,
-      "avgStars": 11151,
+      "totalStars": 55819,
+      "avgStars": 11164,
       "bestSkill": {
         "id": "can1357/oh-my-pi:packages/coding-agent/test/fixtures/skills-collision/first/calendar",
         "name": "calendar",
-        "stars": 39667
+        "stars": 39731
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 39667,
-      "bestRepoStars": 39667,
+      "medianRepoStars": 39731,
+      "bestRepoStars": 39731,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -43572,16 +43572,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 18353,
-      "avgStars": 18353,
+      "totalStars": 18375,
+      "avgStars": 18375,
       "bestSkill": {
         "id": "canner/wrenai:wren",
         "name": "wren",
-        "stars": 18353
+        "stars": 18375
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 18353,
-      "bestRepoStars": 18353,
+      "medianRepoStars": 18375,
+      "bestRepoStars": 18375,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -43877,16 +43877,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 25436,
-      "avgStars": 25436,
+      "totalStars": 25481,
+      "avgStars": 25481,
       "bestSkill": {
         "id": "CapSoftware/Cap:cap-demo",
         "name": "cap-demo",
-        "stars": 25436
+        "stars": 25481
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 25436,
-      "bestRepoStars": 25436,
+      "medianRepoStars": 25481,
+      "bestRepoStars": 25481,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -45474,16 +45474,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 3,
-      "totalStars": 70186,
-      "avgStars": 23395,
+      "totalStars": 70898,
+      "avgStars": 23633,
       "bestSkill": {
         "id": "cathrynlavery/diagram-design:diagram-design",
         "name": "diagram-design",
-        "stars": 70099
+        "stars": 70811
       },
       "distinctRepoCount": 3,
       "medianRepoStars": 59,
-      "bestRepoStars": 70099,
+      "bestRepoStars": 70811,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -46116,16 +46116,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 5,
-      "totalStars": 223395,
-      "avgStars": 44679,
+      "totalStars": 223411,
+      "avgStars": 44682,
       "bestSkill": {
         "id": "ccxt/ccxt:ccxt-python",
         "name": "ccxt-python",
-        "stars": 44955
+        "stars": 44971
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 44955,
-      "bestRepoStars": 44955,
+      "medianRepoStars": 44971,
+      "bestRepoStars": 44971,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -49174,16 +49174,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 53755,
-      "avgStars": 53755,
+      "totalStars": 53787,
+      "avgStars": 53787,
       "bestSkill": {
         "id": "CherryHQ/cherry-studio:skills-manager",
         "name": "skills-manager",
-        "stars": 53755
+        "stars": 53787
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 53755,
-      "bestRepoStars": 53755,
+      "medianRepoStars": 53787,
+      "bestRepoStars": 53787,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -50543,16 +50543,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 7,
-      "totalStars": 332270,
-      "avgStars": 47467,
+      "totalStars": 332433,
+      "avgStars": 47490,
       "bestSkill": {
         "id": "chromedevtools/chrome-devtools-mcp:chrome-devtools",
         "name": "chrome-devtools",
-        "stars": 58836
+        "stars": 58999
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 31432,
-      "bestRepoStars": 58836,
+      "medianRepoStars": 31514,
+      "bestRepoStars": 58999,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -51263,16 +51263,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 24013,
-      "avgStars": 24013,
+      "totalStars": 24169,
+      "avgStars": 24169,
       "bestSkill": {
         "id": "citrolabs/ego-lite:ego-browser",
         "name": "ego-browser",
-        "stars": 24013
+        "stars": 24169
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 24013,
-      "bestRepoStars": 24013,
+      "medianRepoStars": 24169,
+      "bestRepoStars": 24169,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -52262,16 +52262,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 47108,
-      "avgStars": 47108,
+      "totalStars": 47164,
+      "avgStars": 47164,
       "bestSkill": {
         "id": "cli/cli:gh",
         "name": "gh",
-        "stars": 47108
+        "stars": 47164
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 47108,
-      "bestRepoStars": 47108,
+      "medianRepoStars": 47164,
+      "bestRepoStars": 47164,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -52341,16 +52341,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 34,
-      "totalStars": 664745,
-      "avgStars": 19551,
+      "totalStars": 664761,
+      "avgStars": 19552,
       "bestSkill": {
         "id": "clickhouse/clickhouse:clickhouse-pr-description",
         "name": "clickhouse-pr-description",
-        "stars": 51064
+        "stars": 51080
       },
       "distinctRepoCount": 6,
       "medianRepoStars": 227,
-      "bestRepoStars": 51064,
+      "bestRepoStars": 51080,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -52497,16 +52497,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 71826,
-      "avgStars": 71826,
+      "totalStars": 71847,
+      "avgStars": 71847,
       "bestSkill": {
         "id": "cline/cline:create-pull-request",
         "name": "create-pull-request",
-        "stars": 71826
+        "stars": 71847
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 71826,
-      "bestRepoStars": 71826,
+      "medianRepoStars": 71847,
+      "bestRepoStars": 71847,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -53755,16 +53755,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 2,
-      "totalStars": 71069,
-      "avgStars": 35535,
+      "totalStars": 71087,
+      "avgStars": 35544,
       "bestSkill": {
         "id": "code-yeongyu/oh-my-openagent:src/features/builtin-skills/git-master",
         "name": "git-master",
-        "stars": 71063
+        "stars": 71081
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 35535,
-      "bestRepoStars": 71063,
+      "medianRepoStars": 35544,
+      "bestRepoStars": 71081,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -55014,16 +55014,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 3,
-      "totalStars": 154024,
-      "avgStars": 51341,
+      "totalStars": 154273,
+      "avgStars": 51424,
       "bestSkill": {
         "id": "colbymchenry/codegraph:agent-eval",
         "name": "agent-eval",
-        "stars": 78249
+        "stars": 78498
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 39136,
-      "bestRepoStars": 78249,
+      "medianRepoStars": 39261,
+      "bestRepoStars": 78498,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -55070,16 +55070,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 4,
-      "totalStars": 35569,
-      "avgStars": 8892,
+      "totalStars": 35573,
+      "avgStars": 8893,
       "bestSkill": {
         "id": "coleam00/archon:archon-cli",
         "name": "archon-cli",
-        "stars": 23980
+        "stars": 23984
       },
       "distinctRepoCount": 4,
       "medianRepoStars": 5438,
-      "bestRepoStars": 23980,
+      "bestRepoStars": 23984,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -55485,16 +55485,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 2,
-      "totalStars": 31237,
-      "avgStars": 15619,
+      "totalStars": 31266,
+      "avgStars": 15633,
       "bestSkill": {
         "id": "composiohq/composio:composio",
         "name": "composio",
-        "stars": 31237
+        "stars": 31266
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 15619,
-      "bestRepoStars": 31237,
+      "medianRepoStars": 15633,
+      "bestRepoStars": 31266,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -55696,16 +55696,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 19589,
-      "avgStars": 19589,
+      "totalStars": 19607,
+      "avgStars": 19607,
       "bestSkill": {
         "id": "confident-ai/deepeval:deepeval",
         "name": "deepeval",
-        "stars": 19589
+        "stars": 19607
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 19589,
-      "bestRepoStars": 19589,
+      "medianRepoStars": 19607,
+      "bestRepoStars": 19607,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -60509,16 +60509,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 105017,
-      "avgStars": 105017,
+      "totalStars": 105253,
+      "avgStars": 105253,
       "bestSkill": {
         "id": "d4vinci/scrapling:scrapling-official",
         "name": "scrapling-official",
-        "stars": 105017
+        "stars": 105253
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 105017,
-      "bestRepoStars": 105017,
+      "medianRepoStars": 105253,
+      "bestRepoStars": 105253,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -65346,16 +65346,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 32509,
-      "avgStars": 32509,
+      "totalStars": 32789,
+      "avgStars": 32789,
       "bestSkill": {
         "id": "decolua/9router:9router-web-fetch",
         "name": "9router-web-fetch",
-        "stars": 32509
+        "stars": 32789
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 32509,
-      "bestRepoStars": 32509,
+      "medianRepoStars": 32789,
+      "bestRepoStars": 32789,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -69243,16 +69243,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 48108,
-      "avgStars": 48108,
+      "totalStars": 48107,
+      "avgStars": 48107,
       "bestSkill": {
         "id": "discourse/discourse:discourse-upcoming-changes",
         "name": "discourse-upcoming-changes",
-        "stars": 48108
+        "stars": 48107
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 48108,
-      "bestRepoStars": 48108,
+      "medianRepoStars": 48107,
+      "bestRepoStars": 48107,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -71174,16 +71174,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 12,
-      "totalStars": 353614,
-      "avgStars": 29468,
+      "totalStars": 353700,
+      "avgStars": 29475,
       "bestSkill": {
         "id": "Donchitos/Claude-Code-Game-Studios:.claude/skills/architecture-decision",
         "name": "architecture-decision",
-        "stars": 40620
+        "stars": 40706
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 40620,
-      "bestRepoStars": 40620,
+      "medianRepoStars": 40706,
+      "bestRepoStars": 40706,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -71760,16 +71760,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 30,
-      "totalStars": 153759,
+      "totalStars": 153760,
       "avgStars": 5125,
       "bestSkill": {
         "id": "dotnet/efcore:make-skill",
         "name": "make-skill",
-        "stars": 14821
+        "stars": 14822
       },
       "distinctRepoCount": 4,
       "medianRepoStars": 4615,
-      "bestRepoStars": 14821,
+      "bestRepoStars": 14822,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -75988,22 +75988,22 @@
       "consistent": {
         "rank": 11,
         "value": "87.6k avg ⭐",
-        "detail": "9 skills · 788.3k total ⭐"
+        "detail": "9 skills · 788.5k total ⭐"
       }
     },
     "isGoat": false,
     "stats": {
       "skillCount": 9,
-      "totalStars": 788343,
-      "avgStars": 87594,
+      "totalStars": 788481,
+      "avgStars": 87609,
       "bestSkill": {
         "id": "egonex-ai/understand-anything:understand",
         "name": "understand",
-        "stars": 93631
+        "stars": 93769
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 93631,
-      "bestRepoStars": 93631,
+      "medianRepoStars": 93769,
+      "bestRepoStars": 93769,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -76148,16 +76148,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 15859,
-      "avgStars": 15859,
+      "totalStars": 15873,
+      "avgStars": 15873,
       "bestSkill": {
         "id": "eigent-ai/eigent:resources/example-skills/docx",
         "name": "docx",
-        "stars": 15859
+        "stars": 15873
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 15859,
-      "bestRepoStars": 15859,
+      "medianRepoStars": 15873,
+      "bestRepoStars": 15873,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -76736,16 +76736,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 124048,
-      "avgStars": 124048,
+      "totalStars": 124066,
+      "avgStars": 124066,
       "bestSkill": {
         "id": "electron/electron:.claude/skills/electron-chromium-upgrade",
         "name": "electron-chromium-upgrade",
-        "stars": 124048
+        "stars": 124066
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 124048,
-      "bestRepoStars": 124048,
+      "medianRepoStars": 124066,
+      "bestRepoStars": 124066,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -76764,16 +76764,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 3,
-      "totalStars": 25381,
-      "avgStars": 8460,
+      "totalStars": 26997,
+      "avgStars": 8999,
       "bestSkill": {
         "id": "elementalsouls/Claude-BugHunter:bb-local-toolkit",
         "name": "bb-local-toolkit",
-        "stars": 17738
+        "stars": 19354
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 17738,
-      "bestRepoStars": 17738,
+      "medianRepoStars": 19354,
+      "bestRepoStars": 19354,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -77578,16 +77578,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 14557,
-      "avgStars": 14557,
+      "totalStars": 14561,
+      "avgStars": 14561,
       "bestSkill": {
         "id": "emdash-cms/emdash:creating-plugins",
         "name": "creating-plugins",
-        "stars": 14557
+        "stars": 14561
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 14557,
-      "bestRepoStars": 14557,
+      "medianRepoStars": 14561,
+      "bestRepoStars": 14561,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -77667,16 +77667,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 20,
-      "totalStars": 947272,
-      "avgStars": 47364,
+      "totalStars": 947455,
+      "avgStars": 47373,
       "bestSkill": {
         "id": "emilkowalski/skills:ask-emil",
         "name": "ask-emil",
-        "stars": 58865
+        "stars": 59048
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 58865,
-      "bestRepoStars": 58865,
+      "medianRepoStars": 59048,
+      "bestRepoStars": 59048,
       "totalInstalls": 3893834,
       "skillsWithInstalls": 20,
       "avgInstallsPerSkill": 194692,
@@ -81765,16 +81765,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 30,
-      "totalStars": 297211,
-      "avgStars": 9907,
+      "totalStars": 297225,
+      "avgStars": 9908,
       "bestSkill": {
         "id": "expo/expo:.claude/skills/expo-review",
         "name": "expo-review",
-        "stars": 53724
+        "stars": 53738
       },
       "distinctRepoCount": 3,
       "medianRepoStars": 3539,
-      "bestRepoStars": 53724,
+      "bestRepoStars": 53738,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -82025,23 +82025,23 @@
     "leaderboardCategories": {
       "peak": {
         "rank": 11,
-        "value": "178.2k ⭐",
+        "value": "178.3k ⭐",
         "detail": "\"prompt-lookup\""
       }
     },
     "isGoat": false,
     "stats": {
       "skillCount": 3,
-      "totalStars": 525421,
-      "avgStars": 175140,
+      "totalStars": 525497,
+      "avgStars": 175166,
       "bestSkill": {
         "id": "f/prompts.chat:prompt-lookup",
         "name": "prompt-lookup",
-        "stars": 178248
+        "stars": 178324
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 178248,
-      "bestRepoStars": 178248,
+      "medianRepoStars": 178324,
+      "bestRepoStars": 178324,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -82321,16 +82321,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 12,
-      "totalStars": 276555,
-      "avgStars": 23046,
+      "totalStars": 276528,
+      "avgStars": 23044,
       "bestSkill": {
         "id": "facebook/react:fix",
         "name": "fix",
-        "stars": 252931
+        "stars": 252904
       },
       "distinctRepoCount": 4,
       "medianRepoStars": 11731,
-      "bestRepoStars": 252931,
+      "bestRepoStars": 252904,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -85276,16 +85276,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 16,
-      "totalStars": 1161782,
-      "avgStars": 72611,
+      "totalStars": 1161884,
+      "avgStars": 72618,
       "bestSkill": {
         "id": "fission-ai/openspec:draft-openspec-docs",
         "name": "draft-openspec-docs",
-        "stars": 75451
+        "stars": 75553
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 75451,
-      "bestRepoStars": 75451,
+      "medianRepoStars": 75553,
+      "bestRepoStars": 75553,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -86126,16 +86126,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 57,
-      "totalStars": 2287807,
+      "totalStars": 2287829,
       "avgStars": 40137,
       "bestSkill": {
         "id": "flutter/flutter:dart-log-failure-parser",
         "name": "dart-log-failure-parser",
-        "stars": 181452
+        "stars": 181474
       },
       "distinctRepoCount": 5,
       "medianRepoStars": 3120,
-      "bestRepoStars": 181452,
+      "bestRepoStars": 181474,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -88112,16 +88112,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 6,
-      "totalStars": 37003,
-      "avgStars": 6167,
+      "totalStars": 37141,
+      "avgStars": 6190,
       "bestSkill": {
         "id": "freestylefly/awesome-gpt-image-2:gpt-image-2-style-library",
         "name": "gpt-image-2-style-library",
-        "stars": 35936
+        "stars": 36074
       },
       "distinctRepoCount": 5,
       "medianRepoStars": 136,
-      "bestRepoStars": 35936,
+      "bestRepoStars": 36074,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -91047,7 +91047,7 @@
       },
       "peak": {
         "rank": 16,
-        "value": "142.4k ⭐",
+        "value": "142.5k ⭐",
         "detail": "\"gstack\""
       },
       "consistent": {
@@ -91059,16 +91059,16 @@
     "isGoat": true,
     "stats": {
       "skillCount": 57,
-      "totalStars": 7870217,
-      "avgStars": 138074,
+      "totalStars": 7870298,
+      "avgStars": 138075,
       "bestSkill": {
         "id": "garrytan/gstack",
         "name": "gstack",
-        "stars": 142379
+        "stars": 142460
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 142379,
-      "bestRepoStars": 142379,
+      "medianRepoStars": 142460,
+      "bestRepoStars": 142460,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -91396,16 +91396,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 4,
-      "totalStars": 123421,
-      "avgStars": 30855,
+      "totalStars": 123426,
+      "avgStars": 30857,
       "bestSkill": {
         "id": "gavrielc/nanoclaw:.claude/skills/add-telegram",
         "name": "add-telegram",
-        "stars": 31142
+        "stars": 31147
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 31142,
-      "bestRepoStars": 31142,
+      "medianRepoStars": 31147,
+      "bestRepoStars": 31147,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -93033,16 +93033,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 6,
-      "totalStars": 125814,
-      "avgStars": 20969,
+      "totalStars": 125887,
+      "avgStars": 20981,
       "bestSkill": {
         "id": "getpaseo/paseo:paseo",
         "name": "paseo",
-        "stars": 24704
+        "stars": 24777
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 24704,
-      "bestRepoStars": 24704,
+      "medianRepoStars": 24777,
+      "bestRepoStars": 24777,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -93067,16 +93067,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 180,
-      "totalStars": 1433518,
+      "totalStars": 1433521,
       "avgStars": 7964,
       "bestSkill": {
         "id": "getsentry/sentry:design-system",
         "name": "design-system",
-        "stars": 45865
+        "stars": 45868
       },
       "distinctRepoCount": 21,
       "medianRepoStars": 358,
-      "bestRepoStars": 45865,
+      "bestRepoStars": 45868,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -93856,16 +93856,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 22003,
-      "avgStars": 22003,
+      "totalStars": 22010,
+      "avgStars": 22010,
       "bestSkill": {
         "id": "gitbutlerapp/gitbutler:but",
         "name": "but",
-        "stars": 22003
+        "stars": 22010
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 22003,
-      "bestRepoStars": 22003,
+      "medianRepoStars": 22010,
+      "bestRepoStars": 22010,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -93941,7 +93941,7 @@
       },
       "peak": {
         "rank": 15,
-        "value": "151.0k ⭐",
+        "value": "151.1k ⭐",
         "detail": "\"add-community-extension\""
       },
       "prolific": {
@@ -93953,16 +93953,16 @@
     "isGoat": true,
     "stats": {
       "skillCount": 465,
-      "totalStars": 12481899,
+      "totalStars": 12482094,
       "avgStars": 26843,
       "bestSkill": {
         "id": "github/spec-kit:add-community-extension",
         "name": "add-community-extension",
-        "stars": 151039
+        "stars": 151140
       },
       "distinctRepoCount": 8,
       "medianRepoStars": 2292,
-      "bestRepoStars": 151039,
+      "bestRepoStars": 151140,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -95493,16 +95493,16 @@
     "isGoat": true,
     "stats": {
       "skillCount": 170,
-      "totalStars": 3055921,
+      "totalStars": 3055947,
       "avgStars": 17976,
       "bestSkill": {
         "id": "google/skills:google-cloud-solution-agentic-ai-bidirectional-streaming",
         "name": "google-cloud-solution-agentic-ai-bidirectional-streaming",
-        "stars": 24553
+        "stars": 24579
       },
       "distinctRepoCount": 8,
       "medianRepoStars": 2065,
-      "bestRepoStars": 24553,
+      "bestRepoStars": 24579,
       "totalInstalls": 4128860,
       "skillsWithInstalls": 7,
       "avgInstallsPerSkill": 24287,
@@ -95558,16 +95558,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 45,
-      "totalStars": 2267876,
-      "avgStars": 50397,
+      "totalStars": 2267905,
+      "avgStars": 50398,
       "bestSkill": {
         "id": "google-gemini/gemini-cli:docs-writer",
         "name": "docs-writer",
-        "stars": 108994
+        "stars": 109023
       },
       "distinctRepoCount": 4,
       "medianRepoStars": 4281,
-      "bestRepoStars": 108994,
+      "bestRepoStars": 109023,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -95642,16 +95642,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 2,
-      "totalStars": 24554,
-      "avgStars": 12277,
+      "totalStars": 27937,
+      "avgStars": 13969,
       "bestSkill": {
         "id": "googlechrome/modern-web-guidance:modern-web-guidance",
         "name": "modern-web-guidance",
-        "stars": 22059
+        "stars": 25442
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 22059,
-      "bestRepoStars": 22059,
+      "medianRepoStars": 25442,
+      "bestRepoStars": 25442,
       "totalInstalls": 83731,
       "skillsWithInstalls": 1,
       "avgInstallsPerSkill": 41866,
@@ -96819,16 +96819,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 8,
-      "totalStars": 131394,
-      "avgStars": 16424,
+      "totalStars": 131433,
+      "avgStars": 16429,
       "bestSkill": {
         "id": "greensock/gsap-skills:skills/gsap-core",
         "name": "gsap-core",
-        "stars": 18918
+        "stars": 18957
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 18918,
-      "bestRepoStars": 18918,
+      "medianRepoStars": 18957,
+      "bestRepoStars": 18957,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -99872,16 +99872,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 13731,
-      "avgStars": 13731,
+      "totalStars": 13781,
+      "avgStars": 13781,
       "bestSkill": {
         "id": "handsomestwei/patent-disclosure-skill",
         "name": "patent-disclosure-skill",
-        "stars": 13731
+        "stars": 13781
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 13731,
-      "bestRepoStars": 13731,
+      "medianRepoStars": 13781,
+      "bestRepoStars": 13781,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -102586,16 +102586,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 3,
-      "totalStars": 93198,
-      "avgStars": 31066,
+      "totalStars": 93212,
+      "avgStars": 31071,
       "bestSkill": {
         "id": "heroui-inc/heroui:heroui-react",
         "name": "heroui-react",
-        "stars": 31284
+        "stars": 31298
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 31284,
-      "bestRepoStars": 31284,
+      "medianRepoStars": 31298,
+      "bestRepoStars": 31298,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -102855,16 +102855,16 @@
     "isGoat": true,
     "stats": {
       "skillCount": 40,
-      "totalStars": 1932513,
-      "avgStars": 48313,
+      "totalStars": 1933042,
+      "avgStars": 48326,
       "bestSkill": {
         "id": "heygen-com/hyperframes:reverse-any-video",
         "name": "reverse-any-video",
-        "stars": 88265
+        "stars": 88794
       },
       "distinctRepoCount": 6,
       "medianRepoStars": 310,
-      "bestRepoStars": 88265,
+      "bestRepoStars": 88794,
       "totalInstalls": 6204482,
       "skillsWithInstalls": 7,
       "avgInstallsPerSkill": 155112,
@@ -106724,16 +106724,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 66,
-      "totalStars": 551191,
+      "totalStars": 551183,
       "avgStars": 8351,
       "bestSkill": {
         "id": "huggingface/transformers:add-or-fix-type-checking",
         "name": "add-or-fix-type-checking",
-        "stars": 169396
+        "stars": 169373
       },
       "distinctRepoCount": 14,
       "medianRepoStars": 1797,
-      "bestRepoStars": 169396,
+      "bestRepoStars": 169373,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -108276,16 +108276,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 30850,
-      "avgStars": 30850,
+      "totalStars": 31211,
+      "avgStars": 31211,
       "bestSkill": {
         "id": "hypit-ai/hypit:hypit",
         "name": "hypit",
-        "stars": 30850
+        "stars": 31211
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 30850,
-      "bestRepoStars": 30850,
+      "medianRepoStars": 31211,
+      "bestRepoStars": 31211,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -111054,16 +111054,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 5,
-      "totalStars": 233533,
-      "avgStars": 46707,
+      "totalStars": 233677,
+      "avgStars": 46735,
       "bestSkill": {
         "id": "imbad0202/academic-research-skills:academic-paper",
         "name": "academic-paper",
-        "stars": 58103
+        "stars": 58247
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 36116,
-      "bestRepoStars": 58103,
+      "medianRepoStars": 36188,
+      "bestRepoStars": 58247,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -111160,16 +111160,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 21451,
-      "avgStars": 21451,
+      "totalStars": 21820,
+      "avgStars": 21820,
       "bestSkill": {
         "id": "img2threejs/img2threejs",
         "name": "img2threejs",
-        "stars": 21451
+        "stars": 21820
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 21451,
-      "bestRepoStars": 21451,
+      "medianRepoStars": 21820,
+      "bestRepoStars": 21820,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -121394,16 +121394,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 24,
-      "totalStars": 600016,
-      "avgStars": 25001,
+      "totalStars": 600044,
+      "avgStars": 25002,
       "bestSkill": {
         "id": "jimliu/baoyu-skills:baoyu-post-to-wechat",
         "name": "baoyu-post-to-wechat",
-        "stars": 27799
+        "stars": 27827
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 17015,
-      "bestRepoStars": 27799,
+      "medianRepoStars": 17029,
+      "bestRepoStars": 27827,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -122514,16 +122514,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 28714,
-      "avgStars": 28714,
+      "totalStars": 28719,
+      "avgStars": 28719,
       "bestSkill": {
         "id": "jlowin/fastmcp:skills/fastmcp-client-cli",
         "name": "fastmcp-client-cli",
-        "stars": 28714
+        "stars": 28719
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 28714,
-      "bestRepoStars": 28714,
+      "medianRepoStars": 28719,
+      "bestRepoStars": 28719,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -126993,16 +126993,16 @@
     "isGoat": true,
     "stats": {
       "skillCount": 33,
-      "totalStars": 2519148,
-      "avgStars": 76338,
+      "totalStars": 2519418,
+      "avgStars": 76346,
       "bestSkill": {
         "id": "juliusbrussee/caveman:cavecrew",
         "name": "cavecrew",
-        "stars": 122101
+        "stars": 122371
       },
       "distinctRepoCount": 3,
       "medianRepoStars": 1156,
-      "bestRepoStars": 122101,
+      "bestRepoStars": 122371,
       "totalInstalls": 4584101,
       "skillsWithInstalls": 21,
       "avgInstallsPerSkill": 138912,
@@ -128005,16 +128005,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 135,
-      "totalStars": 7103317,
-      "avgStars": 52617,
+      "totalStars": 7103415,
+      "avgStars": 52618,
       "bestSkill": {
         "id": "k-dense-ai/scientific-agent-skills:scientific-writing",
         "name": "scientific-writing",
-        "stars": 58114
+        "stars": 58212
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 56615,
-      "bestRepoStars": 58114,
+      "medianRepoStars": 56664,
+      "bestRepoStars": 58212,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -131551,16 +131551,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 6,
-      "totalStars": 314141,
-      "avgStars": 52357,
+      "totalStars": 314232,
+      "avgStars": 52372,
       "bestSkill": {
         "id": "kepano/obsidian-skills:defuddle",
         "name": "defuddle",
-        "stars": 53453
+        "stars": 53544
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 53453,
-      "bestRepoStars": 53453,
+      "medianRepoStars": 53544,
+      "bestRepoStars": 53544,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -134271,16 +134271,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 5,
-      "totalStars": 108404,
-      "avgStars": 21681,
+      "totalStars": 108428,
+      "avgStars": 21686,
       "bestSkill": {
         "id": "kkkkhazix/khazix-skills:neat-freak",
         "name": "neat-freak",
-        "stars": 22460
+        "stars": 22484
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 22460,
-      "bestRepoStars": 22460,
+      "medianRepoStars": 22484,
+      "bestRepoStars": 22484,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -135472,16 +135472,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 20785,
-      "avgStars": 20785,
+      "totalStars": 20789,
+      "avgStars": 20789,
       "bestSkill": {
         "id": "kortix-ai/suna:xlsx",
         "name": "xlsx",
-        "stars": 20785
+        "stars": 20789
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 20785,
-      "bestRepoStars": 20785,
+      "medianRepoStars": 20789,
+      "bestRepoStars": 20789,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -135931,16 +135931,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 14438,
-      "avgStars": 14438,
+      "totalStars": 14510,
+      "avgStars": 14510,
       "bestSkill": {
         "id": "krillinai/krillinai:krillinai-pipeline",
         "name": "krillinai-pipeline",
-        "stars": 14438
+        "stars": 14510
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 14438,
-      "bestRepoStars": 14438,
+      "medianRepoStars": 14510,
+      "bestRepoStars": 14510,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -138518,16 +138518,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 73,
-      "totalStars": 648605,
+      "totalStars": 648627,
       "avgStars": 8885,
       "bestSkill": {
         "id": "langchain-ai/deepagents:code-review",
         "name": "code-review",
-        "stars": 31516
+        "stars": 31538
       },
       "distinctRepoCount": 6,
       "medianRepoStars": 740,
-      "bestRepoStars": 31516,
+      "bestRepoStars": 31538,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -138572,16 +138572,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 17,
-      "totalStars": 542542,
-      "avgStars": 31914,
+      "totalStars": 542568,
+      "avgStars": 31916,
       "bestSkill": {
         "id": "langfuse/langfuse:backend-dev-guidelines",
         "name": "backend-dev-guidelines",
-        "stars": 37729
+        "stars": 37755
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 19019,
-      "bestRepoStars": 37729,
+      "medianRepoStars": 19032,
+      "bestRepoStars": 37755,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -138599,23 +138599,23 @@
     "leaderboardCategories": {
       "peak": {
         "rank": 13,
-        "value": "161.7k ⭐",
+        "value": "161.8k ⭐",
         "detail": "\"backend-code-review\""
       }
     },
     "isGoat": false,
     "stats": {
       "skillCount": 4,
-      "totalStars": 479381,
-      "avgStars": 119845,
+      "totalStars": 479442,
+      "avgStars": 119861,
       "bestSkill": {
         "id": "langgenius/dify:frontend-code-review",
         "name": "backend-code-review",
-        "stars": 161689
+        "stars": 161750
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 80935,
-      "bestRepoStars": 161689,
+      "medianRepoStars": 80965,
+      "bestRepoStars": 161750,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -138856,16 +138856,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 32,
-      "totalStars": 478710,
-      "avgStars": 14960,
+      "totalStars": 478745,
+      "avgStars": 14961,
       "bestSkill": {
         "id": "larksuite/cli:lark-apps",
         "name": "lark-apps",
-        "stars": 18162
+        "stars": 18197
       },
       "distinctRepoCount": 4,
       "medianRepoStars": 1400,
-      "bestRepoStars": 18162,
+      "bestRepoStars": 18197,
       "totalInstalls": 11248458,
       "skillsWithInstalls": 25,
       "avgInstallsPerSkill": 351514,
@@ -140548,16 +140548,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 18975,
-      "avgStars": 18975,
+      "totalStars": 20228,
+      "avgStars": 20228,
       "bestSkill": {
         "id": "lemomo-ai/lemo-opuscar:lemo-opuscar",
         "name": "lemo-opuscar",
-        "stars": 18975
+        "stars": 20228
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 18975,
-      "bestRepoStars": 18975,
+      "medianRepoStars": 20228,
+      "bestRepoStars": 20228,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -141207,23 +141207,23 @@
     "leaderboardCategories": {
       "consistent": {
         "rank": 9,
-        "value": "94.6k avg ⭐",
-        "detail": "5 skills · 473.1k total ⭐"
+        "value": "94.7k avg ⭐",
+        "detail": "5 skills · 473.6k total ⭐"
       }
     },
     "isGoat": false,
     "stats": {
       "skillCount": 5,
-      "totalStars": 473143,
-      "avgStars": 94629,
+      "totalStars": 473604,
+      "avgStars": 94721,
       "bestSkill": {
         "id": "leonxlnx/taste-skill:imagegen-frontend-mobile",
         "name": "design-taste-frontend",
-        "stars": 120107
+        "stars": 120568
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 120107,
-      "bestRepoStars": 120107,
+      "medianRepoStars": 120568,
+      "bestRepoStars": 120568,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -145568,16 +145568,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 49,
-      "totalStars": 3925451,
-      "avgStars": 80111,
+      "totalStars": 3925504,
+      "avgStars": 80112,
       "bestSkill": {
         "id": "lobehub/lobehub:.agents/skills/add-model-provider",
         "name": "add-model-provider",
-        "stars": 86002
+        "stars": 86055
       },
       "distinctRepoCount": 3,
       "medianRepoStars": 218,
-      "bestRepoStars": 86002,
+      "bestRepoStars": 86055,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -148634,16 +148634,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 9,
-      "totalStars": 141248,
-      "avgStars": 15694,
+      "totalStars": 141278,
+      "avgStars": 15698,
       "bestSkill": {
         "id": "luongnv89/claude-howto:03-skills/brand-voice",
         "name": "brand-voice",
-        "stars": 47506
+        "stars": 47536
       },
       "distinctRepoCount": 3,
       "medianRepoStars": 960,
-      "bestRepoStars": 47506,
+      "bestRepoStars": 47536,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -151873,16 +151873,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 21,
-      "totalStars": 594248,
-      "avgStars": 28298,
+      "totalStars": 594270,
+      "avgStars": 28299,
       "bestSkill": {
         "id": "manaflow-ai/cmux:cmux",
         "name": "cmux",
-        "stars": 28893
+        "stars": 28915
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 28893,
-      "bestRepoStars": 28893,
+      "medianRepoStars": 28915,
+      "bestRepoStars": 28915,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -153518,16 +153518,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 12,
-      "totalStars": 26117,
-      "avgStars": 2176,
+      "totalStars": 26133,
+      "avgStars": 2178,
       "bestSkill": {
         "id": "marimo-team/marimo:marimo-pair",
         "name": "marimo-pair",
-        "stars": 23695
+        "stars": 23711
       },
       "distinctRepoCount": 3,
       "medianRepoStars": 432,
-      "bestRepoStars": 23695,
+      "bestRepoStars": 23711,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -154869,16 +154869,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 14,
-      "totalStars": 318892,
-      "avgStars": 22778,
+      "totalStars": 318911,
+      "avgStars": 22779,
       "bestSkill": {
         "id": "mastra-ai/mastra:builder-smoke-test",
         "name": "builder-smoke-test",
-        "stars": 29745
+        "stars": 29764
       },
       "distinctRepoCount": 3,
       "medianRepoStars": 99,
-      "bestRepoStars": 29745,
+      "bestRepoStars": 29764,
       "totalInstalls": 110144,
       "skillsWithInstalls": 1,
       "avgInstallsPerSkill": 7867,
@@ -155918,7 +155918,7 @@
       },
       "peak": {
         "rank": 1,
-        "value": "330.5k ⭐",
+        "value": "331.2k ⭐",
         "detail": "\"software-factory\""
       },
       "consistent": {
@@ -155935,19 +155935,19 @@
     "isGoat": true,
     "stats": {
       "skillCount": 61,
-      "totalStars": 12796457,
-      "avgStars": 209778,
+      "totalStars": 12797223,
+      "avgStars": 209791,
       "bestSkill": {
         "id": "mattpocock/skills:software-factory",
         "name": "software-factory",
-        "stars": 330469
+        "stars": 331235
       },
       "distinctRepoCount": 7,
       "medianRepoStars": 856,
-      "bestRepoStars": 330469,
-      "totalInstalls": 12912950,
+      "bestRepoStars": 331235,
+      "totalInstalls": 12913007,
       "skillsWithInstalls": 19,
-      "avgInstallsPerSkill": 211688,
+      "avgInstallsPerSkill": 211689,
       "goldBasketCount": 44,
       "editorialScore": 694,
       "editorialScoreReasons": [
@@ -158268,16 +158268,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 69189,
-      "avgStars": 69189,
+      "totalStars": 69379,
+      "avgStars": 69379,
       "bestSkill": {
         "id": "mem0ai/mem0:mem0",
         "name": "mem0",
-        "stars": 69189
+        "stars": 69379
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 69189,
-      "bestRepoStars": 69189,
+      "medianRepoStars": 69379,
+      "bestRepoStars": 69379,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -158452,16 +158452,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 60656,
-      "avgStars": 60656,
+      "totalStars": 60673,
+      "avgStars": 60673,
       "bestSkill": {
         "id": "mempalace/mempalace:mempalace",
         "name": "mempalace",
-        "stars": 60656
+        "stars": 60673
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 60656,
-      "bestRepoStars": 60656,
+      "medianRepoStars": 60673,
+      "bestRepoStars": 60673,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -159077,16 +159077,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 10,
-      "totalStars": 498750,
-      "avgStars": 49875,
+      "totalStars": 498762,
+      "avgStars": 49876,
       "bestSkill": {
         "id": "metabase/metabase:typescript-review",
         "name": "typescript-review",
-        "stars": 50477
+        "stars": 50489
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 50477,
-      "bestRepoStars": 50477,
+      "medianRepoStars": 50489,
+      "bestRepoStars": 50489,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -160661,16 +160661,16 @@
     "isGoat": true,
     "stats": {
       "skillCount": 681,
-      "totalStars": 13219175,
-      "avgStars": 19411,
+      "totalStars": 13219270,
+      "avgStars": 19412,
       "bestSkill": {
         "id": "microsoft/vscode:.github/skills/customizations-in-the-agent-host",
         "name": "customizations-in-the-agent-host",
-        "stars": 195789
+        "stars": 195757
       },
       "distinctRepoCount": 53,
       "medianRepoStars": 1644,
-      "bestRepoStars": 195789,
+      "bestRepoStars": 195757,
       "totalInstalls": 17065977,
       "skillsWithInstalls": 25,
       "avgInstallsPerSkill": 25060,
@@ -161660,16 +161660,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 3,
-      "totalStars": 33746,
+      "totalStars": 33748,
       "avgStars": 11249,
       "bestSkill": {
         "id": "millionco/react-doctor:improve-react",
         "name": "improve-react",
-        "stars": 15179
+        "stars": 15181
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 9370,
-      "bestRepoStars": 15179,
+      "medianRepoStars": 9371,
+      "bestRepoStars": 15181,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -168071,16 +168071,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 99388,
-      "avgStars": 99388,
+      "totalStars": 99391,
+      "avgStars": 99391,
       "bestSkill": {
         "id": "mui/material-ui:material-ui-nextjs",
         "name": "material-ui-nextjs",
-        "stars": 99388
+        "stars": 99391
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 99388,
-      "bestRepoStars": 99388,
+      "medianRepoStars": 99391,
+      "bestRepoStars": 99391,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -168124,16 +168124,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 8,
-      "totalStars": 201773,
-      "avgStars": 25222,
+      "totalStars": 201824,
+      "avgStars": 25228,
       "bestSkill": {
         "id": "mukul975/Anthropic-Cybersecurity-Skills:performing-wireless-network-penetration-test",
         "name": "performing-wireless-network-penetration-test",
-        "stars": 36576
+        "stars": 36627
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 18446,
-      "bestRepoStars": 36576,
+      "medianRepoStars": 18471,
+      "bestRepoStars": 36627,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -168152,16 +168152,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 235094,
-      "avgStars": 235094,
+      "totalStars": 235284,
+      "avgStars": 235284,
       "bestSkill": {
         "id": "multica-ai/andrej-karpathy-skills:karpathy-guidelines",
         "name": "karpathy-guidelines",
-        "stars": 235094
+        "stars": 235284
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 235094,
-      "bestRepoStars": 235094,
+      "medianRepoStars": 235284,
+      "bestRepoStars": 235284,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -168281,16 +168281,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 18,
-      "totalStars": 307235,
+      "totalStars": 307243,
       "avgStars": 17069,
       "bestSkill": {
         "id": "muratcankoylan/Agent-Skills-for-Context-Engineering",
         "name": "context-engineering-collection",
-        "stars": 18399
+        "stars": 18407
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 9584,
-      "bestRepoStars": 18399,
+      "medianRepoStars": 9588,
+      "bestRepoStars": 18407,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -168639,16 +168639,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 20,
-      "totalStars": 135026,
-      "avgStars": 6751,
+      "totalStars": 135627,
+      "avgStars": 6781,
       "bestSkill": {
         "id": "mvanhorn/last30days-skill:last30days-skill",
         "name": "last30days",
-        "stars": 72687
+        "stars": 73288
       },
       "distinctRepoCount": 4,
       "medianRepoStars": 3479,
-      "bestRepoStars": 72687,
+      "bestRepoStars": 73288,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -169562,32 +169562,32 @@
       "influential": {
         "rank": 5,
         "value": "6.0M ⭐",
-        "detail": "43 skills · avg 140.1k ⭐"
+        "detail": "43 skills · avg 140.2k ⭐"
       },
       "peak": {
         "rank": 6,
-        "value": "211.8k ⭐",
+        "value": "211.9k ⭐",
         "detail": "\"n8n:create-pr\""
       },
       "consistent": {
         "rank": 5,
-        "value": "140.1k avg ⭐",
+        "value": "140.2k avg ⭐",
         "detail": "43 skills · 6.0M total ⭐"
       }
     },
     "isGoat": true,
     "stats": {
       "skillCount": 43,
-      "totalStars": 6026395,
-      "avgStars": 140149,
+      "totalStars": 6026478,
+      "avgStars": 140151,
       "bestSkill": {
         "id": "n8n-io/n8n:create-pr",
         "name": "n8n:create-pr",
-        "stars": 211835
+        "stars": 211918
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 106188,
-      "bestRepoStars": 211835,
+      "medianRepoStars": 106230,
+      "bestRepoStars": 211918,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -172544,16 +172544,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 14630,
-      "avgStars": 14630,
+      "totalStars": 14635,
+      "avgStars": 14635,
       "bestSkill": {
         "id": "NevaMind-AI/memU",
         "name": "install-memu",
-        "stars": 14630
+        "stars": 14635
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 14630,
-      "bestRepoStars": 14630,
+      "medianRepoStars": 14635,
+      "bestRepoStars": 14635,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -173002,13 +173002,13 @@
     "leaderboardCategories": {
       "peak": {
         "rank": 14,
-        "value": "152.8k ⭐",
+        "value": "153.2k ⭐",
         "detail": "\"ui-ux-pro-max\""
       },
       "consistent": {
         "rank": 7,
         "value": "136.0k avg ⭐",
-        "detail": "7 skills · 951.7k total ⭐"
+        "detail": "7 skills · 952.1k total ⭐"
       },
       "efficient": {
         "rank": 19,
@@ -173019,16 +173019,16 @@
     "isGoat": true,
     "stats": {
       "skillCount": 7,
-      "totalStars": 951737,
-      "avgStars": 135962,
+      "totalStars": 952093,
+      "avgStars": 136013,
       "bestSkill": {
         "id": "nextlevelbuilder/ui-ux-pro-max-skill:ui-ux-pro-max-skill",
         "name": "ui-ux-pro-max",
-        "stars": 152845
+        "stars": 153201
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 152845,
-      "bestRepoStars": 152845,
+      "medianRepoStars": 153201,
+      "bestRepoStars": 153201,
       "totalInstalls": 163852,
       "skillsWithInstalls": 3,
       "avgInstallsPerSkill": 23407,
@@ -173124,16 +173124,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 6,
-      "totalStars": 322015,
-      "avgStars": 53669,
+      "totalStars": 322626,
+      "avgStars": 53771,
       "bestSkill": {
         "id": "nexu-io/open-design:ui-ux-pro-max",
         "name": "ui-ux-pro-max",
-        "stars": 108975
+        "stars": 109139
       },
       "distinctRepoCount": 4,
-      "medianRepoStars": 7840,
-      "bestRepoStars": 108975,
+      "medianRepoStars": 8064,
+      "bestRepoStars": 109139,
       "totalInstalls": 584,
       "skillsWithInstalls": 1,
       "avgInstallsPerSkill": 97,
@@ -176845,16 +176845,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 265424,
-      "avgStars": 265424,
+      "totalStars": 265622,
+      "avgStars": 265622,
       "bestSkill": {
         "id": "nousresearch/hermes-agent:dogfood",
         "name": "dogfood",
-        "stars": 265424
+        "stars": 265622
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 265424,
-      "bestRepoStars": 265424,
+      "medianRepoStars": 265622,
+      "bestRepoStars": 265622,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -177132,16 +177132,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 3,
-      "totalStars": 29733,
-      "avgStars": 9911,
+      "totalStars": 29740,
+      "avgStars": 9913,
       "bestSkill": {
         "id": "nrwl/nx:.claude/skills/run-nx-generator",
         "name": "run-nx-generator",
-        "stars": 29485
+        "stars": 29492
       },
       "distinctRepoCount": 3,
       "medianRepoStars": 218,
-      "bestRepoStars": 29485,
+      "bestRepoStars": 29492,
       "totalInstalls": 101317,
       "skillsWithInstalls": 1,
       "avgInstallsPerSkill": 33772,
@@ -177738,8 +177738,8 @@
     "isGoat": false,
     "stats": {
       "skillCount": 878,
-      "totalStars": 3670818,
-      "avgStars": 4181,
+      "totalStars": 3672157,
+      "avgStars": 4182,
       "bestSkill": {
         "id": "nvidia/skillspector:skill-inspector",
         "name": "skill-inspector",
@@ -178476,7 +178476,7 @@
       },
       "peak": {
         "rank": 2,
-        "value": "324.1k ⭐",
+        "value": "324.9k ⭐",
         "detail": "\"systematic-debugging\""
       },
       "consistent": {
@@ -178493,16 +178493,16 @@
     "isGoat": true,
     "stats": {
       "skillCount": 59,
-      "totalStars": 4566354,
-      "avgStars": 77396,
+      "totalStars": 4567071,
+      "avgStars": 77408,
       "bestSkill": {
         "id": "obra/superpowers:systematic-debugging",
         "name": "systematic-debugging",
-        "stars": 324146
+        "stars": 324863
       },
       "distinctRepoCount": 6,
       "medianRepoStars": 452,
-      "bestRepoStars": 324146,
+      "bestRepoStars": 324863,
       "totalInstalls": 4060087,
       "skillsWithInstalls": 15,
       "avgInstallsPerSkill": 68815,
@@ -181370,7 +181370,7 @@
     "leaderboardCategories": {
       "peak": {
         "rank": 18,
-        "value": "136.1k ⭐",
+        "value": "136.2k ⭐",
         "detail": "\"skill-creator\""
       },
       "prolific": {
@@ -181382,16 +181382,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 414,
-      "totalStars": 4816325,
+      "totalStars": 4816646,
       "avgStars": 11634,
       "bestSkill": {
         "id": "openai/codex:skill-creator",
         "name": "skill-creator",
-        "stars": 136146
+        "stars": 136239
       },
       "distinctRepoCount": 8,
-      "medianRepoStars": 29865,
-      "bestRepoStars": 136146,
+      "medianRepoStars": 29921,
+      "bestRepoStars": 136239,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -182750,16 +182750,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 10,
-      "totalStars": 26049,
+      "totalStars": 26050,
       "avgStars": 2605,
       "bestSkill": {
         "id": "oracle/graal:build-native-image-gradle",
         "name": "build-native-image-gradle",
-        "stars": 21757
+        "stars": 21758
       },
       "distinctRepoCount": 3,
       "medianRepoStars": 893,
-      "bestRepoStars": 21757,
+      "bestRepoStars": 21758,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -183578,16 +183578,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 29,
-      "totalStars": 28735,
-      "avgStars": 991,
+      "totalStars": 28764,
+      "avgStars": 992,
       "bestSkill": {
         "id": "OthmanAdi/planning-with-files:planning-with-files",
         "name": "planning-with-files",
-        "stars": 28178
+        "stars": 28207
       },
       "distinctRepoCount": 11,
       "medianRepoStars": 21,
-      "bestRepoStars": 28178,
+      "bestRepoStars": 28207,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -183831,16 +183831,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 96829,
-      "avgStars": 96829,
+      "totalStars": 96842,
+      "avgStars": 96842,
       "bestSkill": {
         "id": "oven-sh/bun:.claude/skills/implementing-jsc-classes-cpp",
         "name": "implementing-jsc-classes-cpp",
-        "stars": 96829
+        "stars": 96842
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 96829,
-      "bestRepoStars": 96829,
+      "medianRepoStars": 96842,
+      "bestRepoStars": 96842,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -184041,16 +184041,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 2,
-      "totalStars": 46651,
-      "avgStars": 23326,
+      "totalStars": 46671,
+      "avgStars": 23336,
       "bestSkill": {
         "id": "oxc-project/oxc:migrate-oxlint",
         "name": "migrate-oxlint",
-        "stars": 23553
+        "stars": 23573
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 23553,
-      "bestRepoStars": 23553,
+      "medianRepoStars": 23573,
+      "bestRepoStars": 23573,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -184923,22 +184923,22 @@
       "consistent": {
         "rank": 20,
         "value": "72.1k avg ⭐",
-        "detail": "10 skills · 720.7k total ⭐"
+        "detail": "10 skills · 721.0k total ⭐"
       }
     },
     "isGoat": false,
     "stats": {
       "skillCount": 10,
-      "totalStars": 720681,
-      "avgStars": 72068,
+      "totalStars": 720950,
+      "avgStars": 72095,
       "bestSkill": {
         "id": "paperclipai/paperclip:paperclip",
         "name": "paperclip",
-        "stars": 115965
+        "stars": 116234
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 58466,
-      "bestRepoStars": 115965,
+      "medianRepoStars": 58601,
+      "bestRepoStars": 116234,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -186121,16 +186121,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 4,
-      "totalStars": 91234,
-      "avgStars": 22809,
+      "totalStars": 91260,
+      "avgStars": 22815,
       "bestSkill": {
         "id": "payloadcms/payload:payload",
         "name": "payload",
-        "stars": 45946
+        "stars": 45972
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 23056,
-      "bestRepoStars": 45946,
+      "medianRepoStars": 23069,
+      "bestRepoStars": 45972,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -186174,16 +186174,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 7,
-      "totalStars": 187347,
-      "avgStars": 26764,
+      "totalStars": 187836,
+      "avgStars": 26834,
       "bestSkill": {
         "id": "pbakaus/impeccable:audit",
         "name": "audit",
-        "stars": 115004
+        "stars": 115493
       },
       "distinctRepoCount": 4,
       "medianRepoStars": 175,
-      "bestRepoStars": 115004,
+      "bestRepoStars": 115493,
       "totalInstalls": 429141,
       "skillsWithInstalls": 1,
       "avgInstallsPerSkill": 61306,
@@ -188243,16 +188243,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 68,
-      "totalStars": 1071840,
-      "avgStars": 15762,
+      "totalStars": 1071865,
+      "avgStars": 15763,
       "bestSkill": {
         "id": "phuryn/pm-skills:pm-ai-shipping/skills/intended-vs-implemented",
         "name": "intended-vs-implemented",
-        "stars": 28228
+        "stars": 28253
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 28228,
-      "bestRepoStars": 28228,
+      "medianRepoStars": 28253,
+      "bestRepoStars": 28253,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -190940,16 +190940,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 198,
-      "totalStars": 2591732,
+      "totalStars": 2591755,
       "avgStars": 13090,
       "bestSkill": {
         "id": "posthog/posthog:react-doctor",
         "name": "react-doctor",
-        "stars": 41026
+        "stars": 41049
       },
       "distinctRepoCount": 7,
       "medianRepoStars": 95,
-      "bestRepoStars": 41026,
+      "bestRepoStars": 41049,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -192669,16 +192669,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 5,
-      "totalStars": 74397,
-      "avgStars": 14879,
+      "totalStars": 74410,
+      "avgStars": 14882,
       "bestSkill": {
         "id": "prowler-cloud/prowler:zod-4",
         "name": "zod-4",
-        "stars": 15294
+        "stars": 15307
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 15294,
-      "bestRepoStars": 15294,
+      "medianRepoStars": 15307,
+      "bestRepoStars": 15307,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -193333,16 +193333,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 16,
-      "totalStars": 32344,
+      "totalStars": 32355,
       "avgStars": 2022,
       "bestSkill": {
         "id": "pydantic/pydantic-ai:building-pydantic-ai-agents",
         "name": "building-pydantic-ai-agents",
-        "stars": 21340
+        "stars": 21351
       },
       "distinctRepoCount": 3,
       "medianRepoStars": 8986,
-      "bestRepoStars": 21340,
+      "bestRepoStars": 21351,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -193570,16 +193570,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 37,
-      "totalStars": 2054291,
+      "totalStars": 2054262,
       "avgStars": 55521,
       "bestSkill": {
         "id": "pytorch/pytorch:pr-review",
         "name": "pr-review",
-        "stars": 105828
+        "stars": 105799
       },
       "distinctRepoCount": 4,
       "medianRepoStars": 5545,
-      "bestRepoStars": 105828,
+      "bestRepoStars": 105799,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -198586,16 +198586,16 @@
     "isGoat": true,
     "stats": {
       "skillCount": 43,
-      "totalStars": 1144545,
-      "avgStars": 26617,
+      "totalStars": 1144753,
+      "avgStars": 26622,
       "bestSkill": {
         "id": "remotion-dev/remotion:.claude/skills/pr",
         "name": "pr",
-        "stars": 74961
+        "stars": 75169
       },
       "distinctRepoCount": 5,
       "medianRepoStars": 197,
-      "bestRepoStars": 74961,
+      "bestRepoStars": 75169,
       "totalInstalls": 4967208,
       "skillsWithInstalls": 12,
       "avgInstallsPerSkill": 115516,
@@ -202085,16 +202085,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 2,
-      "totalStars": 18355,
-      "avgStars": 9178,
+      "totalStars": 18360,
+      "avgStars": 9180,
       "bestSkill": {
         "id": "rolldown/rolldown:rolldown-repl",
         "name": "rolldown-repl",
-        "stars": 14044
+        "stars": 14049
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 9178,
-      "bestRepoStars": 14044,
+      "medianRepoStars": 9180,
+      "bestRepoStars": 14049,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -203213,16 +203213,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 3,
-      "totalStars": 255140,
-      "avgStars": 85047,
+      "totalStars": 255217,
+      "avgStars": 85072,
       "bestSkill": {
         "id": "rtk-ai/rtk:code-simplifier",
         "name": "code-simplifier",
-        "stars": 87506
+        "stars": 87583
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 87506,
-      "bestRepoStars": 87506,
+      "medianRepoStars": 87583,
+      "bestRepoStars": 87583,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -204034,16 +204034,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 190,
-      "totalStars": 13212318,
+      "totalStars": 13212361,
       "avgStars": 69539,
       "bestSkill": {
         "id": "ruvnet/ruflo:plugins/ruflo-ai-team/skills/coordinate-team-work",
         "name": "coordinate-team-work",
-        "stars": 82277
+        "stars": 82320
       },
       "distinctRepoCount": 4,
       "medianRepoStars": 40276,
-      "bestRepoStars": 82277,
+      "bestRepoStars": 82320,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -211538,23 +211538,23 @@
     "leaderboardCategories": {
       "peak": {
         "rank": 20,
-        "value": "128.7k ⭐",
+        "value": "128.8k ⭐",
         "detail": "\"migrate-radix-to-base\""
       }
     },
     "isGoat": false,
     "stats": {
       "skillCount": 2,
-      "totalStars": 254524,
-      "avgStars": 127262,
+      "totalStars": 254691,
+      "avgStars": 127346,
       "bestSkill": {
         "id": "shadcn-ui/ui:migrate-radix-to-base",
         "name": "migrate-radix-to-base",
-        "stars": 128682
+        "stars": 128849
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 128682,
-      "bestRepoStars": 128682,
+      "medianRepoStars": 128849,
+      "bestRepoStars": 128849,
       "totalInstalls": 157554,
       "skillsWithInstalls": 1,
       "avgInstallsPerSkill": 78777,
@@ -212413,16 +212413,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 3,
-      "totalStars": 197679,
-      "avgStars": 65893,
+      "totalStars": 197740,
+      "avgStars": 65913,
       "bestSkill": {
         "id": "shareAI-lab/learn-claude-code:skills/agent-builder",
         "name": "agent-builder",
-        "stars": 80735
+        "stars": 80796
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 80735,
-      "bestRepoStars": 80735,
+      "medianRepoStars": 80796,
+      "bestRepoStars": 80796,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -215982,16 +215982,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 30186,
-      "avgStars": 30186,
+      "totalStars": 30191,
+      "avgStars": 30191,
       "bestSkill": {
         "id": "simstudioai/sim:add-integration",
         "name": "add-integration",
-        "stars": 30186
+        "stars": 30191
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 30186,
-      "bestRepoStars": 30186,
+      "medianRepoStars": 30191,
+      "bestRepoStars": 30191,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -221677,28 +221677,28 @@
     "leaderboardCategories": {
       "peak": {
         "rank": 19,
-        "value": "132.9k ⭐",
+        "value": "134.2k ⭐",
         "detail": "\"orca-cli\""
       },
       "consistent": {
         "rank": 10,
-        "value": "90.9k avg ⭐",
-        "detail": "9 skills · 817.7k total ⭐"
+        "value": "91.0k avg ⭐",
+        "detail": "9 skills · 819.0k total ⭐"
       }
     },
     "isGoat": false,
     "stats": {
       "skillCount": 9,
-      "totalStars": 817735,
-      "avgStars": 90859,
+      "totalStars": 819028,
+      "avgStars": 91003,
       "bestSkill": {
         "id": "stablyai/orca:orca-cli",
         "name": "orca-cli",
-        "stars": 132949
+        "stars": 134242
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 66754,
-      "bestRepoStars": 132949,
+      "medianRepoStars": 67400,
+      "bestRepoStars": 134242,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -225117,16 +225117,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 22,
-      "totalStars": 2154433,
-      "avgStars": 97929,
+      "totalStars": 2154475,
+      "avgStars": 97931,
       "bestSkill": {
         "id": "supabase/supabase:.claude/skills/react-hook-form",
         "name": "react-hook-form",
-        "stars": 115341
+        "stars": 115383
       },
       "distinctRepoCount": 3,
       "medianRepoStars": 2944,
-      "bestRepoStars": 115341,
+      "bestRepoStars": 115383,
       "totalInstalls": 373449,
       "skillsWithInstalls": 1,
       "avgInstallsPerSkill": 16975,
@@ -225332,16 +225332,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 4,
-      "totalStars": 32027,
-      "avgStars": 8007,
+      "totalStars": 32032,
+      "avgStars": 8008,
       "bestSkill": {
         "id": "supermemoryai/supermemory:supermemory",
         "name": "supermemory",
-        "stars": 31689
+        "stars": 31694
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 15901,
-      "bestRepoStars": 31689,
+      "medianRepoStars": 15904,
+      "bestRepoStars": 31694,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -225790,16 +225790,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 3,
-      "totalStars": 90586,
-      "avgStars": 30195,
+      "totalStars": 90563,
+      "avgStars": 30188,
       "bestSkill": {
         "id": "sveltejs/svelte:performance-investigation",
         "name": "performance-investigation",
-        "stars": 89918
+        "stars": 89895
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 45126,
-      "bestRepoStars": 89918,
+      "medianRepoStars": 45115,
+      "bestRepoStars": 89895,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -232799,23 +232799,23 @@
     "leaderboardCategories": {
       "consistent": {
         "rank": 17,
-        "value": "74.2k avg ⭐",
+        "value": "74.3k avg ⭐",
         "detail": "25 skills · 1.9M total ⭐"
       }
     },
     "isGoat": false,
     "stats": {
       "skillCount": 25,
-      "totalStars": 1856147,
-      "avgStars": 74246,
+      "totalStars": 1856341,
+      "avgStars": 74254,
       "bestSkill": {
         "id": "thedotmack/claude-mem:plugin/skills/do",
         "name": "do",
-        "stars": 119082
+        "stars": 119276
       },
       "distinctRepoCount": 4,
       "medianRepoStars": 12,
-      "bestRepoStars": 119082,
+      "bestRepoStars": 119276,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -235933,16 +235933,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 19,
-      "totalStars": 970213,
-      "avgStars": 51064,
+      "totalStars": 970242,
+      "avgStars": 51065,
       "bestSkill": {
         "id": "tldraw/tldraw:clean-copy",
         "name": "clean-copy",
-        "stars": 51516
+        "stars": 51545
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 51516,
-      "bestRepoStars": 51516,
+      "medianRepoStars": 51545,
+      "bestRepoStars": 51545,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -238889,16 +238889,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 6,
-      "totalStars": 33538,
-      "avgStars": 5590,
+      "totalStars": 33544,
+      "avgStars": 5591,
       "bestSkill": {
         "id": "triggerdotdev/trigger.dev:span-timeline-events",
         "name": "span-timeline-events",
-        "stars": 16801
+        "stars": 16807
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 8418,
-      "bestRepoStars": 16801,
+      "medianRepoStars": 8421,
+      "bestRepoStars": 16807,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -239631,16 +239631,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 2,
-      "totalStars": 99298,
-      "avgStars": 49649,
+      "totalStars": 99558,
+      "avgStars": 49779,
       "bestSkill": {
         "id": "tt-a1i/archify:archify",
         "name": "archify",
-        "stars": 98791
+        "stars": 99051
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 49649,
-      "bestRepoStars": 98791,
+      "medianRepoStars": 49779,
+      "bestRepoStars": 99051,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -241067,16 +241067,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 1,
-      "totalStars": 39107,
-      "avgStars": 39107,
+      "totalStars": 39117,
+      "avgStars": 39117,
       "bestSkill": {
         "id": "ueberdosis/tiptap:tiptap",
         "name": "tiptap",
-        "stars": 39107
+        "stars": 39117
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 39107,
-      "bestRepoStars": 39107,
+      "medianRepoStars": 39117,
+      "bestRepoStars": 39117,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -242524,16 +242524,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 19,
-      "totalStars": 196125,
-      "avgStars": 10322,
+      "totalStars": 196186,
+      "avgStars": 10326,
       "bestSkill": {
         "id": "upstash/context7-mcp:context7-mcp",
         "name": "context7-mcp",
-        "stars": 65273
+        "stars": 65334
       },
       "distinctRepoCount": 8,
       "medianRepoStars": 214,
-      "bestRepoStars": 65273,
+      "bestRepoStars": 65334,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -242955,16 +242955,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 9,
-      "totalStars": 635740,
-      "avgStars": 70638,
+      "totalStars": 635887,
+      "avgStars": 70654,
       "bestSkill": {
         "id": "usestrix/strix:api-security-testing",
         "name": "api-security-testing",
-        "stars": 77088
+        "stars": 77235
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 77088,
-      "bestRepoStars": 77088,
+      "medianRepoStars": 77235,
+      "bestRepoStars": 77235,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -244552,16 +244552,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 2,
-      "totalStars": 62676,
-      "avgStars": 31338,
+      "totalStars": 62882,
+      "avgStars": 31441,
       "bestSkill": {
         "id": "vectorize-io/hindsight:hindsight-docs",
         "name": "hindsight-docs",
-        "stars": 62673
+        "stars": 62879
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 31338,
-      "bestRepoStars": 62673,
+      "medianRepoStars": 31441,
+      "bestRepoStars": 62879,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -244941,7 +244941,7 @@
     "isGoat": false,
     "stats": {
       "skillCount": 87,
-      "totalStars": 3321122,
+      "totalStars": 3321137,
       "avgStars": 38174,
       "bestSkill": {
         "id": "vercel/next.js:.agents/skills/authoring-skills",
@@ -244987,16 +244987,16 @@
     "isGoat": true,
     "stats": {
       "skillCount": 131,
-      "totalStars": 1567989,
-      "avgStars": 11969,
+      "totalStars": 1568687,
+      "avgStars": 11975,
       "bestSkill": {
         "id": "vercel-labs/agent-browser:agent-browser",
         "name": "agent-browser",
-        "stars": 53414
+        "stars": 53580
       },
       "distinctRepoCount": 38,
       "medianRepoStars": 888,
-      "bestRepoStars": 53414,
+      "bestRepoStars": 53580,
       "totalInstalls": 6162476,
       "skillsWithInstalls": 2,
       "avgInstallsPerSkill": 47042,
@@ -246390,16 +246390,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 3,
-      "totalStars": 26332,
-      "avgStars": 8777,
+      "totalStars": 26625,
+      "avgStars": 8875,
       "bestSkill": {
         "id": "Vincentwei1021/video-shotcraft",
         "name": "video-shotcraft",
-        "stars": 21967
+        "stars": 22260
       },
       "distinctRepoCount": 3,
       "medianRepoStars": 2669,
-      "bestRepoStars": 21967,
+      "bestRepoStars": 22260,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -247876,16 +247876,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 7,
-      "totalStars": 82329,
-      "avgStars": 11761,
+      "totalStars": 82373,
+      "avgStars": 11768,
       "bestSkill": {
         "id": "volcengine/OpenViking:openviking-skills",
         "name": "openviking-skills",
-        "stars": 42613
+        "stars": 42657
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 21413,
-      "bestRepoStars": 42613,
+      "medianRepoStars": 21435,
+      "bestRepoStars": 42657,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -249706,16 +249706,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 66,
-      "totalStars": 1185562,
-      "avgStars": 17963,
+      "totalStars": 1185616,
+      "avgStars": 17964,
       "bestSkill": {
         "id": "wanshuiyin/Auto-claude-code-research-in-sleep:openalex",
         "name": "openalex",
-        "stars": 19599
+        "stars": 19653
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 19599,
-      "bestRepoStars": 19599,
+      "medianRepoStars": 19653,
+      "bestRepoStars": 19653,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -249809,16 +249809,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 96,
-      "totalStars": 2299676,
+      "totalStars": 2299712,
       "avgStars": 23955,
       "bestSkill": {
         "id": "warpdotdev/warp:.agents/skills/add-feature-flag",
         "name": "add-feature-flag",
-        "stars": 66074
+        "stars": 66110
       },
       "distinctRepoCount": 4,
       "medianRepoStars": 717,
-      "bestRepoStars": 66074,
+      "bestRepoStars": 66110,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -254650,16 +254650,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 251,
-      "totalStars": 10043790,
+      "totalStars": 10043824,
       "avgStars": 40015,
       "bestSkill": {
         "id": "wshobson/agents:plugins/backend-development/skills/api-design-principles",
         "name": "api-design-principles",
-        "stars": 42803
+        "stars": 42837
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 42803,
-      "bestRepoStars": 42803,
+      "medianRepoStars": 42837,
+      "bestRepoStars": 42837,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -258877,16 +258877,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 3,
-      "totalStars": 29390,
-      "avgStars": 9797,
+      "totalStars": 29403,
+      "avgStars": 9801,
       "bestSkill": {
         "id": "yamadashy/repomix:repomix-explorer",
         "name": "repomix-explorer",
-        "stars": 29386
+        "stars": 29399
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 14694,
-      "bestRepoStars": 29386,
+      "medianRepoStars": 14701,
+      "bestRepoStars": 29399,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -259691,15 +259691,15 @@
     "isGoat": false,
     "stats": {
       "skillCount": 45,
-      "totalStars": 1610344,
-      "avgStars": 35785,
+      "totalStars": 1610350,
+      "avgStars": 35786,
       "bestSkill": {
         "id": "Yeachan-Heo/oh-my-claudecode:skills/ai-slop-cleaner",
         "name": "ai-slop-cleaner",
         "stars": 40482
       },
       "distinctRepoCount": 2,
-      "medianRepoStars": 37158,
+      "medianRepoStars": 37161,
       "bestRepoStars": 40482,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
@@ -262307,16 +262307,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 19,
-      "totalStars": 938847,
-      "avgStars": 49413,
+      "totalStars": 939021,
+      "avgStars": 49422,
       "bestSkill": {
         "id": "yuan1z0825/nature-skills:nature-figure",
         "name": "nature-figure",
-        "stars": 54560
+        "stars": 54734
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 54560,
-      "bestRepoStars": 54560,
+      "medianRepoStars": 54734,
+      "bestRepoStars": 54734,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -265067,16 +265067,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 2,
-      "totalStars": 183958,
-      "avgStars": 91979,
+      "totalStars": 184002,
+      "avgStars": 92001,
       "bestSkill": {
         "id": "zed-industries/zed:humanizer",
         "name": "humanizer",
-        "stars": 95523
+        "stars": 95567
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 95523,
-      "bestRepoStars": 95523,
+      "medianRepoStars": 95567,
+      "bestRepoStars": 95567,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
@@ -266047,16 +266047,16 @@
     "isGoat": false,
     "stats": {
       "skillCount": 3,
-      "totalStars": 123143,
-      "avgStars": 41048,
+      "totalStars": 123193,
+      "avgStars": 41064,
       "bestSkill": {
         "id": "zhaoxuya520/reverse-skill:reverse-engineering",
         "name": "reverse-engineering",
-        "stars": 45080
+        "stars": 45130
       },
       "distinctRepoCount": 1,
-      "medianRepoStars": 45080,
-      "bestRepoStars": 45080,
+      "medianRepoStars": 45130,
+      "bestRepoStars": 45130,
       "totalInstalls": 0,
       "skillsWithInstalls": 0,
       "avgInstallsPerSkill": 0,
