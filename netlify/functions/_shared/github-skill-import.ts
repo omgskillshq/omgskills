@@ -249,6 +249,18 @@ export async function readGithubSkill(
   link: GithubImportLink,
   options: GithubImportOptions & { pinned?: { commitSha: string; folder: string } } = {},
 ): Promise<GithubSkill> {
+  const read = await readGithubSkillFiles(link, options);
+  return { repo: read.repo, commitSha: read.commitSha, folder: read.folder, ...checkSkillFiles(read.files) };
+}
+
+/**
+ * The same read without the save checks (keys, package rules), for scanning a public skill as it is:
+ * a skill with a leaked key still gets scanned, and the scan says so.
+ */
+export async function readGithubSkillFiles(
+  link: GithubImportLink,
+  options: GithubImportOptions & { pinned?: { commitSha: string; folder: string } } = {},
+): Promise<{ repo: string; commitSha: string; folder: string; files: GithubSkillFile[] }> {
   let target: { repoPath: string; commitSha: string; rootTree: string; folder: string };
   if (options.pinned) {
     const commitSha = options.pinned.commitSha.toLowerCase();
@@ -315,7 +327,7 @@ export async function readGithubSkill(
     if (!data) throw fetchFailed(options);
     return { path: entry.path!, mode: entry.mode!, blobSha: entry.sha!.toLowerCase(), data };
   });
-  return { repo: `${owner}/${repo}`, commitSha: target.commitSha, folder: target.folder, ...checkSkillFiles(files) };
+  return { repo: `${owner}/${repo}`, commitSha: target.commitSha, folder: target.folder, files };
 }
 
 /**

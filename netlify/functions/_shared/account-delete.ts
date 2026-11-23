@@ -177,6 +177,8 @@ async function deleteRecords(pool: Pool, userId: string): Promise<{ deletedSets:
             JOIN skill_sources source ON source.id = release.source_id
             WHERE release.tree_sha = scan.tree_sha AND source.tombstoned_at IS NULL
           )
+          -- A public catalog skill with the same content keeps its results.
+          AND NOT EXISTS (SELECT 1 FROM public_scan_targets target WHERE target.tree_sha = scan.tree_sha)
       `,
       [sourceIds]
     );
