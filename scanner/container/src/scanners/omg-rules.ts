@@ -1,4 +1,4 @@
-import { isBinary, labelLines, pathLabels, riskLines, scanFileContents } from "../../../../netlify/functions/_shared/skill-scan.js";
+import { isBinary, labelLines, pathLabels, riskLines, scanFileContents, shareLines } from "../../../../netlify/functions/_shared/skill-scan.js";
 import type { Finding, Severity } from "../../../src/protocol.js";
 import type { Scanner } from "./types.js";
 
@@ -9,6 +9,10 @@ const SEVERITY: Record<string, Severity> = {
   invisible_characters: "medium",
   sends_private_data: "high",
   hidden_code: "high",
+  // Worth fixing before sharing, never a sign of harm: the public queue doesn't flag skills for these.
+  personal_email: "medium",
+  home_folder: "medium",
+  internal_address: "medium",
   scripts: "info"
 };
 
@@ -40,6 +44,9 @@ export function omgRules(version: string): Scanner {
           findings.push({ rule: secret.rule, label: "secret", severity: SEVERITY.secret, path: file.path, line: secret.line });
         }
         for (const found of labelLines(file.data, { text: true })) {
+          findings.push({ rule: found.label, label: found.label, severity: SEVERITY[found.label], path: file.path, line: found.line });
+        }
+        for (const found of shareLines(file.data, { text: true })) {
           findings.push({ rule: found.label, label: found.label, severity: SEVERITY[found.label], path: file.path, line: found.line });
         }
       }

@@ -4,6 +4,7 @@ import { GithubImportError, readGithubSkillFiles } from "./github-skill-import.j
 import { publishedCatalogTracks } from "./published-catalog.js";
 import { callScanner, MAX_ATTEMPTS, ScannerCallError, validScanners, type ScanDriverConfig } from "./scan-driver.js";
 import { STANDARD_SKILL_PACKAGE_LIMITS, validateSkillManifest } from "./skill-package.js";
+import { SHARE_LABELS } from "./skill-scan.js";
 import type { ScanRequestFile, ScanResponse, ScannerInfo, ScannerResult } from "../../../scanner/src/protocol.js";
 
 /*
@@ -238,7 +239,8 @@ const FLAGGED = `EXISTS (
   SELECT 1 FROM skill_scans scan, jsonb_array_elements(scan.findings) f
   WHERE scan.tree_sha = target.tree_sha AND scan.status <> 'failed' AND (
     (scan.scanner = $6[1] AND scan.scanner_version = $7[1] AND f->>'label' = ANY($10::text[]))
-    OR ((scan.scanner, scan.scanner_version) IN (SELECT * FROM unnest($4::text[], $5::text[])) AND f->>'severity' IN ('high', 'medium'))
+    OR ((scan.scanner, scan.scanner_version) IN (SELECT * FROM unnest($4::text[], $5::text[])) AND f->>'severity' IN ('high', 'medium')
+      AND NOT f->>'label' = ANY($11::text[]))
   )
 )`;
 /** Has the current second look a usable result? Never, when it isn't set up. */
@@ -274,7 +276,7 @@ async function lease(pool: Pool, rules: ScannerInfo[], review: ScannerInfo, look
         ${REVIEWED} AS reviewed, ${FLAGGED} AS flagged, ${LOOKED} AS looked
     `,
     [randomUUID(), limit, MAX_ATTEMPTS, rules.map((s) => s.scanner), rules.map((s) => s.version), [review.scanner], [review.version],
-      look?.scanner ?? null, look?.version ?? null, FLAGGED_LABELS]
+      look?.scanner ?? null, look?.version ?? null, FLAGGED_LABELS, [...SHARE_LABELS]]
   );
   return result.rows.sort((a, b) => a.priority - b.priority);
 }
@@ -351,7 +353,8 @@ const UNREADABLE = new Set(["too_large", "unsupported_file", "no_skill", "severa
 function flags(result: ScannerResult, review: ScannerInfo): boolean {
   if (result.status === "failed") return false;
   if (result.scanner === review.scanner) return result.findings.some((f) => FLAGGED_LABELS.includes(f.label));
-  return result.findings.some((f) => f.severity === "high" || f.severity === "medium");
+  // Sharing advice (an email address, a home folder) is for private skills, not a reason for a second look.
+  return result.findings.some((f) => (f.severity === "high" || f.severity === "medium") && !(SHARE_LABELS as readonly string[]).includes(f.label));
 }
 
 /** One background run. Does nothing until the scanner and its AI review are set up. */
@@ -520,7 +523,7 @@ export async function publicScanReport(pool: Pool, versions: PublicScanVersions)
         COALESCE(ARRAY(SELECT f->>'label' FROM jsonb_array_elements(ai.findings) f
           WHERE f->>'rule' NOT IN ('ai-review/verdict', 'ai-review/refused') AND f->>'severity' = 'info' ORDER BY 1), '{}') AS notes,
         COALESCE(ARRAY(SELECT DISTINCT f->>'label' FROM jsonb_array_elements(rules.findings) f
-          WHERE f->>'severity' IN ('high', 'medium') ORDER BY 1), '{}') AS rules,
+          WHERE f->>'severity' IN ('high', 'medium') AND NOT f->>'label' = ANY($7::text[]) ORDER BY 1), '{}') AS rules,
         ai.status AS "aiStatus", rules.status AS "rulesStatus", target.last_error AS "lastError", target.gave_up AS held,
         to_char(GREATEST(ai.finished_at, rules.finished_at, look.finished_at) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "scannedAt",
         CASE WHEN look.status = 'complete' THEN COALESCE(
@@ -540,7 +543,7 @@ export async function publicScanReport(pool: Pool, versions: PublicScanVersions)
     `,
     // Only the versions the queue runs now: an older review never stands in for the current one.
     [versions.review?.scanner ?? null, versions.review?.version ?? null, versions.rules.map((s) => s.scanner), versions.rules.map((s) => s.version),
-      versions.look?.scanner ?? null, versions.look?.version ?? null]
+      versions.look?.scanner ?? null, versions.look?.version ?? null, [...SHARE_LABELS]]
   );
   const counts: Record<string, number> = {};
   const skills = result.rows.map((row) => ({ ...row, badge: publicScanBadge(row) }));

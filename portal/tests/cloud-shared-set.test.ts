@@ -111,11 +111,14 @@ test("a private Set item carries its scan to the row; unreadable results are dro
   assert.match(flaggedHtml, /SKILL\.md, line 37/);
   assert.match(flaggedHtml, /And 2 more/);
   assert.doesNotMatch(flaggedHtml, /dropped/);
-  assert.match(html({ status: "clean", scannedAt: flagged.scannedAt, findings: [], findingCount: 0 }), /Passed our checks/);
+  assert.match(html({ status: "clean", scannedAt: flagged.scannedAt, findings: [], findingCount: 0 }), /Team-safe/);
   assert.match(html({ status: "incomplete", scannedAt: flagged.scannedAt }), /Scan didn&#x27;t finish/);
   assert.match(html(null), /Not scanned yet/);
   const unfinished = html({ status: "incomplete", scannedAt: flagged.scannedAt, findingCount: 1, findings: [flagged.findings[0]] });
   assert.match(unfinished, /Worth a look before you install/, "an unfinished scan still lists what it found");
   assert.match(unfinished, /there may be more/);
-  assert.doesNotMatch(html({ status: "clean", scannedAt: flagged.scannedAt }), /verified safe|<strong>[^<]*safe/i, "never claims a skill is safe");
+  // "Team-safe" is the one badge (for sharing, with what was checked beside it); nothing claims a skill is safe.
+  const clean = html({ status: "clean", scannedAt: flagged.scannedAt });
+  assert.doesNotMatch(clean.replace("<strong>Team-safe</strong>", ""), /verified safe|\bsafe\b|<strong>[^<]*safe/i, "never claims a skill is safe");
+  assert.match(clean, /pattern check, not a guarantee/);
 });

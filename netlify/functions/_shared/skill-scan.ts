@@ -423,3 +423,43 @@ export function riskLines(
   if (hidden !== -1) found.push({ label: "hidden_code", line: lineAt(text, hidden) });
   return found;
 }
+
+/**
+ * What's worth knowing before sharing a skill with a team, beyond keys (found separately): someone's
+ * email address, a path into someone's home folder, or an address only reachable inside one network.
+ * Advice for the person sharing, never a sign the skill is harmful, so public skills aren't flagged for it.
+ */
+export type ShareLabel = "personal_email" | "home_folder" | "internal_address";
+export const SHARE_LABELS: readonly ShareLabel[] = ["personal_email", "home_folder", "internal_address"];
+
+// Addresses meant as placeholders or for machines: reserved domains, no-reply senders, "you@…".
+// Not after ":" or "/", where it's a login in a connection string (user:pass@host), found as a key if real.
+const EMAIL = /(?<![\w.%+:\/-])([A-Za-z0-9._%+-]{1,64})@((?:[A-Za-z0-9-]{1,63}\.){1,8}[A-Za-z]{2,24})(?![\w-])/g;
+const PLACEHOLDER_DOMAIN = /(?:^|\.)(?:example\.(?:com|org|net)|[a-z0-9-]+\.(?:example|test|invalid|localhost)|localhost|domain\.com|email\.com|company\.com|yourdomain\.com|users\.noreply\.github\.com|[a-z0-9-]+\.iam\.gserviceaccount\.com)$/i;
+const PLACEHOLDER_USER = /^(?:no-?reply|do-?not-?reply|you|your[._-]?(?:name|email)?|user(?:name)?|name|me|someone|somebody|email|first[._-]?last|john[._-]?doe|jane[._-]?doe|test|foo|bar|admin|info|support|hello|contact|security|team|example|git)$/i;
+// Home folders by name; placeholders and machine accounts aren't anyone's.
+const HOME = /(?:\/Users\/|\/home\/|[A-Za-z]:\\Users\\)([A-Za-z0-9._-]{1,64})(?=[\/\\])/g;
+const PLACEHOLDER_HOME = /^(?:shared|you|your[._-]?name|user(?:name)?|name|me|someone|runner|ubuntu|node|root|admin|example|default|public|guest|vagrant|ec2-user|\.{1,3}|x+|<.*|\$.*|%.*)$/i;
+// Private IPv4 ranges and hostnames that only resolve inside one network. localhost works anywhere.
+// A network range ("10.0.0.0/16", or ending in .0) is configuration, not one machine.
+const PRIVATE_IP = /(?<![\d.])(?:10\.\d{1,3}|192\.168|172\.(?:1[6-9]|2\d|3[01]))\.\d{1,3}\.(?!0(?![\d]))\d{1,3}(?![\d.]*\d|\/\d)/;
+const INTERNAL_HOST = /(?<![\w.-])(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.){1,6}(?:internal|corp|intranet|lan|local)(?![\w-]|\.[A-Za-z0-9])/gi;
+const GENERIC_INTERNAL_HOST = /^(?:host\.docker\.internal|gateway\.docker\.internal|metadata\.google\.internal|kubernetes\.default\.svc\.cluster\.local|[a-z0-9.-]*\.svc\.cluster\.local)$/i;
+
+function firstMatch(text: string, pattern: RegExp, keep: (match: RegExpExecArray) => boolean): number {
+  const global = new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`);
+  for (let match = global.exec(text); match; match = global.exec(text)) if (keep(match)) return match.index;
+  return -1;
+}
+
+/** Where a file has each thing worth knowing before sharing it, first place only. */
+export function shareLines(data: Uint8Array, options: { text?: boolean } = {}): { label: ShareLabel; line: number }[] {
+  if (!options.text && isBinary(data)) return [];
+  const text = Buffer.from(data).toString("utf8");
+  const found: [ShareLabel, number][] = [
+    ["personal_email", firstMatch(text, EMAIL, (m) => !PLACEHOLDER_DOMAIN.test(m[2]) && !PLACEHOLDER_USER.test(m[1]) && !/\.(?:png|jpe?g|gif|svg|webp)$/i.test(m[2]))],
+    ["home_folder", firstMatch(text, HOME, (m) => !PLACEHOLDER_HOME.test(m[1]))],
+    ["internal_address", earliest(firstMatch(text, PRIVATE_IP, () => true), firstMatch(text, INTERNAL_HOST, (m) => !GENERIC_INTERNAL_HOST.test(m[0])))]
+  ];
+  return found.filter(([, index]) => index !== -1).map(([label, index]) => ({ label, line: lineAt(text, index) }));
+}

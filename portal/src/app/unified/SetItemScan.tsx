@@ -17,9 +17,9 @@ export function SetItemScan({ scan }: { scan: CloudScan | null }) {
   </section>;
   if (scan.status === "clean") return <section className="ua-set-scan" aria-label="Safety scan">
     <ShieldCheck aria-hidden="true" />
-    <div><strong>Passed our checks</strong> <span className="ua-muted">· {day(scan.scannedAt)}</span>
-      <p className="ua-muted">No leaked keys, hidden instructions or download-and-run commands found. Passing our checks
-        doesn't guarantee a skill is safe.</p></div>
+    <div><strong>Team-safe</strong> <span className="ua-muted">· {day(scan.scannedAt)}</span>
+      <p className="ua-muted">We found no keys, personal details, internal addresses, hidden instructions or
+        download-and-run commands. It's a pattern check, not a guarantee.</p></div>
   </section>;
   const findings = scan.findings ?? [];
   const found = findings.length > 0 || (scan.findingCount ?? 0) > 0;

@@ -265,7 +265,7 @@ function ScanTip({ scannedAt, yourCopy }: { scannedAt: string; yourCopy: boolean
   const [open, setOpen] = useState(false);
   const day = new Date(scannedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" });
   // On a library skill it's your installed copy that was scanned, not the library's.
-  const label = `${yourCopy ? "Your copy scanned" : "Scanned"} ${day}: no leaked keys, hidden instructions or download-and-run commands found`;
+  const label = `Team-safe · ${yourCopy ? "your copy scanned" : "scanned"} ${day}: no keys, personal details, internal addresses, hidden instructions or download-and-run commands found`;
   return (
     <button type="button" className="ua-scan-tip" aria-label={label} data-open={open}
       onClick={() => setOpen(value => !value)} onBlur={() => setOpen(false)}
@@ -300,10 +300,11 @@ function SafetyScan({ skills, status, ready, available, open, copy }: {
       <div className="ua-safety-summary">
         <ShieldCheck aria-hidden="true" />
         <div>
-          <strong>{clean.length} of {skills.length} skills passed our checks</strong>
-          <p className="ua-muted">We found no leaked keys, hidden instructions or download-and-run commands in them
+          <strong>{clean.length} of {skills.length} skills are team-safe</strong>
+          <p className="ua-muted">We found no keys, personal details, internal addresses, hidden instructions or
+            download-and-run commands in them
             {latest ? ` · last scan ${new Date(latest).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : ""}.
-            Passing our checks doesn't guarantee a skill is safe.</p>
+            It's a pattern check, not a guarantee.</p>
         </div>
       </div>
       {safetyGroups.map(({ group, title, help }) => {

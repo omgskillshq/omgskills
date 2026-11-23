@@ -27,6 +27,18 @@ const INFO: Record<string, FindingInfo> = {
     title: "Invisible characters",
     usuallyFine: "Often a stray character left by copy and paste.",
   },
+  personal_email: {
+    title: "An email address",
+    usuallyFine: "Often your own address in a license, or an example. Remove it if teammates shouldn't see it.",
+  },
+  home_folder: {
+    title: "A path into someone's home folder",
+    usuallyFine: "Teammates won't have this folder. Use ~ or a path inside the skill instead.",
+  },
+  internal_address: {
+    title: "An address only your network can reach",
+    usuallyFine: "Fine if your team is on the same network; otherwise teammates can't reach it.",
+  },
 };
 
 export function findingInfo(finding: Pick<CloudScanFinding, "label">): FindingInfo {
