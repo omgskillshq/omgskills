@@ -816,8 +816,18 @@ test("deleting one skill removes every version and its own files, and stops savi
     await saveCloudVersion(pool, { userId, deviceId, skillKey: "notes", files: manifest(v2) });
     await saveCloudVersion(pool, { userId, deviceId, skillKey: "other", files: manifest(other) });
     const before = (await readCloudSave(pool, userId)).usage.bytes;
+    // Its saved copy was read once (restored, or read by an agent): the audit row stays, unlinked.
+    await pool.query(
+      `INSERT INTO analytics_events (event_name, actor_user_id, source_id, release_id)
+       SELECT 'content_fetch', $1, release.source_id, release.id FROM skill_releases release
+       JOIN skill_sources source ON source.id = release.source_id
+       WHERE source.owner_user_id = $1 AND source.normalized_root = 'notes' LIMIT 1`,
+      [userId]
+    );
 
     const result = await deleteCloudSkills(pool, store, { userId, skillKey: "Notes" });
+    const audit = await pool.query("SELECT source_id, release_id FROM analytics_events WHERE event_name = 'content_fetch' AND actor_user_id = $1", [userId]);
+    assert.deepEqual(audit.rows, [{ source_id: null, release_id: null }]);
     assert.equal(result.deletedSkills, 1);
     assert.equal(result.pendingFiles, 0);
     const state = await readCloudSave(pool, userId);

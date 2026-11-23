@@ -443,11 +443,10 @@ export const analyticsEvents = pgTable(
     }).onDelete("set null"),
     check(
       "analytics_events_content_fetch_shape_check",
+      // Both links set, or both cleared when the fetched content was deleted.
       sql`${table.eventName} <> 'content_fetch'
-        OR (
-          ${table.sourceId} IS NOT NULL
-          AND ${table.releaseId} IS NOT NULL
-        )`
+        OR (${table.sourceId} IS NOT NULL AND ${table.releaseId} IS NOT NULL)
+        OR (${table.sourceId} IS NULL AND ${table.releaseId} IS NULL)`
     )
   ]
 );
