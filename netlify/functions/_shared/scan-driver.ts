@@ -61,13 +61,13 @@ export function scanDriverConfigFromEnv(env: Record<string, string | undefined> 
   return { workerUrl: workerUrl.replace(/\/+$/, ""), signingKey };
 }
 
-class ScannerCallError extends Error {
+export class ScannerCallError extends Error {
   constructor(readonly code: string, readonly retry: boolean, readonly stopRun = false) {
     super(code);
   }
 }
 
-async function callScanner<T>(deps: ScanDriverDeps, method: "GET" | "POST", path: string, timeoutMs: number, body?: unknown): Promise<T> {
+export async function callScanner<T>(deps: Pick<ScanDriverDeps, "config" | "fetch" | "now">, method: "GET" | "POST", path: string, timeoutMs: number, body?: unknown): Promise<T> {
   const bytes = body === undefined ? new Uint8Array() : new TextEncoder().encode(JSON.stringify(body));
   const headers = await signRequest(deps.config.signingKey, method, path, bytes, deps.now?.() ?? Date.now());
   let response: Response;
@@ -99,7 +99,7 @@ async function callScanner<T>(deps: ScanDriverDeps, method: "GET" | "POST", path
 
 const SCANNER_INFO = /^[a-z0-9][a-z0-9-]{0,62}$/;
 
-function validScanners(value: unknown): ScannerInfo[] {
+export function validScanners(value: unknown): ScannerInfo[] {
   const list = (value as { scanners?: unknown })?.scanners;
   if (!Array.isArray(list) || list.length === 0) throw new ScannerCallError("bad_scanner_list", true);
   return list.map((item) => {

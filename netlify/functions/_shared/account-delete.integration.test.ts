@@ -213,6 +213,11 @@ test("deleting an account removes its data, empties its record, retires its priv
     const adaTrees = (await pool.query<{ tree_sha: string }>("SELECT tree_sha FROM scan_jobs ORDER BY tree_sha")).rows.map((row) => row.tree_sha);
     assert.equal(adaTrees.length, 2, "the private GitHub and the saved version are queued");
     for (const tree of adaTrees) await scanned(tree);
+    // The same content as a curated public skill keeps its results.
+    await pool.query(
+      "INSERT INTO public_scan_targets (catalog_skill_id, repo_slug, root_path, commit_sha, tree_sha, priority) VALUES ('pub/x:y', 'pub/x', 'y', $1, $2, 0)",
+      ["c".repeat(40), adaTrees[0]]
+    );
     const sharedTree = sha("tree").slice(0, 40);
     const bobClient = await pool.connect();
     try {
@@ -257,7 +262,8 @@ test("deleting an account removes its data, empties its record, retires its priv
     const source = (await pool.query("SELECT tombstoned_at FROM skill_sources WHERE id = $1", [ada.sourceId])).rows[0];
     assert.ok(source.tombstoned_at);
     assert.equal((await pool.query("SELECT 1 FROM scan_jobs")).rowCount, 0);
-    assert.deepEqual((await pool.query("SELECT tree_sha FROM skill_scans")).rows, [{ tree_sha: sharedTree }]);
+    assert.deepEqual((await pool.query("SELECT tree_sha FROM skill_scans ORDER BY tree_sha")).rows,
+      [adaTrees[0], sharedTree].sort().map((tree_sha) => ({ tree_sha })));
 
     const bobItems = (await pool.query(
       "SELECT name, github_url, source_id, release_id, metadata_only_reason FROM skill_group_items WHERE group_id = $1 ORDER BY name DESC",

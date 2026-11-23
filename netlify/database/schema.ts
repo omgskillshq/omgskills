@@ -719,6 +719,45 @@ export const skillScans = pgTable(
   ]
 );
 
+/** Public catalog skills to scan (curated first), at the commit the catalog pins. */
+export const publicScanTargets = pgTable(
+  "public_scan_targets",
+  {
+    catalogSkillId: text("catalog_skill_id").primaryKey(),
+    repoSlug: text("repo_slug").notNull(),
+    rootPath: text("root_path").notNull(),
+    commitSha: text("commit_sha").notNull(),
+    treeSha: text("tree_sha").notNull(),
+    priority: integer("priority").notNull(),
+    catalogSeenAt: timestamp("catalog_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    notBefore: timestamp("not_before", { withTimezone: true }).notNull().defaultNow(),
+    attempts: integer("attempts").notNull().default(0),
+    lastError: text("last_error"),
+    leaseToken: uuid("lease_token"),
+    leaseUntil: timestamp("lease_until", { withTimezone: true })
+  },
+  (table) => [
+    index("public_scan_targets_due_idx").on(table.priority, table.notBefore),
+    index("public_scan_targets_tree_sha_idx").on(table.treeSha),
+    check("public_scan_targets_id_check", sql`char_length(${table.catalogSkillId}) BETWEEN 3 AND 512`),
+    check("public_scan_targets_repo_check", sql`${table.repoSlug} ~ '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'`),
+    check("public_scan_targets_commit_check", sql`${table.commitSha} ~ '^[0-9a-f]{40}$'`),
+    check("public_scan_targets_tree_sha_check", sql`${table.treeSha} ~ '^[0-9a-f]{40}$'`),
+    check("public_scan_targets_attempts_check", sql`${table.attempts} >= 0`)
+  ]
+);
+
+/** Which catalog build the public targets were last synced from. */
+export const publicScanSync = pgTable(
+  "public_scan_sync",
+  {
+    id: integer("id").primaryKey(),
+    catalogGeneratedAt: text("catalog_generated_at").notNull(),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [check("public_scan_sync_id_check", sql`${table.id} = 1`)]
+);
+
 /** Private skill versions waiting to be scanned. */
 export const scanJobs = pgTable(
   "scan_jobs",
