@@ -3,10 +3,40 @@
   "policyDigest": "sha256:d550400d0b058ae3d5b642b570bc59e2f98ec1ecab6cb60ece9f34a5b7939538",
   "reviews": [
     {
+      "sourceId": "101-skills/superpowers:ai-avatar-video",
+      "checkedAt": "2026-11-23T23:49:20.889Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
+      "sourceId": "101-skills/superpowers:ai-image-generation",
+      "checkedAt": "2026-11-23T23:49:20.889Z",
+      "outcome": "blocked",
+      "reason": "non-original-provenance"
+    },
+    {
+      "sourceId": "101-skills/superpowers:ai-video-generation",
+      "checkedAt": "2026-11-23T23:49:20.889Z",
+      "outcome": "blocked",
+      "reason": "non-original-provenance"
+    },
+    {
+      "sourceId": "101-skills/superpowers:twitter-automation",
+      "checkedAt": "2026-11-23T23:49:20.889Z",
+      "outcome": "blocked",
+      "reason": "non-original-provenance"
+    },
+    {
       "sourceId": "addyosmani/agent-skills:accessibility-engineering",
       "checkedAt": "2026-11-22T19:31:05.026Z",
       "outcome": "added",
       "reason": "verified-trending"
+    },
+    {
+      "sourceId": "anthropics/skills:frontend-design",
+      "checkedAt": "2026-11-23T23:49:20.889Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
     },
     {
       "sourceId": "beltsh/superpowers:agent-browser",
@@ -177,6 +207,90 @@
       "reason": "catalog-identity-or-path"
     },
     {
+      "sourceId": "heygen-com/hyperframes:remotion-to-hyperframes",
+      "checkedAt": "2026-11-23T23:49:20.889Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "hustcer/pptx-nova:pptx-nova",
+      "checkedAt": "2026-11-23T23:49:20.889Z",
+      "outcome": "added",
+      "reason": "verified-trending"
+    },
+    {
+      "sourceId": "leonxlnx/taste-skill:design-taste-frontend",
+      "checkedAt": "2026-11-23T23:49:20.889Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "mattpocock/skills:code-review",
+      "checkedAt": "2026-11-23T23:49:20.889Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "mattpocock/skills:codebase-design",
+      "checkedAt": "2026-11-23T23:49:20.889Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "mattpocock/skills:domain-modeling",
+      "checkedAt": "2026-11-23T23:49:20.889Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "mattpocock/skills:grill-me",
+      "checkedAt": "2026-11-23T23:49:20.889Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "mattpocock/skills:grilling",
+      "checkedAt": "2026-11-23T23:49:20.889Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "mattpocock/skills:to-spec",
+      "checkedAt": "2026-11-23T23:49:20.889Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "mattpocock/skills:to-tickets",
+      "checkedAt": "2026-11-23T23:49:20.889Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "microsoft/azure-skills:azure-app-onboard",
+      "checkedAt": "2026-11-23T23:49:20.889Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "microsoft/azure-skills:azure-app-onboard-prereq",
+      "checkedAt": "2026-11-23T23:49:20.889Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "microsoft/azure-skills:azure-reliability",
+      "checkedAt": "2026-11-23T23:49:20.889Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "microsoft/azure-skills:python-appservice-deploy",
+      "checkedAt": "2026-11-23T23:49:20.889Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
       "sourceId": "nexu-io/openmotion:openmotion",
       "checkedAt": "2026-11-22T19:31:05.026Z",
       "outcome": "added",
@@ -205,6 +319,12 @@
       "checkedAt": "2026-11-22T19:31:05.026Z",
       "outcome": "blocked",
       "reason": "confirmed-upstream-copy"
+    },
+    {
+      "sourceId": "remotion-dev/skills:remotion-docs",
+      "checkedAt": "2026-11-23T23:49:20.889Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
     },
     {
       "sourceId": "stripe/link-cli:link-balance",
