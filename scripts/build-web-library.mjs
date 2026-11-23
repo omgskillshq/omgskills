@@ -322,8 +322,8 @@ function pageShell({
     .skill-detail-title { font-size: clamp(28px, 5vw, 42px); }
     .skill-detail-author, .skill-detail-stars { display: inline-flex; align-items: center; gap: 5px; }
     .skill-review { display: inline-flex; align-items: center; gap: 5px; }
-    .skill-review[data-state="no_issues"]::before { content: "\2713"; color: var(--accent, currentColor); font-weight: 600; }
-    .skill-review[data-state="under_review"]::before { content: "\25CB"; }
+    .skill-review[data-state="no_issues"]::before { content: "\\2713"; color: var(--accent, currentColor); font-weight: 600; }
+    .skill-review[data-state="under_review"]::before { content: "\\25CB"; }
     .skill-detail-author { color: var(--blue); }
     .skill-detail-author-avatar { width: 18px; height: 18px; overflow: hidden; flex: none; border-radius: 50%; background: var(--soft); }
     .skill-detail-author-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
