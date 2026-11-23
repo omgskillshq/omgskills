@@ -11,7 +11,7 @@ export const siteFooterColumns = [
     ["Agent guide", "/agents.md"], ["llms.txt", "/llms.txt"],
   ] },
   { title: "Company", links: [
-    ["About", "/about/"], ["Support", "/support/"], ["Privacy", "/privacy/"], ["Terms", "/terms/"],
+    ["About", "/about/"], ["Support", "/support/"], ["Security", "/security/"], ["Privacy", "/privacy/"], ["Terms", "/terms/"],
     ["GitHub", "https://github.com/omgskillshq/omgskills"],
   ] },
 ] as const;

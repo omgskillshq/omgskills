@@ -3,8 +3,7 @@ import { listUserDevices } from "./device-auth.js";
 import { cloudSkillKeys } from "./cloud-skill-keys.js";
 import { readCloudRecordNames } from "./cloud-save.js";
 import { verifiedCatalogHint } from "./github-skill-resolution.js";
-import { contentIndexReader, keysFor, matchCopy, type ContentIndexEntry } from "./catalog-content-index.js";
-import { getStore } from "@netlify/blobs";
+import { keysFor, readBlobContentIndex, resolveCopy, type ContentIndexEntry } from "./catalog-content-index.js";
 import { withTimeout } from "./http.js";
 import { loadCatalogHintIdentity, type PublishedCatalogIdentity } from "./published-catalog.js";
 import { installationFolderFromKey } from "./sync-skill.js";
@@ -28,7 +27,7 @@ export async function readSyncInventory(
   version: 1 | 2 | 3,
   now = new Date(),
   loadCatalogIdentity: (hintIds: string[]) => Promise<PublishedCatalogIdentity> = loadCatalogHintIdentity,
-  readContentIndex: (keys: string[]) => Promise<Record<string, ContentIndexEntry>> = defaultContentIndex,
+  readContentIndex: (keys: string[]) => Promise<Record<string, ContentIndexEntry>> = readBlobContentIndex,
 ) {
   if (version === 1) {
     const { skills } = await readLegacySyncInventory(pool, userId);
@@ -77,9 +76,16 @@ export async function readSyncInventory(
     const catalogSkillId = verifiedCatalogHint(skill.catalogSkillIdHint, skill.skillMdSha, hintIdentity);
     if (catalogSkillId) Object.assign(skill, { catalogSkillId, identityStatus: "resolved", isLocalOnly: false });
   }
+  // A person's own choices between library skills sharing a copy's content (see skill_link_choices).
+  const choices = unhinted.length && Object.keys(index).length ? await readLinkChoices(pool, userId) : new Map<string, string | null>();
   for (const skill of unhinted) {
-    const catalogSkillId = matchCopy(skill, index);
-    if (catalogSkillId) Object.assign(skill, { catalogSkillId, identityStatus: "resolved", isLocalOnly: false });
+    const resolved = resolveCopy(skill, index, choices);
+    if (resolved && "catalogSkillId" in resolved) {
+      Object.assign(skill, { catalogSkillId: resolved.catalogSkillId, identityStatus: "resolved", isLocalOnly: false });
+    } else if (resolved) {
+      // Several library skills have this content: the person picks (most stars first).
+      Object.assign(skill, { catalogMatchKey: resolved.matchKey, catalogCandidates: resolved.candidates });
+    }
   }
   const devices = await listUserDevices(pool, userId, now);
   const reports = await pool.query<{ deviceId: string; lastReportedAt: Date | null; scanCoverage?: RootCoverage[] | null }>(
@@ -126,15 +132,10 @@ function safeRepositoryUrl(value: string | null): string | null {
   } catch { return null; }
 }
 
-let indexReader: ReturnType<typeof contentIndexReader> | null = null;
-/** The content index the background scan writes to Netlify Blobs ("catalog-index"). */
-async function defaultContentIndex(keys: string[]) {
-  if (!indexReader) {
-    const store = getStore("catalog-index");
-    indexReader = contentIndexReader({
-      get: (key) => store.get(key, { type: "json" }),
-      set: (key, value) => store.setJSON(key, value).then(() => undefined),
-    });
-  }
-  return indexReader(keys);
+async function readLinkChoices(pool: Pool, userId: string): Promise<Map<string, string | null>> {
+  const result = await pool.query<{ matchKey: string; catalogSkillId: string | null }>(
+    'SELECT match_key AS "matchKey", catalog_skill_id AS "catalogSkillId" FROM skill_link_choices WHERE user_id = $1',
+    [userId],
+  );
+  return new Map(result.rows.map((row) => [row.matchKey, row.catalogSkillId]));
 }

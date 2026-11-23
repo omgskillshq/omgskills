@@ -188,7 +188,7 @@ async function deleteRecords(pool: Pool, userId: string): Promise<{ deletedSets:
     await client.query("DELETE FROM sync_runs WHERE user_id = $1", [userId]);
     for (const table of [
       "install_acks", "cloud_skip_reports", "cloud_secret_holds", "cloud_skill_reviews", "cloud_save_settings",
-      "device_tokens", "sync_tokens", "my_skill_additions", "library_agent_connections"
+      "device_tokens", "sync_tokens", "my_skill_additions", "skill_link_choices", "library_agent_connections"
     ]) {
       await client.query(`DELETE FROM ${table} WHERE user_id = $1`, [userId]);
     }

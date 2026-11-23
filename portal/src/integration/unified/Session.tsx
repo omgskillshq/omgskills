@@ -342,6 +342,12 @@ function AccountView({ identity, signedIn, accountKey, base, local, connectedInv
       ? (keys, signal) => loadSavedVersions(api, keys, signal) : undefined}
     cloud={cloud}
     additions={mySkills}
+    chooseLibraryMatch={available && !snapshot.accessDenied && !composition?.readOnly && !local
+      ? async (matchKey, catalogSkillId) => {
+        await api("/api/portal/skill-link", { method: "POST", body: JSON.stringify({ matchKey, catalogSkillId }) });
+        await account.reload();
+      } : undefined}
+    libraryMatchDetails={(ids, signal) => Promise.all(ids.map(id => publicClient.skill(id, signal).catch(() => null)))}
     sharedSkillMd={available && !snapshot.accessDenied && !local
       ? (releaseId, signal) => loadSharedSkillMd(api, releaseId, signal) : undefined}
     accountPages={available && !snapshot.accessDenied ? (view, theme) => view === "profile" && !composition?.readOnly ? <ProfilePanel profile={data.profile} theme={theme}

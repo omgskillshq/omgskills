@@ -151,6 +151,8 @@ import { PullToRefresh } from "./PullToRefresh";
 import { AlphaRail, railLetter, railLettersOf as railLetters } from "./AlphaRail";
 import { CloudStatusBadge, CloudStatusSection, type CloudInfo } from "./CloudStatus";
 import { SetItemScan } from "./SetItemScan";
+import { LibraryMatchPicker, libraryMatchOf } from "./LibraryMatchPicker";
+import type { CatalogSummary } from "./model";
 import { ReviewBadge } from "./ReviewBadge";
 import { looksLikeGithubLink, type MySkillAdditions } from "../my-skills-additions";
 import { AddSkillForm } from "./AddSkillDialog";
@@ -207,6 +209,10 @@ type Props = {
   cloud?: CloudInfo;
   /** Library skills added to My skills; absent where the account can't keep them. */
   additions?: MySkillAdditions;
+  /** Saves which library skill a personal skill is, when several share its content (null: it's the person's own). */
+  chooseLibraryMatch?: (matchKey: string, catalogSkillId: string | null) => Promise<void>;
+  /** Library details for those choices. */
+  libraryMatchDetails?: (ids: string[], signal: AbortSignal) => Promise<(CatalogSummary | null)[]>;
   /** My skills is still waiting on its cloud and added skills, so its count would jump. */
   mySkillsLoading?: boolean;
   /** appKnown: the account has a connected Mac, so the app is most likely installed. installsBoth: every connected Mac can install in both agents. */
@@ -663,6 +669,8 @@ export function UnifiedApp({
   savedVersions,
   cloud,
   additions,
+  chooseLibraryMatch,
+  libraryMatchDetails,
   mySkillsLoading = false,
   publicInstallAction,
   onInstallCancel,
@@ -2649,6 +2657,10 @@ export function UnifiedApp({
                   </section>
                 )}
                 {detail.setItemReleaseId && detail.setItemScan !== undefined && <SetItemScan key={detail.key} scan={detail.setItemScan} />}
+                {!detail.catalogId && detail.installed && chooseLibraryMatch && libraryMatchDetails && (() => {
+                  const match = libraryMatchOf(detail.installed.sourceSkills);
+                  return match ? <LibraryMatchPicker key={match.matchKey} match={match} load={libraryMatchDetails} choose={chooseLibraryMatch} /> : null;
+                })()}
                 <SkillReadme skill={detail} />
                 {detail.setItemReleaseId && sharedSkillMd
                   ? <SharedSkillReadme releaseId={detail.setItemReleaseId} load={sharedSkillMd} />

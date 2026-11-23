@@ -18,6 +18,9 @@ export type SyncedSkill = {
   gitRelativePath?: string | null;
   catalogSkillIdHint?: string | null;
   installedFromSet?: string | null;
+  /** Several library skills share this copy's content: the index key and candidates (most stars first) to choose from. */
+  catalogMatchKey?: string | null;
+  catalogCandidates?: string[] | null;
   id: string;
   name: string;
   description: string | null;

@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { getStore } from "@netlify/blobs";
 import { mirroredOriginalId, parseShaHistory, publishedCatalogTracks, type ShaHistoryAsset } from "./published-catalog.js";
 
 /*
@@ -11,14 +12,14 @@ import { mirroredOriginalId, parseShaHistory, publishedCatalogTracks, type ShaHi
  */
 
 export type ContentIndexEntry = {
-  /** Live library skills with this content (or this name and description). */
+  /** Live library skills with this content (or this name and description), most stars first. */
   ids: string[];
   /** For a fingerprint shared by several skills: the catalog's high-confidence pick. */
   canonical?: string;
 };
 export type ContentIndexPartition = Record<string, ContentIndexEntry>;
 
-type IndexedSkill = { id?: unknown; name?: unknown; description?: unknown; provenance_type?: unknown; skill_md_path?: unknown };
+type IndexedSkill = { id?: unknown; name?: unknown; description?: unknown; provenance_type?: unknown; skill_md_path?: unknown; stars?: unknown };
 
 export function contentKey(skillMdSha: string): string {
   return `sha:${skillMdSha.trim().toLowerCase()}`;
@@ -41,9 +42,11 @@ export function buildContentIndex(skills: readonly IndexedSkill[], history: ShaH
   const live = new Set<string>();
   const originalOf = new Map<string, string>();
   const mirrors = new Set<string>();
+  const stars = new Map<string, number>();
   for (const skill of skills) {
     if (typeof skill.id !== "string") continue;
     live.add(skill.id);
+    if (typeof skill.stars === "number" && Number.isFinite(skill.stars)) stars.set(skill.id, skill.stars);
     const original = mirroredOriginalId(skill);
     if (skill.provenance_type === "mirrored") mirrors.add(skill.id);
     if (original) originalOf.set(skill.id, original);
@@ -76,7 +79,8 @@ export function buildContentIndex(skills: readonly IndexedSkill[], history: ShaH
   const partitions = new Map<string, ContentIndexPartition>();
   for (const [key, entry] of entries) {
     const partition = partitions.get(partitionOf(key)) ?? {};
-    partition[key] = { ...entry, ids: [...entry.ids].sort() };
+    // Most stars first: the order a person picking between forks sees them.
+    partition[key] = { ...entry, ids: [...entry.ids].sort((a, b) => (stars.get(b) ?? 0) - (stars.get(a) ?? 0) || (a < b ? -1 : a > b ? 1 : 0)) };
     partitions.set(partitionOf(key), partition);
   }
   return partitions;
@@ -137,7 +141,7 @@ export type ContentIndexStore = {
   set(key: string, value: unknown): Promise<void>;
 };
 
-export const CONTENT_INDEX_VERSION = 1;
+export const CONTENT_INDEX_VERSION = 2;
 
 /**
  * Writes a freshly built index, each part whole, then meta.json (which says which catalog it's for).
@@ -203,4 +207,52 @@ export async function ensureContentIndex(store: ContentIndexStore, fetcher: type
   if (!Array.isArray(skills)) throw new Error("catalog skills has the wrong shape");
   await writeContentIndex(store, manifest.generatedAt, buildContentIndex(skills, history));
   return true;
+}
+
+/** Most library skills offered to a person choosing which one their copy is. */
+export const MAX_CHOICES = 5;
+
+/**
+ * A copy's library skill, as matchCopy finds it, after the person's own choices: a choice made for
+ * this content (or name and description) wins; "my own" (null) keeps it personal. When the index
+ * finds several and nothing decides, the copy gets the candidates (most stars first) to choose from.
+ */
+export function resolveCopy(
+  copy: IndexedCopy,
+  entries: Readonly<Record<string, ContentIndexEntry>>,
+  choices: ReadonlyMap<string, string | null> = new Map(),
+): { catalogSkillId: string } | { matchKey: string; candidates: string[] } | null {
+  const exactKey = copy.skillMdSha ? contentKey(copy.skillMdSha) : null;
+  const namedKeyValue = copy.name && copy.description ? namedKey(copy.name, copy.description) : null;
+  // The entry that decides: the exact one when it's published at all, else name and description.
+  const key = exactKey && entries[exactKey]?.ids.length ? exactKey : namedKeyValue && entries[namedKeyValue]?.ids.length ? namedKeyValue : null;
+  if (!key) return null;
+  const entry = entries[key];
+  if (choices.has(key)) {
+    const chosen = choices.get(key);
+    // A choice of a skill that's no longer a candidate (removed, changed) is asked again.
+    if (chosen === null) return null;
+    if (chosen && entry.ids.includes(chosen)) return { catalogSkillId: chosen };
+  }
+  const found = matchCopy(copy, entries);
+  if (found) return { catalogSkillId: found };
+  return entry.ids.length > 1 ? { matchKey: key, candidates: entry.ids.slice(0, MAX_CHOICES) } : null;
+}
+
+/** A key a person may record a choice for: an index key as keysFor makes them. */
+export function isMatchKey(value: unknown): value is string {
+  return typeof value === "string" && /^(?:sha:[0-9a-f]{40}|nd:[0-9a-f]{64})$/.test(value);
+}
+
+let blobReader: ReturnType<typeof contentIndexReader> | null = null;
+/** The index as stored in Netlify Blobs ("catalog-index"); fails softly, as a rejection. */
+export async function readBlobContentIndex(keys: string[]): Promise<Record<string, ContentIndexEntry>> {
+  if (!blobReader) {
+    const store = getStore("catalog-index");
+    blobReader = contentIndexReader({
+      get: (key) => store.get(key, { type: "json" }),
+      set: (key, value) => store.setJSON(key, value).then(() => undefined),
+    });
+  }
+  return blobReader(keys);
 }
