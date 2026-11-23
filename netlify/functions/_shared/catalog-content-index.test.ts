@@ -49,3 +49,15 @@ test("the background run rebuilds only for a new catalog", async () => {
   (files["https://omgskills.com/data/crawl4/manifest.json"] as { generatedAt: string }).generatedAt = "g2";
   assert.equal(await ensureContentIndex(store, fetcher), true);
 });
+
+test("an exact fingerprint shared by an original and its fork never falls back to a fork's description", () => {
+  const sha = "c".repeat(40);
+  const parts = buildContentIndex([
+    { id: "blader/humanizer", name: "humanizer", description: "New wording." },
+    { id: "fork/humanizer", name: "humanizer", description: "Old wording." },
+  ], { version: 1, shaToSkillIds: { [sha]: ["blader/humanizer", "fork/humanizer"] } });
+  const entries = Object.fromEntries([...parts.values()].flatMap((part) => Object.entries(part)));
+  // The copy is the old version: exactly published by both, so it stays unlinked rather than following the fork's description.
+  assert.equal(matchCopy({ skillMdSha: sha, name: "humanizer", description: "Old wording." }, entries), null);
+  assert.equal(matchCopy({ skillMdSha: sha, name: "humanizer", description: "Old wording.", githubUrl: "https://github.com/blader/humanizer" }, entries), "blader/humanizer");
+});

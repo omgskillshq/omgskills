@@ -60,12 +60,10 @@ export async function readSyncInventory(
   // The cloud save record each copy uses; same-name folders holding different skills are saved apart.
   const records = await readCloudRecordNames(pool, userId);
   for (const [skill, cloudKey] of cloudSkillKeys(skills, records)) Object.assign(skill, { cloudKey });
-  // Presence reports store the Mac's catalog hint unverified; link the rows it proves. A copy
-  // with no hint (installed from GitHub directly) is linked when its SKILL.md is exactly a
-  // published version of one library skill. Edited copies stay personal.
+  // Presence reports store the Mac's catalog hint unverified; link the rows it proves.
   // Copies with no hint (installed from GitHub directly) are matched by the prebuilt content index:
   // the exact SKILL.md first, then the same name and description (another version of a library
-  // skill). The two lookups run apart, so a slow one never costs the other.
+  // skill, possibly edited). The two lookups run apart, so a slow one never costs the other.
   const hinted = skills.filter((skill) => !skill.catalogSkillId && skill.catalogSkillIdHint && skill.skillMdSha);
   const unhinted = skills.filter((skill) => !skill.catalogSkillId && !skill.catalogSkillIdHint);
   const keys = [...new Set(unhinted.flatMap((skill) => keysFor(skill)))];

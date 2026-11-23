@@ -7,6 +7,7 @@ import { mirroredOriginalId, parseShaHistory, publishedCatalogTracks, type ShaHi
  * published SKILL.md fingerprint, and for each skill name + description, the live library skills it
  * belongs to (a mirror listed as its original; a mirror whose original isn't listed left out). It's
  * stored in 256 small files by key, so reading a user's skills fetches only the few files it needs.
+ * Built hourly by catalog-index-background (apart from the public scan) when the catalog changed.
  */
 
 export type ContentIndexEntry = {
@@ -122,8 +123,10 @@ export function keysFor(copy: IndexedCopy): string[] {
  * version of a library skill, e.g. a little older or newer than the one we recorded).
  */
 export function matchCopy(copy: IndexedCopy, entries: Readonly<Record<string, ContentIndexEntry>>): string | null {
-  const exact = copy.skillMdSha ? pick(entries[contentKey(copy.skillMdSha)], copy) : null;
-  if (exact) return exact;
+  const exactEntry = copy.skillMdSha ? entries[contentKey(copy.skillMdSha)] : undefined;
+  // This exact version is published: it decides alone. Falling back to name and description could
+  // pick a fork that still carries a description the original has since changed.
+  if (exactEntry?.ids.length) return pick(exactEntry, copy);
   const named = copy.name && copy.description ? namedKey(copy.name, copy.description) : null;
   return named ? pick(entries[named], copy) : null;
 }
@@ -136,7 +139,10 @@ export type ContentIndexStore = {
 
 export const CONTENT_INDEX_VERSION = 1;
 
-/** Writes a freshly built index; meta.json last, so readers never see a half-written one as current. */
+/**
+ * Writes a freshly built index, each part whole, then meta.json (which says which catalog it's for).
+ * During a rebuild a reader may see some parts from each catalog; every entry is complete either way.
+ */
 export async function writeContentIndex(store: ContentIndexStore, catalogKey: string, partitions: Map<string, ContentIndexPartition>) {
   for (let i = 0; i < 256; i += 1) {
     const name = i.toString(16).padStart(2, "0");
