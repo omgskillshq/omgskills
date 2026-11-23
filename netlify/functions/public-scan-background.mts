@@ -30,7 +30,8 @@ export default async (request: Request) => {
       ...catalogTargetLoader(scopes),
       readFiles: githubFileReader(process.env.GITHUB_PUBLIC_READ_TOKEN?.trim() || undefined)
     });
-    console.info("public scan", { ...result, versions: undefined });
+    // The scope it ran with (PUBLIC_SCAN_SCOPE), so a setting that didn't reach the function shows.
+    console.info("public scan", { ...result, versions: undefined, scopes });
   } catch (error) {
     // Only a code or message, never file contents.
     console.error("public scan run failed; trying again next run", { error: error instanceof Error ? error.message : String(error) });
