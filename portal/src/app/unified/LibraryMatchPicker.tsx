@@ -19,6 +19,12 @@ export function libraryMatchOf(copies: readonly { catalogMatchKey?: unknown; cat
   return null;
 }
 
+/** Candidates most stars first (the server already sends them so; this keeps it true either way). */
+export function byStars(ids: readonly string[], details: readonly (CatalogSummary | null)[]): string[] {
+  return ids.map((id, index) => ({ id, index, stars: details[index]?.stars ?? -1 }))
+    .sort((a, b) => b.stars - a.stars || a.index - b.index).map(item => item.id);
+}
+
 function starCount(stars?: number) {
   return stars === undefined ? "" : stars >= 1000 ? `${(stars / 1000).toFixed(stars >= 10_000 ? 0 : 1)}K` : String(stars);
 }
@@ -31,6 +37,8 @@ export function LibraryMatchPicker({ match, load, choose }: {
 }) {
   const [details, setDetails] = useState<(CatalogSummary | null)[]>([]);
   const [selected, setSelected] = useState(match.candidates[0]);
+  // Until the person picks, the most-starred one is selected, once stars are known.
+  const touched = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   // Refreshes (on focus, on a tab coming back) hand over new arrays and loaders for the same choice;
@@ -42,7 +50,11 @@ export function LibraryMatchPicker({ match, load, choose }: {
     const controller = new AbortController();
     const ids = candidates.split("\n");
     setSelected(current => ids.includes(current) ? current : ids[0]);
-    loadRef.current(ids, controller.signal).then(value => { if (!controller.signal.aborted) setDetails(value); }).catch(() => {});
+    loadRef.current(ids, controller.signal).then(value => {
+      if (controller.signal.aborted) return;
+      setDetails(value);
+      if (!touched.current) setSelected(byStars(ids, value)[0]);
+    }).catch(() => {});
     return () => controller.abort();
   }, [match.matchKey, candidates]);
   const headingId = `library-match-${match.matchKey}`;
@@ -62,18 +74,16 @@ export function LibraryMatchPicker({ match, load, choose }: {
       <strong id={headingId}>Looks like a library skill</strong>
       <p className="ua-muted">Its instructions match {match.candidates.length} library skills. Which one is it?</p>
       <ul role="radiogroup" aria-labelledby={headingId}>
-        {match.candidates.map((id, index) => {
-          const skill = details[index];
+        {byStars(match.candidates, details).map(id => {
+          const skill = details[match.candidates.indexOf(id)];
           return (
             <li key={id}>
               <label>
                 <input type="radio" name={`library-match-${match.matchKey}`} checked={selected === id} disabled={busy}
-                  onChange={() => setSelected(id)} />
-                <span>
-                  <span>{skill?.name ?? id.split(":").pop()}</span>{" "}
-                  <span className="ua-muted">{skill?.author ? `@${skill.author}` : id.split(":")[0]}</span>
-                  {skill?.stars !== undefined && <span className="ua-muted"> · <Star aria-hidden="true" /> {starCount(skill.stars)}</span>}
-                </span>
+                  onChange={() => { touched.current = true; setSelected(id); }} />
+                <span className="ua-library-match-name">{skill?.name ?? id.split(":").pop()}</span>
+                <span className="ua-library-match-author ua-muted">{skill?.author ? `@${skill.author}` : id.split(":")[0]}</span>
+                {skill?.stars !== undefined && <span className="ua-library-match-stars ua-muted"><Star aria-hidden="true" />{starCount(skill.stars)}</span>}
               </label>
             </li>
           );

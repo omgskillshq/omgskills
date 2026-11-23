@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
-import { LibraryMatchPicker, libraryMatchOf } from "../src/app/unified/LibraryMatchPicker";
+import { byStars, LibraryMatchPicker, libraryMatchOf } from "../src/app/unified/LibraryMatchPicker";
 
 const key = `sha:${"a".repeat(40)}`;
 
@@ -26,4 +26,10 @@ test("the picker lists the candidates, most stars first already selected, with a
   assert.match(html, /This one/);
   assert.match(html, /It&#x27;s my own/);
   assert.match(html, /role="radiogroup" aria-labelledby="library-match-sha:a{40}"/);
+});
+
+test("choices show most stars first, whatever order they arrive in", () => {
+  const skill = (stars?: number) => (stars === undefined ? null : { stars } as never);
+  assert.deepEqual(byStars(["a/x", "b/x", "c/x"], [skill(6), skill(138000), skill(84)]), ["b/x", "c/x", "a/x"]);
+  assert.deepEqual(byStars(["a/x", "b/x"], []), ["a/x", "b/x"]);
 });
