@@ -32,6 +32,8 @@ export type SkillGroupItem = {
   /** Private items: the version invitees install; its instructions can be read on the web. */
   sharedReleaseId?: string;
   updateAvailable?: boolean;
+  /** Private items: the background scan of the version people install; null before it's scanned. */
+  scan?: unknown;
 };
 
 export type SkillGroupDetail = SkillGroup & {

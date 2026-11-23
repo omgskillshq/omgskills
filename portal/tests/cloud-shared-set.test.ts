@@ -85,3 +85,37 @@ test("a saved skill's versions list newest first, and Restore opens the Mac app 
   assert.equal(restoreVersionLink(" my notes ", "my notes", "22222222-2222-4222-8222-222222222222"),
     "omgskills://restore?name=my%20notes&key=my%20notes&version=22222222-2222-4222-8222-222222222222");
 });
+
+test("a private Set item carries its scan to the row; unreadable results are dropped, never shown as clean", async () => {
+  const { renderToStaticMarkup } = await import("react-dom/server");
+  const { createElement } = await import("react");
+  const { SetItemScan } = await import("../src/app/unified/SetItemScan");
+  const release = "00000000-0000-4000-8000-000000000001";
+  const flagged = { status: "flagged", scannedAt: "2026-11-21T10:00:00.000Z", findingCount: 3,
+    findings: [{ rule: "download_and_run", label: "download_and_run", severity: "high", path: "SKILL.md", line: 37, text: "dropped" }] };
+  const withScan = (scan: unknown) => [{ ...items[0], sharedReleaseId: release, scan }];
+  const load = (scan: unknown) => loadSetData(async <T>() => ({ group, accessRole: "invited", items: withScan(scan) }) as T, "set-1");
+
+  const set = await load(flagged);
+  assert.deepEqual(set.items[0].scan, { status: "flagged", scannedAt: flagged.scannedAt, findingCount: 3,
+    findings: [{ rule: "download_and_run", label: "download_and_run", severity: "high", path: "SKILL.md", line: 37 }] });
+  assert.deepEqual(setSkillDisplays(set, [])[0].setItemScan, set.items[0].scan);
+  assert.equal((await load(null)).items[0].scan, null, "not scanned yet");
+  assert.equal((await load({ status: "safe", scannedAt: "x" })).items[0].scan, undefined, "an unknown status shows nothing");
+  assert.equal((await load(undefined)).items[0].scan, undefined, "older servers send none");
+
+  const html = (scan: Parameters<typeof SetItemScan>[0]["scan"]) => renderToStaticMarkup(createElement(SetItemScan, { scan }));
+  const flaggedHtml = html(set.items[0].scan!);
+  assert.match(flaggedHtml, /Worth a look before you install/);
+  assert.match(flaggedHtml, /Downloads and runs code/);
+  assert.match(flaggedHtml, /SKILL\.md, line 37/);
+  assert.match(flaggedHtml, /And 2 more/);
+  assert.doesNotMatch(flaggedHtml, /dropped/);
+  assert.match(html({ status: "clean", scannedAt: flagged.scannedAt, findings: [], findingCount: 0 }), /Passed our checks/);
+  assert.match(html({ status: "incomplete", scannedAt: flagged.scannedAt }), /Scan didn&#x27;t finish/);
+  assert.match(html(null), /Not scanned yet/);
+  const unfinished = html({ status: "incomplete", scannedAt: flagged.scannedAt, findingCount: 1, findings: [flagged.findings[0]] });
+  assert.match(unfinished, /Worth a look before you install/, "an unfinished scan still lists what it found");
+  assert.match(unfinished, /there may be more/);
+  assert.doesNotMatch(html({ status: "clean", scannedAt: flagged.scannedAt }), /verified safe|<strong>[^<]*safe/i, "never claims a skill is safe");
+});

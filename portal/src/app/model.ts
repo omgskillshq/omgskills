@@ -1,4 +1,5 @@
 import type { GroupedSyncedSkill, SyncedSkill, ScanCoverage } from "../synced-skill-grouping";
+import type { CloudScan } from "../cloud-save/cloud-save";
 import { MAC_ADDS_AGENT_BUILD, MAC_INSTALLS_BOTH_BUILD, MAC_REMOVE_CHOICE_BUILD } from "./unified/public-install";
 
 export type Visibility = "public" | "restricted" | "private";
@@ -23,6 +24,8 @@ export type SetItem = {
   updateAvailable?: boolean;
   /** Private items: the version people with access install; its instructions can be read on the web. */
   sharedReleaseId?: string;
+  /** Private items: what the background scan found in that version; null before it's scanned. */
+  scan?: CloudScan | null;
 };
 export type PortalSet = {
   id: string;

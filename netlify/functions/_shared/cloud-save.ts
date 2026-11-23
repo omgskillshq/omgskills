@@ -210,18 +210,12 @@ async function usedBytes(db: Database, userId: string): Promise<number> {
   return Number(result.rows[0].bytes);
 }
 
-// Times are ISO 8601 in UTC with milliseconds, which every browser and the Mac parse.
-const versionColumns = `
-  release.id,
-  release.source_id AS "sourceId",
-  release.commit_sha AS "commitSha",
-  release.tree_sha AS "treeSha",
-  release.skill_md_sha AS "skillMdSha",
-  cloud.file_count AS "fileCount",
-  cloud.total_bytes AS "totalBytes",
-  cloud.device_id AS "deviceId",
-  to_char(release.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "savedAt",
-  cloud.labels,
+/**
+ * SQL for one content's scan summary (CloudScanSummary as JSON, or NULL before its first scan), from each
+ * scanner's newest result. `treeSha` is a trusted SQL expression naming the content, never user input.
+ */
+export function scanSummarySql(treeSha: string) {
+  return `
   (
     -- Each scanner's newest result for this content.
     SELECT CASE WHEN count(*) = 0 THEN NULL ELSE json_build_object(
@@ -243,14 +237,29 @@ const versionColumns = `
         EXISTS (SELECT 1 FROM jsonb_array_elements(scan.findings) finding WHERE finding->>'severity' IS DISTINCT FROM 'low' AND finding->>'severity' IS DISTINCT FROM 'info') AS serious,
         scan.findings
       FROM skill_scans scan
-      WHERE scan.tree_sha = release.tree_sha
+      WHERE scan.tree_sha = ${treeSha}
       ORDER BY scan.scanner, scan.finished_at DESC, scan.scanner_version DESC
     ) latest
     LEFT JOIN LATERAL (
       SELECT finding FROM jsonb_array_elements(latest.findings) finding
       WHERE finding->>'severity' IS DISTINCT FROM 'low' AND finding->>'severity' IS DISTINCT FROM 'info'
     ) found ON true
-  ) AS scan
+  )`;
+}
+
+// Times are ISO 8601 in UTC with milliseconds, which every browser and the Mac parse.
+const versionColumns = `
+  release.id,
+  release.source_id AS "sourceId",
+  release.commit_sha AS "commitSha",
+  release.tree_sha AS "treeSha",
+  release.skill_md_sha AS "skillMdSha",
+  cloud.file_count AS "fileCount",
+  cloud.total_bytes AS "totalBytes",
+  cloud.device_id AS "deviceId",
+  to_char(release.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "savedAt",
+  cloud.labels,
+  ${scanSummarySql("release.tree_sha")} AS scan
 `;
 
 async function readReviews(db: Database, userId: string): Promise<CloudSkillReview[]> {

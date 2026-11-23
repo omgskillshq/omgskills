@@ -68,6 +68,7 @@ import {
   TriangleAlert,
   Shapes,
   Share,
+  ShieldAlert,
   ShieldCheck,
   Smartphone,
   PanelsTopLeft,
@@ -148,6 +149,7 @@ import type { SavedSkillMdLoader, SavedVersionsLoader, SharedSkillMdLoader } fro
 import { PullToRefresh } from "./PullToRefresh";
 import { AlphaRail, railLetter, railLettersOf as railLetters } from "./AlphaRail";
 import { CloudStatusBadge, CloudStatusSection, type CloudInfo } from "./CloudStatus";
+import { SetItemScan } from "./SetItemScan";
 import { looksLikeGithubLink, type MySkillAdditions } from "../my-skills-additions";
 import { AddSkillForm } from "./AddSkillDialog";
 import { PortalApiError } from "../../api-error";
@@ -469,9 +471,14 @@ function PopupSkill({ name, skill }: { name: string; skill?: SkillDisplay }) {
   </div>;
 }
 
-function ManagedSetHeader({ set, skills, choices, management, theme, headingActions }: {
+function ManagedSetHeader({ set, skills, choices, management, theme, headingActions, open }: {
   set: PortalSet; skills: SkillDisplay[]; choices: SkillDisplay[]; management: UnifiedManagement; theme: string; headingActions: ReactNode;
+  /** Opens a skill's panel, where its scan result shows. */
+  open: (skill: SkillDisplay) => void;
 }) {
+  // Private skills whose scan matched something, named before anyone installs the Set.
+  const worthALook = skills.filter(skill => skill.setItemScan && (skill.setItemScan.status === "flagged"
+    || (skill.setItemScan.findingCount ?? skill.setItemScan.findings?.length ?? 0) > 0));
   const editable = set.role === "owner" && !set.hidden && !set.isFavorites;
   const disabled = management.busy || management.blocked;
   const access = setAccessSummary(set);
@@ -529,6 +536,14 @@ function ManagedSetHeader({ set, skills, choices, management, theme, headingActi
       </Menu>}
       {headingActions}
     </div>
+    {worthALook.length > 0 && <p className="ua-set-scan-note">
+      <ShieldAlert aria-hidden="true" />
+      <span>{worthALook.length === 1 ? "1 skill is" : `${worthALook.length} skills are`} worth a look before you install:{" "}
+        {worthALook.map((skill, index) => <span key={skill.key}>
+          <button type="button" className="ua-link" onClick={() => open(skill)}>{skill.name}</button>
+          {index < worthALook.length - 1 ? ", " : ""}
+        </span>)}. Most matches turn out fine.</span>
+    </p>}
   </>;
 }
 export function Modal({
@@ -1932,7 +1947,8 @@ export function UnifiedApp({
                   <CreatorProfileDetails handle={nav.id} />
                 </header>
               ) : management && nav.view === "set" && activeSet && management.detail.state === "ready" ?
-                <ManagedSetHeader set={activeSet} skills={setRows} choices={allMine} management={management} theme={theme} headingActions={headingActions} /> : dataPage ? null : <div className={`ua-page-heading${headingActions ? " ua-heading-filter" : ""}${showCollectionPager ? " ua-heading-collections" : ""}${trendingHeader ? " ua-heading-trending" : ""}${nav.query ? " ua-heading-search" : ""}`}>
+                <ManagedSetHeader set={activeSet} skills={setRows} choices={allMine} management={management} theme={theme} headingActions={headingActions}
+                  open={skill => navigate(openSkillNavigation(nav, skill))} /> : dataPage ? null : <div className={`ua-page-heading${headingActions ? " ua-heading-filter" : ""}${showCollectionPager ? " ua-heading-collections" : ""}${trendingHeader ? " ua-heading-trending" : ""}${nav.query ? " ua-heading-search" : ""}`}>
                 <div>
                   <h1>{showCollectionPager ? "Today" : title}</h1>
                   {meta && (nav.query ? <p className="ua-search-meta"><span>{meta}</span>{catalogCount}{catalogNote && <span role="status">{catalogNote}</span>}</p> : trendingHeader ? <p className="ua-search-meta"><span>{meta}</span>{catalogCount}</p> : <p>{meta}</p>)}
@@ -2622,6 +2638,7 @@ export function UnifiedApp({
                     </button>}
                   </section>
                 )}
+                {detail.setItemReleaseId && detail.setItemScan !== undefined && <SetItemScan key={detail.key} scan={detail.setItemScan} />}
                 <SkillReadme skill={detail} />
                 {detail.setItemReleaseId && sharedSkillMd
                   ? <SharedSkillReadme releaseId={detail.setItemReleaseId} load={sharedSkillMd} />

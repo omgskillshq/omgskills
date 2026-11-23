@@ -1,4 +1,5 @@
 import type { PortalApi } from "../portal-api";
+import { parseScan } from "../cloud-save/scan-findings";
 import { listOwnedGroups, listSharedGroups, loadGroupDetail } from "../groups/api";
 import type { SkillGroup } from "../groups/types";
 import type { SyncedSkill, ScanCoverage } from "../synced-skill-grouping";
@@ -206,6 +207,12 @@ export function parseConnectedInventory(value: unknown, version: 2 | 3 = 2) {
   };
 }
 
+/** A Set item's scan, when there's one to show (null means not scanned yet). */
+function scanField(value: unknown) {
+  const scan = parseScan(value);
+  return scan === undefined ? {} : { scan };
+}
+
 export async function loadSetData(api: PortalApi, groupId: string): Promise<PortalSet> {
   const { group, items } = await loadGroupDetail(api, groupId);
   if (
@@ -239,6 +246,7 @@ export async function loadSetData(api: PortalApi, groupId: string): Promise<Port
       ...(group.accessRole === "owner" && item.updateAvailable === true ? { updateAvailable: true } : {}),
       ...(typeof item.sharedReleaseId === "string" && /^[0-9a-f-]{16,100}$/i.test(item.sharedReleaseId)
         ? { sharedReleaseId: item.sharedReleaseId } : {}),
+      ...scanField(item.scan),
     })),
   };
 }

@@ -6,6 +6,7 @@ import {
   type SyncedSkill,
 } from "../../synced-skill-grouping";
 import { isMember, type PortalData, type PortalSet } from "../model";
+import type { CloudScan } from "../../cloud-save/cloud-save";
 import { validPublicSort, publicPageRequest, type PublicSort } from "./public-paging";
 import { discoveryCategories } from "./discovery-categories";
 
@@ -50,6 +51,8 @@ export type SkillDisplay = Omit<CatalogSummary, "id" | "githubUrl"> & {
   setItemUpdateAvailable?: boolean;
   /** A private Set item's version, whose instructions people with access can read. */
   setItemReleaseId?: string;
+  /** A private Set item's scan: null before it's scanned; absent when there's none to show. */
+  setItemScan?: CloudScan | null;
   /** In My skills but on none of your Macs: its saved copy's key. */
   cloudKey?: string;
   /** A library skill added to My skills and not installed. */
@@ -476,6 +479,7 @@ export function setSkillDisplays(set: PortalSet, mine: SkillDisplay[], catalog: 
       ...(item.cloudShared ? { setItemCloudShared: true } : {}),
       ...(item.updateAvailable ? { setItemUpdateAvailable: true } : {}),
       ...(item.sharedReleaseId ? { setItemReleaseId: item.sharedReleaseId } : {}),
+      ...(item.sharedReleaseId && item.scan !== undefined ? { setItemScan: item.scan } : {}),
       catalogId: item.catalogSkillId ?? undefined,
       description: publicSkill?.description || item.description || installed?.description || "",
       githubUrl: publicSkill?.githubUrl || item.githubUrl || installed?.githubUrl || null,
