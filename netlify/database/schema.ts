@@ -612,6 +612,25 @@ export const mySkillAdditions = pgTable(
   ]
 );
 
+/** Which library skill a person says their copy is, when several share its content; null = their own. */
+export const skillLinkChoices = pgTable(
+  "skill_link_choices",
+  {
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    matchKey: text("match_key").notNull(),
+    catalogSkillId: text("catalog_skill_id"),
+    chosenAt: timestamp("chosen_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.matchKey] }),
+    check("skill_link_choices_match_key_check", sql`${table.matchKey} ~ '^(sha:[0-9a-f]{40}|nd:[0-9a-f]{64})$'`),
+    check(
+      "skill_link_choices_catalog_skill_id_check",
+      sql`${table.catalogSkillId} IS NULL OR char_length(${table.catalogSkillId}) BETWEEN 1 AND 500`
+    )
+  ]
+);
+
 /** Agents a person connected to My skills (library MCP); blocked_at set means disconnected. */
 export const libraryAgentConnections = pgTable(
   "library_agent_connections",

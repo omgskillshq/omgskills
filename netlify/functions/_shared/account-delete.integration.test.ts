@@ -115,6 +115,7 @@ async function fullAccount(pool: Pool, store: CloudObjectStore) {
     [userId, deviceId]
   );
   await pool.query("INSERT INTO my_skill_additions (user_id, catalog_skill_id) VALUES ($1, 'a/b/c')", [userId]);
+  await pool.query(`INSERT INTO skill_link_choices (user_id, match_key, catalog_skill_id) VALUES ($1, 'sha:${"a".repeat(40)}', 'a/b:c')`, [userId]);
   await pool.query("INSERT INTO library_agent_connections (user_id, client_id) VALUES ($1, 'cursor')", [userId]);
 
   const setId = await createSet(pool, userId, "tools");
@@ -242,7 +243,7 @@ test("deleting an account removes its data, empties its record, retires its priv
     for (const [table, column] of [
       ["skill_groups", "owner_user_id"], ["device_tokens", "user_id"], ["sync_tokens", "user_id"],
       ["sync_runs", "user_id"], ["synced_skills", "user_id"], ["install_acks", "user_id"],
-      ["my_skill_additions", "user_id"], ["library_agent_connections", "user_id"],
+      ["my_skill_additions", "user_id"], ["skill_link_choices", "user_id"], ["library_agent_connections", "user_id"],
       ["cloud_save_settings", "user_id"], ["cloud_blobs", "user_id"], ["cloud_saved_skills", "user_id"],
       ["analytics_events", "actor_user_id"], ["analytics_events", "profile_user_id"]
     ]) {

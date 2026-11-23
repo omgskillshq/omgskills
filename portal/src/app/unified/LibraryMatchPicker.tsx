@@ -1,0 +1,89 @@
+// A personal skill whose content several library skills share (forks): the person says which one
+// it is, most stars first, or that it's their own. One choice covers every copy with that content.
+
+import { useEffect, useRef, useState } from "react";
+import { Star } from "lucide-react";
+import type { CatalogSummary } from "./model";
+
+export type LibraryMatch = { matchKey: string; candidates: string[] };
+
+/** The first copy's offer to choose, checked: a real index key and a few catalog IDs. */
+export function libraryMatchOf(copies: readonly { catalogMatchKey?: unknown; catalogCandidates?: unknown }[]): LibraryMatch | null {
+  for (const copy of copies) {
+    const key = copy.catalogMatchKey, ids = copy.catalogCandidates;
+    if (typeof key === "string" && /^(?:sha:[0-9a-f]{40}|nd:[0-9a-f]{64})$/.test(key) && Array.isArray(ids)
+      && ids.length >= 2 && ids.length <= 5 && ids.every(id => typeof id === "string" && id.length > 0 && id.length <= 500)) {
+      return { matchKey: key, candidates: ids as string[] };
+    }
+  }
+  return null;
+}
+
+function starCount(stars?: number) {
+  return stars === undefined ? "" : stars >= 1000 ? `${(stars / 1000).toFixed(stars >= 10_000 ? 0 : 1)}K` : String(stars);
+}
+
+export function LibraryMatchPicker({ match, load, choose }: {
+  match: LibraryMatch;
+  /** Library details for the candidates (name, author, stars); a failed one shows its ID. */
+  load: (ids: string[], signal: AbortSignal) => Promise<(CatalogSummary | null)[]>;
+  choose: (matchKey: string, catalogSkillId: string | null) => Promise<void>;
+}) {
+  const [details, setDetails] = useState<(CatalogSummary | null)[]>([]);
+  const [selected, setSelected] = useState(match.candidates[0]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  // Refreshes (on focus, on a tab coming back) hand over new arrays and loaders for the same choice;
+  // only a different list of candidates resets the selection, so a pick survives switching tabs.
+  const loadRef = useRef(load);
+  loadRef.current = load;
+  const candidates = match.candidates.join("\n");
+  useEffect(() => {
+    const controller = new AbortController();
+    const ids = candidates.split("\n");
+    setSelected(current => ids.includes(current) ? current : ids[0]);
+    loadRef.current(ids, controller.signal).then(value => { if (!controller.signal.aborted) setDetails(value); }).catch(() => {});
+    return () => controller.abort();
+  }, [match.matchKey, candidates]);
+  const headingId = `library-match-${match.matchKey}`;
+  const save = async (catalogSkillId: string | null) => {
+    setBusy(true);
+    setError("");
+    try {
+      await choose(match.matchKey, catalogSkillId);
+    } catch {
+      setError("Couldn't save that. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <section className="ua-library-match" aria-label="Library match">
+      <strong id={headingId}>Looks like a library skill</strong>
+      <p className="ua-muted">Its instructions match {match.candidates.length} library skills. Which one is it?</p>
+      <ul role="radiogroup" aria-labelledby={headingId}>
+        {match.candidates.map((id, index) => {
+          const skill = details[index];
+          return (
+            <li key={id}>
+              <label>
+                <input type="radio" name={`library-match-${match.matchKey}`} checked={selected === id} disabled={busy}
+                  onChange={() => setSelected(id)} />
+                <span>
+                  <span>{skill?.name ?? id.split(":").pop()}</span>{" "}
+                  <span className="ua-muted">{skill?.author ? `@${skill.author}` : id.split(":")[0]}</span>
+                  {skill?.stars !== undefined && <span className="ua-muted"> · <Star aria-hidden="true" /> {starCount(skill.stars)}</span>}
+                </span>
+              </label>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="ua-library-match-actions">
+        <button type="button" className="ua-pill ua-primary" disabled={busy} onClick={() => void save(selected)}>This one</button>
+        <button type="button" className="ua-pill" disabled={busy} onClick={() => void save(null)}>It's my own</button>
+      </div>
+      {error && <p role="alert" className="ua-muted">{error}</p>}
+    </section>
+  );
+}

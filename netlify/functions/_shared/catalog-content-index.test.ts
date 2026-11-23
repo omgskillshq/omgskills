@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  resolveCopy,
   buildContentIndex, contentIndexReader, contentKey, ensureContentIndex, keysFor, matchCopy, namedKey, partitionOf, writeContentIndex,
   type ContentIndexStore,
 } from "./catalog-content-index.js";
@@ -69,4 +70,23 @@ test("a part that isn't written yet isn't remembered", async () => {
   assert.deepEqual(await read(keysFor(copy)), {});
   await writeContentIndex(store, "g1", buildContentIndex([{ id: "o/r:x", name: "x", description: "Does X." }], { version: 1, shaToSkillIds: {} }));
   assert.equal(matchCopy(copy, await read(keysFor(copy))), "o/r:x");
+});
+
+test("forks are offered most stars first; a choice decides, and 'my own' keeps it personal", () => {
+  const sha = "e".repeat(40);
+  const parts = buildContentIndex([
+    { id: "small/repo:x", name: "x", description: "X.", stars: 3 },
+    { id: "big/repo:x", name: "x", description: "X.", stars: 900 },
+  ], { version: 1, shaToSkillIds: { [sha]: ["small/repo:x", "big/repo:x"] } });
+  const entries = Object.fromEntries([...parts.values()].flatMap((part) => Object.entries(part)));
+  const copy = { skillMdSha: sha, name: "x", description: "X." };
+  assert.deepEqual(resolveCopy(copy, entries), { matchKey: `sha:${sha}`, candidates: ["big/repo:x", "small/repo:x"] });
+  assert.deepEqual(resolveCopy(copy, entries, new Map([[`sha:${sha}`, "small/repo:x"]])), { catalogSkillId: "small/repo:x" });
+  assert.equal(resolveCopy(copy, entries, new Map([[`sha:${sha}`, null]])), null);
+  // A choice never overrides a copy's own evidence: one from a candidate's repo keeps that repo's skill.
+  const fromRepo = { ...copy, githubUrl: "https://github.com/small/repo" };
+  assert.deepEqual(resolveCopy(fromRepo, entries, new Map([[`sha:${sha}`, null]])), { catalogSkillId: "small/repo:x" });
+  assert.deepEqual(resolveCopy(fromRepo, entries, new Map([[`sha:${sha}`, "big/repo:x"]])), { catalogSkillId: "small/repo:x" });
+  // A choice no longer among the candidates is asked again.
+  assert.deepEqual(resolveCopy(copy, entries, new Map([[`sha:${sha}`, "gone/repo:x"]])), { matchKey: `sha:${sha}`, candidates: ["big/repo:x", "small/repo:x"] });
 });
