@@ -170,8 +170,9 @@ const OTHER_LANGUAGES = [
   /(?<!\p{L})не\s+(?:говори|сообщай|рассказывай)(?:те)?\s+(?:об\s+этом|это)\s+пользователю/iu
 ];
 
-// Asking to send secrets away counts even when quoted.
-const EXFILTRATE = /\b(?:exfiltrate|send\s+(?:the\s+)?(?:contents?\s+of\s+)?(?:~\/\.ssh|\.env|credentials|api\s+keys?)\b)/i;
+// Asking to send secrets away counts even when quoted. "Fail loudly rather than silently exfiltrate keys" is a safety
+// note; only that narrow wording is excused, since "never exfiltrate… unless" can still be an instruction.
+const EXFILTRATE = /\b(?:(?<!\b(?:rather[ \t]+than|instead[ \t]+of)[ \t]+(?:(?:silently|secretly|quietly)[ \t]+)?)exfiltrate|send\s+(?:the\s+)?(?:contents?\s+of\s+)?(?:~\/\.ssh|\.env|credentials|api\s+keys?)\b)/i;
 
 const INJECTION = [
   /\bignore\s+(?:all\s+|any\s+)?(?:the\s+)?(?:previous|prior|above|earlier)\s+(?:instructions|prompts?|rules)\b/i,
