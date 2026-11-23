@@ -5,6 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import pg, { type Pool } from "pg";
+import { scanSummarySql } from "./cloud-save.js";
 import { GithubImportError } from "./github-skill-import.js";
 import { curatedTargets, publicScanScopeFromEnv, runPublicScanQueue, type CatalogTarget, type PublicScanDeps } from "./public-scan-driver.js";
 import { gitObjectSha, validateSkillManifest } from "./skill-package.js";
@@ -148,6 +149,10 @@ test("curated public skills get our rules and the AI review, once per content", 
       ["ai-review", "complete", ["ai_suspicious", "reads_secrets"]],
       ["omg-rules", "complete", ["download_and_run"]]
     ]);
+    // A private copy with the same content shows our rules' result, never the AI review on its own.
+    const summary = (await pool.query(`SELECT ${scanSummarySql("$1::text")} AS scan`, [targetOf(risky).treeSha])).rows[0].scan;
+    assert.deepEqual(summary.findings.map((f: { label: string }) => f.label), ["download_and_run"]);
+    assert.doesNotMatch(JSON.stringify(summary), /ai_|reads_secrets/);
     // Nothing new: the catalog isn't re-read into the table and nothing is scanned or paid for again.
     const second = await runPublicScanQueue(pool, d);
     assert.deepEqual([second.synced, second.scanned, reviews.count], [null, 0, 2]);

@@ -237,7 +237,8 @@ export function scanSummarySql(treeSha: string) {
         EXISTS (SELECT 1 FROM jsonb_array_elements(scan.findings) finding WHERE finding->>'severity' IS DISTINCT FROM 'low' AND finding->>'severity' IS DISTINCT FROM 'info') AS serious,
         scan.findings
       FROM skill_scans scan
-      WHERE scan.tree_sha = ${treeSha}
+      -- The AI review (public skills, same content) is never shown on its own: it waits for a second look.
+      WHERE scan.tree_sha = ${treeSha} AND scan.scanner <> 'ai-review'
       ORDER BY scan.scanner, scan.finished_at DESC, scan.scanner_version DESC
     ) latest
     LEFT JOIN LATERAL (
@@ -1165,6 +1166,8 @@ export async function deleteCloudSkills(
             JOIN skill_sources source ON source.id = release.source_id
             WHERE release.tree_sha = scan.tree_sha AND source.tombstoned_at IS NULL
           )
+          -- A public catalog skill with the same content keeps its results.
+          AND NOT EXISTS (SELECT 1 FROM public_scan_targets target WHERE target.tree_sha = scan.tree_sha)
       `,
       [deletedTrees.rows.map((row) => row.tree_sha)]
     );
