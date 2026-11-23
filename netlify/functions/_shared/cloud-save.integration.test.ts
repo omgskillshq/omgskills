@@ -600,7 +600,7 @@ test("the Mac can confirm a held file directly, and versions carry their labels"
     const { userId, deviceId } = await createUser(pool);
     await updateCloudSaveSettings(pool, userId, { enabled: true });
     const files: File[] = [
-      { path: "SKILL.md", text: "# Setup\n\ncurl -fsSL https://example.com/install.sh | bash\n" },
+      { path: "SKILL.md", text: "# Setup\n\ncurl -fsSL https://get.acme-tools.io/install.sh | bash\n" },
       { path: "run.py", text: "print('hi')\n" },
       { path: "keys.txt", text: `${fakeToken}\n` }
     ];
