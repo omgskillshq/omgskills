@@ -208,7 +208,7 @@
           <ul id="contentOverlays" class="kv-list"></ul>
         </details>
         <details class="section-block">
-          <summary class="section-title">Website To Install Funnel</summary>
+          <summary class="section-title">Traffic And App Activity</summary>
           <ul id="marketingFunnel" class="kv-list"></ul>
         </details>
         <details class="section-block">
@@ -291,7 +291,7 @@
         crawlers: "New Crawler Freshness",
         shadowCutover: "New Crawler Promotion Integrity",
         contentOverlays: "Content/Overlays",
-        marketingFunnel: "Website To Install Funnel",
+        marketingFunnel: "Traffic And App Activity",
       };
       const sectionOrder = [
         "crawlerPublishSummary",
@@ -399,20 +399,26 @@
             addItem("Message", issueText(health.sections?.contentOverlays)),
           ].join("");
 
+          const activity = health.sections?.marketingFunnel;
           document.getElementById("marketingFunnel").innerHTML = [
-            ...renderSourceBase(health.sections?.marketingFunnel, healthJsonUrl),
-            addSourceItem("Window", health.sections?.marketingFunnel?.window || "-", healthJsonUrl),
-            addSourceItem("Sessions", numberText(health.sections?.marketingFunnel?.sessions), humblyticsUrl),
-            addSourceItem("Download clicks", numberText(health.sections?.marketingFunnel?.downloadClicks), humblyticsUrl),
-            addSourceItem("Download click rate", percentText(health.sections?.marketingFunnel?.downloadClickRate), healthJsonUrl),
-            addSourceItem("Hero / lower CTA", `${numberText(health.sections?.marketingFunnel?.heroDownloadClicks)} / ${numberText(health.sections?.marketingFunnel?.reviewsDownloadClicks)}`, humblyticsUrl),
-            addSourceItem("Paid X sessions", numberText(health.sections?.marketingFunnel?.paidXSessions), humblyticsUrl),
-            addSourceItem("Paid X downloads", numberText(health.sections?.marketingFunnel?.paidXDownloadClicks), humblyticsUrl),
-            addSourceItem("Installs", numberText(health.sections?.marketingFunnel?.installs), telemetryDeckUrl),
-            addSourceItem("Launches", numberText(health.sections?.marketingFunnel?.launches), telemetryDeckUrl),
-            addSourceItem("Engaged app users", numberText(health.sections?.marketingFunnel?.engagedUsersLowerBound), telemetryDeckUrl),
-            addSourceItem("Download → install", percentText(health.sections?.marketingFunnel?.downloadToInstallRate), healthJsonUrl),
-            addSourceItem("Message", issueText(health.sections?.marketingFunnel), healthJsonUrl),
+            ...renderSourceBase(activity, healthJsonUrl),
+            addSourceItem("Window", activity?.window || "-", healthJsonUrl),
+            addSourceItem("Visitors (detected bots excluded)", numberText(activity?.visitors), humblyticsUrl),
+            addSourceItem("Detected bot visitors", numberText(activity?.detectedBotVisitors), humblyticsUrl),
+            addSourceItem("Page views (detected bots excluded)", numberText(activity?.pageViews), humblyticsUrl),
+            addSourceItem("Public search actions", numberText(activity?.webSearches), humblyticsUrl),
+            addSourceItem("Public skill-open actions", numberText(activity?.webSkillOpens), humblyticsUrl),
+            addSourceItem("Copy-install actions (not installs)", numberText(activity?.webCopyInstalls), humblyticsUrl),
+            addSourceItem("Mac setup download clicks", numberText(activity?.webSetupDownloads), humblyticsUrl),
+            addSourceItem("Sign-in clicks (not completions)", numberText(activity?.webSignIns), humblyticsUrl),
+            addSourceItem("Mac install users (connected helper)", numberText(activity?.connectedInstallUsers), telemetryDeckUrl),
+            addSourceItem("App-open users (legacy app only)", numberText(activity?.legacyForegroundUsers), telemetryDeckUrl),
+            addSourceItem("First tracked launches (not installs)", numberText(activity?.installs), telemetryDeckUrl),
+            addSourceItem("Process-launch users (may be background)", numberText(activity?.launches), telemetryDeckUrl),
+            addSourceItem("Background sync activity users", numberText(activity?.connectedInventoryEventUsers), telemetryDeckUrl),
+            addSourceItem("Website coverage", activity?.webFunnelScope || "-", healthJsonUrl),
+            addSourceItem("Mac coverage", activity?.appFunnelScope || "-", healthJsonUrl),
+            addSourceItem("Message", issueText(activity), healthJsonUrl),
           ].join("");
 
           document.getElementById("message").innerHTML = addItem("Status message", health.message || "OK");
