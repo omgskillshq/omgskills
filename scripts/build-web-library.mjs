@@ -321,6 +321,9 @@ function pageShell({
     .skill-card-star-icon { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
     .skill-detail-title { font-size: clamp(28px, 5vw, 42px); }
     .skill-detail-author, .skill-detail-stars { display: inline-flex; align-items: center; gap: 5px; }
+    .skill-review { display: inline-flex; align-items: center; gap: 5px; }
+    .skill-review[data-state="no_issues"]::before { content: "\\2713"; color: var(--accent, currentColor); font-weight: 600; }
+    .skill-review[data-state="under_review"]::before { content: "\\25CB"; }
     .skill-detail-author { color: var(--blue); }
     .skill-detail-author-avatar { width: 18px; height: 18px; overflow: hidden; flex: none; border-radius: 50%; background: var(--soft); }
     .skill-detail-author-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
@@ -468,6 +471,7 @@ ${siteFooterHtml}
       button.addEventListener("click", () => applySkillView(button.dataset.nextView, true));
     });
   </script>
+  <script src="/skill-review.js" defer></script>
   <script src="/signed-in-logo.js"></script>
 </body>
 </html>
@@ -785,6 +789,14 @@ function trendingBadge(skill) {
   return `<span>Trending #${escapeHtml(skill.trending_rank)}${escapeHtml(source)}</span>`;
 }
 
+// Our review of the exact version this page installs. Starts as "Not reviewed yet"; /skill-review.js
+// fills in what /api/skill-review says for that version, and nothing more.
+function reviewBadge(skill) {
+  const tree = /^[0-9a-f]{40}$/.test(String(skill.skill_tree_sha ?? "")) ? skill.skill_tree_sha : "";
+  const data = tree ? ` data-skill-review="${escapeHtml(skill.id)}" data-tree="${tree}"` : "";
+  return `<span class="skill-review" data-state="not_reviewed"${data} title="We haven't reviewed this version yet.">Not reviewed yet</span>`;
+}
+
 function installsBadge(skill) {
   if (!skill.installs) return "";
   return `<span>${compactNumber(skill.installs)} installs</span>`;
@@ -909,6 +921,7 @@ function renderSkillPage(
       <span class="skill-detail-stars" aria-label="${escapeHtml(`${compactNumber(skill.stars)} stars`)}"><span aria-hidden="true">${compactNumber(skill.stars)}</span>${skillStarIcon()}</span>
       ${installsBadge(skill)}
       ${trendingBadge(skill)}
+      ${reviewBadge(skill)}
       ${skill.last_updated ? `<span>Updated ${escapeHtml(String(skill.last_updated).slice(0, 10))}</span>` : ""}
       ${skill.github_url ? entitySocialLink({ href: skill.github_url, label: `View ${skill.name} on GitHub`, icon: "github", className: "skill-detail-github-link" }) : ""}
     </div>
