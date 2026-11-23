@@ -3504,8 +3504,8 @@ main:has(> .ua-az-anchor) .ua-content {
 /* One line per choice: name, author (shortened if long), stars at the end. */
 .ua-library-match label { display: flex; gap: 6px; align-items: center; cursor: pointer; min-width: 0; }
 .ua-library-match input { flex: none; margin: 0 2px 0 0; }
-.ua-library-match-name { flex: none; }
-.ua-library-match-author { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ua-library-match-name { flex: 0 1 auto; min-width: 2.5em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ua-library-match-author { flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ua-library-match-stars { flex: none; margin-left: auto; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
 .ua-library-match-stars svg { display: inline-block; width: 11px; height: 11px; flex: none; }
 .ua-library-match-actions { display: flex; gap: 8px; flex-wrap: wrap; }
