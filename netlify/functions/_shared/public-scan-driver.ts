@@ -477,6 +477,8 @@ export async function runPublicScanQueue(pool: Pool, deps: PublicScanDeps, runLi
 
 export type PublicScanReportRow = {
   id: string;
+  /** The content these results are for: the catalog's pinned version. */
+  treeSha: string;
   verdict: string | null;
   checks: string[];
   notes: string[];
@@ -500,6 +502,15 @@ export type PublicScanBadge = "no_issues" | "under_review" | "not_reviewed";
  * skill, a complete second look that didn't. Flagged and not yet cleared is "under review"; too big,
  * unreadable or not scanned yet is "not reviewed". Never shown as safe.
  */
+/** What public skill pages show: each curated skill's badge, for the exact version reviewed. */
+export type PublicReviewBadges = { generatedAt: string; skills: Record<string, { badge: PublicScanBadge; treeSha: string; reviewedAt: string | null }> };
+
+export function publicReviewBadges(report: { generatedAt: string; skills: PublicScanReportRow[] }): PublicReviewBadges {
+  const skills: PublicReviewBadges["skills"] = {};
+  for (const row of report.skills) skills[row.id] = { badge: row.badge, treeSha: row.treeSha, reviewedAt: row.scannedAt };
+  return { generatedAt: report.generatedAt, skills };
+}
+
 export function publicScanBadge(row: Pick<PublicScanReportRow, "held" | "verdict" | "rules" | "aiStatus" | "rulesStatus" | "secondLook" | "secondLookStatus">): PublicScanBadge {
   if (row.held || row.aiStatus !== "complete" || row.rulesStatus !== "complete" || !row.verdict) return "not_reviewed";
   const flagged = ["suspicious", "malicious", "refused"].includes(row.verdict) || row.rules.length > 0;
@@ -514,7 +525,7 @@ export function publicScanBadge(row: Pick<PublicScanReportRow, "held" | "verdict
 export async function publicScanReport(pool: Pool, versions: PublicScanVersions): Promise<{ generatedAt: string; counts: Record<string, number>; skills: PublicScanReportRow[] }> {
   const result = await pool.query<Omit<PublicScanReportRow, "badge">>(
     `
-      SELECT target.catalog_skill_id AS id,
+      SELECT target.catalog_skill_id AS id, target.tree_sha AS "treeSha",
         CASE WHEN ai.status = 'complete' THEN COALESCE(
           (SELECT substr(f->>'label', 4) FROM jsonb_array_elements(ai.findings) f WHERE f->>'rule' IN ('ai-review/verdict', 'ai-review/refused') LIMIT 1),
           'clear') END AS verdict,

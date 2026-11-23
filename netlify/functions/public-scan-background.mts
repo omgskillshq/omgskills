@@ -2,7 +2,7 @@ import { getStore } from "@netlify/blobs";
 import { getPgPool } from "./_shared/db.js";
 import { scanDriverConfigFromEnv } from "./_shared/scan-driver.js";
 import {
-  catalogTargetLoader, githubFileReader, publicScanReport, publicScanScopeFromEnv, runPublicScanQueue
+  catalogTargetLoader, githubFileReader, publicReviewBadges, publicScanReport, publicScanScopeFromEnv, runPublicScanQueue
 } from "./_shared/public-scan-driver.js";
 import { SIGNATURE_HEADER, TIMESTAMP_HEADER, verifyRequest } from "../../scanner/src/signature.js";
 
@@ -42,7 +42,11 @@ export default async (request: Request) => {
   try {
     // For people checking the results: verdicts and check names, never file contents. Only results from
     // the scanner versions this run used count. Read with: netlify blobs:get public-scan report.json
-    await getStore("public-scan").setJSON("report.json", await publicScanReport(getPgPool(), result.versions));
+    const report = await publicScanReport(getPgPool(), result.versions);
+    const store = getStore("public-scan");
+    await store.setJSON("report.json", report);
+    // What public skill pages show (/api/skill-review): badges only, by version.
+    await store.setJSON("badges.json", publicReviewBadges(report));
   } catch (error) {
     console.error("public scan report not written", { error: error instanceof Error ? error.message : String(error) });
   }
