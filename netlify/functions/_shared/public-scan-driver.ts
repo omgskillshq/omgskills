@@ -41,7 +41,11 @@ export type PublicScanDeps = {
 export type PublicScanRunResult = {
   synced: number | null; removed: number; scanned: number; retried: number; held: number; stoppedBy?: string;
   errors: Record<string, number>;
+  /** The scanner versions this run used; the report counts only results from these. */
+  versions: PublicScanVersions;
 };
+
+export type PublicScanVersions = { rules: ScannerInfo[]; review: ScannerInfo | null; look: ScannerInfo | null };
 
 /** A background function may run 15 minutes; a run stops taking skills well before that. */
 export const PUBLIC_RUN_LIMIT_MS = 12 * 60_000;
@@ -208,7 +212,7 @@ async function sync(pool: Pool, deps: PublicScanDeps): Promise<{ synced: number 
 }
 
 type Leased = CatalogTarget & {
-  attempts: number; leaseToken: string; needRules: boolean; needReview: boolean; flagged: boolean; looked: boolean;
+  attempts: number; leaseToken: string; needRules: boolean; needReview: boolean; reviewed: boolean; flagged: boolean; looked: boolean;
 };
 
 /** AI review labels that send a skill for the second look. */
@@ -224,6 +228,11 @@ const MISSING = (scanners: string, versions: string) => `EXISTS (
   )
 )`;
 
+/** Has the current AI review a complete result? Only then can a second look change the badge. */
+const REVIEWED = `EXISTS (
+  SELECT 1 FROM skill_scans scan
+  WHERE scan.tree_sha = target.tree_sha AND scan.scanner = $6[1] AND scan.scanner_version = $7[1] AND scan.status = 'complete'
+)`;
 /** Did the current AI review or rules flag this content? */
 const FLAGGED = `EXISTS (
   SELECT 1 FROM skill_scans scan, jsonb_array_elements(scan.findings) f
@@ -251,7 +260,7 @@ async function lease(pool: Pool, rules: ScannerInfo[], review: ScannerInfo, look
         WHERE target.not_before <= now() AND (target.lease_until IS NULL OR target.lease_until < now())
           AND NOT target.gave_up
           AND (target.attempts < $3 OR target.not_before <= now() - interval '${REVIVE_AFTER}')
-          AND (${MISSING("$4", "$5")} OR ${MISSING("$6", "$7")} OR ($8::text IS NOT NULL AND ${FLAGGED} AND NOT ${LOOKED}))
+          AND (${MISSING("$4", "$5")} OR ${MISSING("$6", "$7")} OR ($8::text IS NOT NULL AND ${REVIEWED} AND ${FLAGGED} AND NOT ${LOOKED}))
         ORDER BY target.priority, target.not_before
         LIMIT $2
         FOR UPDATE SKIP LOCKED
@@ -262,7 +271,7 @@ async function lease(pool: Pool, rules: ScannerInfo[], review: ScannerInfo, look
       RETURNING target.catalog_skill_id AS "catalogSkillId", target.repo_slug AS "repoSlug", target.root_path AS "rootPath",
         target.commit_sha AS "commitSha", target.tree_sha AS "treeSha", target.priority, target.attempts,
         target.lease_token AS "leaseToken", ${MISSING("$4", "$5")} AS "needRules", ${MISSING("$6", "$7")} AS "needReview",
-        ${FLAGGED} AS flagged, ${LOOKED} AS looked
+        ${REVIEWED} AS reviewed, ${FLAGGED} AS flagged, ${LOOKED} AS looked
     `,
     [randomUUID(), limit, MAX_ATTEMPTS, rules.map((s) => s.scanner), rules.map((s) => s.version), [review.scanner], [review.version],
       look?.scanner ?? null, look?.version ?? null, FLAGGED_LABELS]
@@ -349,7 +358,9 @@ function flags(result: ScannerResult, review: ScannerInfo): boolean {
 export async function runPublicScanQueue(pool: Pool, deps: PublicScanDeps, runLimitMs = PUBLIC_RUN_LIMIT_MS): Promise<PublicScanRunResult> {
   const now = () => deps.now?.() ?? Date.now();
   const started = now();
-  const result: PublicScanRunResult = { synced: null, removed: 0, scanned: 0, retried: 0, held: 0, errors: {} };
+  const result: PublicScanRunResult = {
+    synced: null, removed: 0, scanned: 0, retried: 0, held: 0, errors: {}, versions: { rules: [], review: null, look: null }
+  };
   const count = (code: string) => { result.errors[code] = (result.errors[code] ?? 0) + 1; };
 
   const listed = await callScanner<{ scanners?: unknown; review?: ScannerInfo | null; secondLook?: ScannerInfo | null }>(
@@ -359,6 +370,7 @@ export async function runPublicScanQueue(pool: Pool, deps: PublicScanDeps, runLi
   const review = listed.review ? validScanners({ scanners: [listed.review] })[0] : null;
   // Without it, flagged skills simply wait "under review".
   const look = listed.secondLook ? validScanners({ scanners: [listed.secondLook] })[0] : null;
+  result.versions = { rules, review, look };
   // Public skills get both or neither, so a missing review is never read as a finished scan.
   if (!review) {
     result.stoppedBy = "review_not_configured";
@@ -431,7 +443,9 @@ export async function runPublicScanQueue(pool: Pool, deps: PublicScanDeps, runLi
         if (!(await store(pool, target, results))) continue;
         // Flagged now or before, and no second look yet: Opus reads the same files. The review is stored
         // first, so a second look that times out never costs the review again.
-        if (look && !target.looked && (target.flagged || results.some((r) => flags(r, review)))) {
+        // Only after a complete review: without one the badge stays "not reviewed" whatever Opus says.
+        const reviewed = target.reviewed || results.some((r) => r.scanner === review.scanner && r.status === "complete");
+        if (look && reviewed && !target.looked && (target.flagged || results.some((r) => flags(r, review)))) {
           const second = check(await callScanner<ScanResponse>(deps, "POST", "/second-look", SECOND_LOOK_TIMEOUT_MS, body));
           if (!(await store(pool, target, second))) continue;
           results.push(...second);
@@ -494,7 +508,7 @@ export function publicScanBadge(row: Pick<PublicScanReportRow, "held" | "verdict
  * What the curated public skills' scans found, for people reviewing them: verdicts and the names of
  * checks and rules, never file contents. Public skills only.
  */
-export async function publicScanReport(pool: Pool): Promise<{ generatedAt: string; counts: Record<string, number>; skills: PublicScanReportRow[] }> {
+export async function publicScanReport(pool: Pool, versions: PublicScanVersions): Promise<{ generatedAt: string; counts: Record<string, number>; skills: PublicScanReportRow[] }> {
   const result = await pool.query<Omit<PublicScanReportRow, "badge">>(
     `
       SELECT target.catalog_skill_id AS id,
@@ -516,13 +530,17 @@ export async function publicScanReport(pool: Pool): Promise<{ generatedAt: strin
         look.status AS "secondLookStatus"
       FROM public_scan_targets target
       LEFT JOIN LATERAL (SELECT status, findings, finished_at FROM skill_scans
-        WHERE tree_sha = target.tree_sha AND scanner = 'ai-review' ORDER BY finished_at DESC LIMIT 1) ai ON true
+        WHERE tree_sha = target.tree_sha AND scanner = $1 AND scanner_version = $2 ORDER BY finished_at DESC LIMIT 1) ai ON true
       LEFT JOIN LATERAL (SELECT status, findings, finished_at FROM skill_scans
-        WHERE tree_sha = target.tree_sha AND scanner = 'omg-rules' ORDER BY finished_at DESC LIMIT 1) rules ON true
+        WHERE (scanner, scanner_version) IN (SELECT * FROM unnest($3::text[], $4::text[])) AND tree_sha = target.tree_sha
+        ORDER BY finished_at DESC LIMIT 1) rules ON true
       LEFT JOIN LATERAL (SELECT status, findings, finished_at FROM skill_scans
-        WHERE tree_sha = target.tree_sha AND scanner = 'ai-second-look' ORDER BY finished_at DESC LIMIT 1) look ON true
+        WHERE tree_sha = target.tree_sha AND scanner = $5 AND scanner_version = $6 ORDER BY finished_at DESC LIMIT 1) look ON true
       ORDER BY target.priority, target.catalog_skill_id
-    `
+    `,
+    // Only the versions the queue runs now: an older review never stands in for the current one.
+    [versions.review?.scanner ?? null, versions.review?.version ?? null, versions.rules.map((s) => s.scanner), versions.rules.map((s) => s.version),
+      versions.look?.scanner ?? null, versions.look?.version ?? null]
   );
   const counts: Record<string, number> = {};
   const skills = result.rows.map((row) => ({ ...row, badge: publicScanBadge(row) }));

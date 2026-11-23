@@ -243,8 +243,8 @@ const files = skill.map(({ path, mode, data }) => ({ path, mode, data }));
 
 test("the AI review prompt is the one we tested; changing it means a new version", () => {
   const hash = createHash("sha256").update(AI_REVIEW_MODEL + SYSTEM + JSON.stringify(SCHEMA)).digest("hex").slice(0, 16);
-  assert.deepEqual([AI_REVIEW_VERSION, hash], ["haiku-5-5.v3", "d0ee17ced73c0d79"],
-    "prompt changed: rerun the trial, then bump AI_REVIEW_VERSION and this hash");
+  assert.deepEqual([AI_REVIEW_VERSION, SECOND_LOOK.version, hash], ["haiku-5-5.v3", "opus-5-5.v3", "d0ee17ced73c0d79"],
+    "prompt changed: rerun the trial, then bump AI_REVIEW_VERSION, SECOND_LOOK.version and this hash");
 });
 
 test("AI review sends text files only, inside random tags, with the stated purpose", async () => {
