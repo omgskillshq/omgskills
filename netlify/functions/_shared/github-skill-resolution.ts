@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { PublishedCatalogIdentity } from "./published-catalog.js";
+import type { PublishedCatalogIdentity, ShaHistoryAsset } from "./published-catalog.js";
 import { withTimeout } from "./http.js";
 
 const maximumSkillMdBytes = 2 * 1024 * 1024;
@@ -184,6 +184,33 @@ export function resolveCatalogSkillId(
   return { status: "unresolved", reason: "ambiguous" };
 }
 
+function repoOf(githubUrl: string | null | undefined): string | null {
+  return githubUrl ? /^https:\/\/github\.com\/([^/]+\/[^/]+?)\/?$/i.exec(githubUrl)?.[1]?.toLowerCase() ?? null : null;
+}
+
+/**
+ * The only catalog skills that can decide a content match, so just those are checked: a sha's
+ * single published skill, its high-confidence same-repo canonical skill, or skills from the
+ * copy's own repo. Popular content copied into dozens of repos never fetches them all.
+ */
+export function contentMatchCandidates(
+  history: ShaHistoryAsset,
+  copies: readonly { skillMdSha?: string | null; githubUrl?: string | null }[],
+): string[] {
+  return copies.flatMap((copy) => {
+    const sha = copy.skillMdSha?.trim().toLowerCase();
+    const raw: unknown = sha ? history.shaToSkillIds[sha] : undefined;
+    const ids = Array.isArray(raw) ? raw.filter((id): id is string => typeof id === "string") : [];
+    if (ids.length <= 1) return ids;
+    const canonical = history.canonicalBySha?.[sha!];
+    const repo = repoOf(copy.githubUrl);
+    return [
+      ...(canonical?.confidence === "high" && canonical.reason === "same-repo" && typeof canonical.skillId === "string" ? [canonical.skillId] : []),
+      ...(repo ? ids.filter((id) => id.split(":")[0].toLowerCase() === repo) : []),
+    ];
+  });
+}
+
 /**
  * The library skill a copy installed outside omgskills is, by its content: its SKILL.md is
  * byte-for-byte one of that skill's published versions. When several published skills share
@@ -199,7 +226,7 @@ export function catalogSkillForContent(
   const resolution = resolveCatalogSkillId(skillMdSha, identity);
   if (resolution.status === "resolved") return resolution.catalogSkillId;
   if (resolution.reason !== "ambiguous" || !source.githubUrl) return null;
-  const repo = /^https:\/\/github\.com\/([^/]+\/[^/]+?)\/?$/i.exec(source.githubUrl)?.[1]?.toLowerCase();
+  const repo = repoOf(source.githubUrl);
   if (!repo) return null;
   const raw: unknown = identity?.shaHistory?.shaToSkillIds[skillMdSha.trim().toLowerCase()];
   const mapped: unknown[] = Array.isArray(raw) ? raw : [];

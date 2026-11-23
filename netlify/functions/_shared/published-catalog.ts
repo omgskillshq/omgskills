@@ -245,30 +245,39 @@ function shardIds(catalog: HintCatalog, url: string, fetcher: typeof fetch): Pro
   return ids;
 }
 
+/** Most detail shards (about 370 KB each) one content match may read. */
+const MAX_CONTENT_SHARDS = 24;
+
 /**
  * Identity for checking catalog hints without the full skills asset: SHA history plus
  * the detail shards that hold the hinted IDs, so `liveSkillIds` covers only those hints.
- * Given SKILL.md shas too, it also checks every skill each sha was published as, so a
- * copy installed outside omgskills can be matched by its content.
+ * With `candidates`, the IDs to check are picked from the SHA history instead (for matching
+ * copies by content), and at most MAX_CONTENT_SHARDS shards are read; IDs past that stay unchecked.
  */
 export function createCatalogHintIdentityLoader(
   options: LoaderOptions = {},
-): (hintIds: readonly string[], skillMdShas?: readonly string[]) => Promise<PublishedCatalogIdentity> {
+): (hintIds: readonly string[], candidates?: (history: ShaHistoryAsset) => readonly string[]) => Promise<PublishedCatalogIdentity> {
   const fetcher = options.fetcher ?? fetch;
   const loadCatalog = cachedLoader(
     () => fetchHintCatalog(fetcher, options.tracks ?? publishedCatalogTracks),
     options.now ?? Date.now,
     options.cacheMs ?? 5 * 60_000,
   );
-  return async (hintIds, skillMdShas = []) => {
+  return async (hintIds, candidates) => {
     const catalog = await loadCatalog();
     const live = new Set<string>();
-    const bySha = catalog.shaHistory?.shaToSkillIds ?? {};
-    const candidates = skillMdShas.flatMap((sha) => {
-      const ids = bySha[sha.trim().toLowerCase()];
-      return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string") : [];
-    });
-    await Promise.all([...new Set([...hintIds, ...candidates])].map(async (id) => {
+    let ids = [...new Set(hintIds)];
+    if (candidates) {
+      const picked = catalog.shaHistory ? [...new Set(candidates(catalog.shaHistory))] : [];
+      const shards = new Set<string>();
+      ids = picked.filter((id) => {
+        const shard = createHash("sha256").update(id, "utf8").digest("hex").slice(0, 2);
+        if (!shards.has(shard) && shards.size >= MAX_CONTENT_SHARDS) return false;
+        shards.add(shard);
+        return true;
+      });
+    }
+    await Promise.all(ids.map(async (id) => {
       const url = catalog.detailShards[createHash("sha256").update(id, "utf8").digest("hex").slice(0, 2)];
       if (url && (await shardIds(catalog, url, fetcher)).has(id)) live.add(id);
     }));

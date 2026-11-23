@@ -75,7 +75,8 @@ test("a copy installed from GitHub directly is linked when its SKILL.md is exact
       ["f".repeat(40)]: ["acme/skills:tools/notes", "acme/skills:other/notes"],
     } },
   };
-  let asked: { hints: string[]; shas: string[] } | null = null;
+  let picked: readonly string[] = [];
+  let hintsAsked: string[] | null = null;
   const rows = [
     row({ id: "cloned", catalogSkillIdHint: null, githubUrl: "https://github.com/remotion-dev/skills" }),
     row({ id: "copied", catalogSkillIdHint: null }),
@@ -86,8 +87,9 @@ test("a copy installed from GitHub directly is linked when its SKILL.md is exact
     row({ id: "same-repo-path", catalogSkillIdHint: null, skillMdSha: "f".repeat(40), githubUrl: "https://github.com/acme/skills", gitRelativePath: "tools/notes" }),
     row({ id: "same-repo-no-path", catalogSkillIdHint: null, skillMdSha: "f".repeat(40), githubUrl: "https://github.com/acme/skills" }),
   ];
-  const { skills } = await readSyncInventory(pool(rows), "user", 2, new Date(), async (hints, shas = []) => {
-    asked = { hints, shas };
+  const { skills } = await readSyncInventory(pool(rows), "user", 2, new Date(), async (hints, candidates) => {
+    if (candidates) picked = candidates(shared.shaHistory!);
+    else hintsAsked = hints;
     return shared;
   }) as { skills: Array<{ id: string; catalogSkillId: string | null; isLocalOnly: boolean }> };
   const linked = Object.fromEntries(skills.map((skill) => [skill.id, skill.catalogSkillId]));
@@ -101,8 +103,9 @@ test("a copy installed from GitHub directly is linked when its SKILL.md is exact
     "same-repo-no-path": null,
   });
   assert.equal(skills.find((skill) => skill.id === "copied")?.isLocalOnly, false);
-  assert.deepEqual(asked!.hints, []);
-  assert.deepEqual(asked!.shas.sort(), [sha, "d".repeat(40), forkSha, "f".repeat(40)].sort());
+  // No hinted copies, so no hint lookup; the content lookup checks only skills that can decide a match.
+  assert.equal(hintsAsked, null);
+  assert.deepEqual([...new Set(picked)].sort(), ["acme/skills:other/notes", "acme/skills:tools/notes", "fork/skills:notes", "remotion-dev/skills:remotion-render"]);
 });
 
 test("a hinted copy is still checked against its hint only, never re-matched by content", async () => {
@@ -112,4 +115,20 @@ test("a hinted copy is still checked against its hint only, never re-matched by 
     skills: Array<{ catalogSkillId: string | null }>
   };
   assert.equal(skills[0].catalogSkillId, null);
+});
+
+test("popular content copied into many repos never checks them all, and a slow content lookup keeps hints", async () => {
+  const many = Array.from({ length: 40 }, (_, index) => `copy${index}/skills:canvas`);
+  const history = { version: 1 as const, shaToSkillIds: { [sha]: many } };
+  const copy = row({ id: "clone", catalogSkillIdHint: null, githubUrl: "https://github.com/copy7/skills" });
+  let picked: readonly string[] = [];
+  const hinted = row({ id: "hinted", skillMdSha: "a".repeat(40), catalogSkillIdHint: "remotion-dev/skills:remotion-render" });
+  const identity: PublishedCatalogIdentity = { track: "fixture", liveSkillIds: new Set(["remotion-dev/skills:remotion-render", ...many]),
+    shaHistory: { version: 1, shaToSkillIds: { ...history.shaToSkillIds, ["a".repeat(40)]: ["remotion-dev/skills:remotion-render"] } } };
+  const { skills } = await readSyncInventory(pool([copy, hinted]), "user", 2, new Date(), async (_hints, candidates) => {
+    if (candidates) { picked = candidates(identity.shaHistory!); return new Promise(() => {}); }
+    return identity;
+  }) as { skills: Array<{ id: string; catalogSkillId: string | null }> };
+  assert.deepEqual(picked, ["copy7/skills:canvas"], "only the copy's own repo is checked");
+  assert.deepEqual(skills.map((skill) => [skill.id, skill.catalogSkillId]), [["clone", null], ["hinted", "remotion-dev/skills:remotion-render"]]);
 });

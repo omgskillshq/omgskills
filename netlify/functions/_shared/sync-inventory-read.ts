@@ -2,9 +2,9 @@ import type { Pool } from "pg";
 import { listUserDevices } from "./device-auth.js";
 import { cloudSkillKeys } from "./cloud-skill-keys.js";
 import { readCloudRecordNames } from "./cloud-save.js";
-import { catalogSkillForContent, verifiedCatalogHint } from "./github-skill-resolution.js";
+import { catalogSkillForContent, contentMatchCandidates, verifiedCatalogHint } from "./github-skill-resolution.js";
 import { withTimeout } from "./http.js";
-import { loadCatalogHintIdentity, type PublishedCatalogIdentity } from "./published-catalog.js";
+import { loadCatalogHintIdentity, type PublishedCatalogIdentity, type ShaHistoryAsset } from "./published-catalog.js";
 import { installationFolderFromKey } from "./sync-skill.js";
 import type { RootCoverage } from "./inventory-reconciliation.js";
 import { readLegacySyncInventory } from "./sync-inventory.js";
@@ -25,7 +25,7 @@ export async function readSyncInventory(
   userId: string,
   version: 1 | 2 | 3,
   now = new Date(),
-  loadCatalogIdentity: (hintIds: string[], skillMdShas?: string[]) => Promise<PublishedCatalogIdentity> = loadCatalogHintIdentity,
+  loadCatalogIdentity: (hintIds: string[], candidates?: (history: ShaHistoryAsset) => readonly string[]) => Promise<PublishedCatalogIdentity> = loadCatalogHintIdentity,
 ) {
   if (version === 1) {
     const { skills } = await readLegacySyncInventory(pool, userId);
@@ -60,17 +60,24 @@ export async function readSyncInventory(
   // Presence reports store the Mac's catalog hint unverified; link the rows it proves. A copy
   // with no hint (installed from GitHub directly) is linked when its SKILL.md is exactly a
   // published version of one library skill. Edited copies stay personal.
-  const unlinked = skills.filter((skill) => !skill.catalogSkillId && skill.skillMdSha);
-  if (unlinked.length) {
-    const hints = unlinked.flatMap((skill) => skill.catalogSkillIdHint ? [skill.catalogSkillIdHint as string] : []);
-    const shas = [...new Set(unlinked.filter((skill) => !skill.catalogSkillIdHint).map((skill) => skill.skillMdSha as string))];
-    const identity = await withTimeout(loadCatalogIdentity(hints, shas), 4_000).catch(() => null);
-    for (const skill of unlinked) {
-      const catalogSkillId = skill.catalogSkillIdHint
-        ? verifiedCatalogHint(skill.catalogSkillIdHint, skill.skillMdSha, identity)
-        : catalogSkillForContent(skill.skillMdSha, identity, skill);
-      if (catalogSkillId) Object.assign(skill, { catalogSkillId, identityStatus: "resolved", isLocalOnly: false });
-    }
+  // The two lookups run apart, each with its own limit, so content matching never costs a hint.
+  const hinted = skills.filter((skill) => !skill.catalogSkillId && skill.catalogSkillIdHint && skill.skillMdSha);
+  const unhinted = skills.filter((skill) => !skill.catalogSkillId && !skill.catalogSkillIdHint && skill.skillMdSha);
+  const [hintIdentity, contentIdentity] = await Promise.all([
+    hinted.length
+      ? withTimeout(loadCatalogIdentity(hinted.map((skill) => skill.catalogSkillIdHint as string)), 4_000).catch(() => null)
+      : null,
+    unhinted.length
+      ? withTimeout(loadCatalogIdentity([], (history) => contentMatchCandidates(history, unhinted)), 4_000).catch(() => null)
+      : null,
+  ]);
+  for (const skill of hinted) {
+    const catalogSkillId = verifiedCatalogHint(skill.catalogSkillIdHint, skill.skillMdSha, hintIdentity);
+    if (catalogSkillId) Object.assign(skill, { catalogSkillId, identityStatus: "resolved", isLocalOnly: false });
+  }
+  for (const skill of unhinted) {
+    const catalogSkillId = catalogSkillForContent(skill.skillMdSha, contentIdentity, skill);
+    if (catalogSkillId) Object.assign(skill, { catalogSkillId, identityStatus: "resolved", isLocalOnly: false });
   }
   const devices = await listUserDevices(pool, userId, now);
   const reports = await pool.query<{ deviceId: string; lastReportedAt: Date | null; scanCoverage?: RootCoverage[] | null }>(
