@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import pg, { type Pool } from "pg";
 import { scanSummarySql } from "./cloud-save.js";
 import { GithubImportError } from "./github-skill-import.js";
-import { catalogTargetLoader, curatedTargets, publicScanScopeFromEnv, runPublicScanQueue, type CatalogTarget, type PublicScanDeps } from "./public-scan-driver.js";
+import { catalogTargetLoader, curatedTargets, publicScanReport, publicScanScopeFromEnv, runPublicScanQueue, type CatalogTarget, type PublicScanDeps } from "./public-scan-driver.js";
 import { gitObjectSha, validateSkillManifest } from "./skill-package.js";
 import { handle } from "../../../scanner/src/handler.js";
 import { aiReview, type AskClaude } from "../../../scanner/src/ai-review.js";
@@ -152,6 +152,14 @@ test("curated public skills get our rules and the AI review, once per content", 
     const summary = (await pool.query(`SELECT ${scanSummarySql("$1::text")} AS scan`, [targetOf(risky).treeSha])).rows[0].scan;
     assert.deepEqual(summary.findings.map((f: { label: string }) => f.label), ["download_and_run"]);
     assert.doesNotMatch(JSON.stringify(summary), /ai_|reads_secrets/);
+    // The report: verdicts and check names only.
+    const report = await publicScanReport(pool);
+    assert.deepEqual(report.counts, { clear: 1, suspicious: 1 });
+    assert.deepEqual(report.skills.map((r) => [r.id, r.verdict, r.checks, r.rules, r.aiStatus]), [
+      ["acme/skills:notes", "clear", [], [], "complete"],
+      ["acme/skills:setup", "suspicious", ["reads_secrets"], ["download_and_run"], "complete"]
+    ]);
+    assert.doesNotMatch(JSON.stringify(report), /ssh|curl/);
     // Nothing new: the catalog isn't read again and nothing is scanned or paid for again.
     const second = await runPublicScanQueue(pool, d);
     assert.deepEqual([second.synced, second.scanned, reviews.count, d.loads], [null, 0, 2, 1]);
@@ -182,6 +190,8 @@ test("files that don't match the catalog's hash aren't scanned; unreadable skill
     const tooBig = async () => { throw new GithubImportError("too_large", "too big", 413); };
     const result = await runPublicScanQueue(pool, deps(worker(), () => [targetOf(clean)], tooBig));
     assert.equal(result.held, 1);
+    // Not reviewed is never shown as clear.
+    assert.deepEqual((await publicScanReport(pool)).skills.map((r) => [r.verdict, r.held, r.lastError]), [[null, true, "too_large"]]);
     // Held on the target, never as a result under a hash nobody checked.
     assert.equal((await pool.query("SELECT 1 FROM skill_scans")).rowCount, 0);
     assert.deepEqual((await pool.query("SELECT last_error, gave_up FROM public_scan_targets")).rows, [{ last_error: "too_large", gave_up: true }]);

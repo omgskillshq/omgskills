@@ -1,7 +1,8 @@
+import { getStore } from "@netlify/blobs";
 import { getPgPool } from "./_shared/db.js";
 import { scanDriverConfigFromEnv } from "./_shared/scan-driver.js";
 import {
-  catalogTargetLoader, githubFileReader, publicScanScopeFromEnv, runPublicScanQueue
+  catalogTargetLoader, githubFileReader, publicScanReport, publicScanScopeFromEnv, runPublicScanQueue
 } from "./_shared/public-scan-driver.js";
 import { SIGNATURE_HEADER, TIMESTAMP_HEADER, verifyRequest } from "../../scanner/src/signature.js";
 
@@ -32,5 +33,12 @@ export default async (request: Request) => {
   } catch (error) {
     // Only a code or message, never file contents.
     console.error("public scan run failed; trying again next run", { error: error instanceof Error ? error.message : String(error) });
+  }
+  try {
+    // For people checking the results: verdicts and check names, never file contents.
+    // Read with: netlify blobs:get public-scan report.json
+    await getStore("public-scan").setJSON("report.json", await publicScanReport(getPgPool()));
+  } catch (error) {
+    console.error("public scan report not written", { error: error instanceof Error ? error.message : String(error) });
   }
 };
