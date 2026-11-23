@@ -3447,3 +3447,46 @@ main:has(> .ua-az-anchor) .ua-content {
   font-size: 13px;
   overflow-wrap: anywhere;
 }
+
+/* A private Set item's scan, in its panel, and the Set's note naming skills worth a look. */
+.ua-set-scan {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--ua-chip);
+  font-size: 13px;
+}
+.ua-set-scan > svg,
+.ua-set-scan-note > svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--ua-muted);
+}
+.ua-set-scan p {
+  margin: 4px 0 0;
+}
+.ua-set-scan .ua-safety-findings {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.ua-set-scan .ua-safety-findings li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0 0;
+  overflow-wrap: anywhere;
+}
+.ua-set-scan-note {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 8px 0 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}

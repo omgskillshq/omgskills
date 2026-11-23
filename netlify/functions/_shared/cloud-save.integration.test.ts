@@ -21,6 +21,7 @@ import {
 import { CloudStoreError, type CloudObjectStore } from "./cloud-store.js";
 import { requirePrivateReleaseAccess } from "./private-release-access.js";
 import { savedSkillInSetFromMac } from "../portal-group-items.mjs";
+import { readPortalGroupItems } from "./portal-group-item.js";
 import { addGroupItemWithClient, updateCloudGroupItemWithClient, type GroupItemPublication } from "./group-items.js";
 import { gitObjectSha, validateSkillPackage, type SkillManifestEntry } from "./skill-package.js";
 import { skillMdBody } from "./skill-readme.js";
@@ -1512,6 +1513,40 @@ test("someone invited to a Set downloads the owner's saved version; nobody else 
     // A grant can't be pointed at someone else's storage.
     await rejects(loadSharedCloudPackage(pool, store, { ...grant, ownerUserId: stranger.userId }), "not_found");
     await rejects(loadSharedCloudPackage(pool, store, { ...grant, treeSha: "0".repeat(40) }), "not_found");
+  });
+});
+
+test("people in a Set see the shared version's scan before installing; public viewers don't", async () => {
+  await withMigratedSchema(async (pool) => {
+    const store = new MemoryStore();
+    const owner = await createUser(pool);
+    await updateCloudSaveSettings(pool, owner.userId, { enabled: true });
+    await uploadAll(pool, store, owner.userId, v1);
+    const saved = await saveCloudVersion(pool, { ...owner, skillKey: "notes", files: manifest(v1) });
+    assert.ok(saved.status === "saved");
+    const { id: releaseId, treeSha } = saved.skill.currentVersion;
+    const sourceId = (await pool.query<{ id: string }>("SELECT source_id AS id FROM skill_releases WHERE id = $1", [releaseId])).rows[0].id;
+    const group = (await pool.query<{ id: string }>(
+      "INSERT INTO skill_groups (owner_user_id, name, slug, visibility) VALUES ($1, 'Team', 'team', 'restricted') RETURNING id",
+      [owner.userId])).rows[0].id;
+    await pool.query(
+      "INSERT INTO skill_group_items (group_id, kind, name, source_id, release_id, position) VALUES ($1, 'synced', 'notes', $2, $3, 0)",
+      [group, sourceId, releaseId]);
+    await pool.query(
+      "INSERT INTO skill_group_items (group_id, kind, name, catalog_skill_id, position) VALUES ($1, 'catalog', 'public one', 'someone/skills/public-one', 1)",
+      [group]);
+    const scans = async (role: "owner" | "invited" | "public") => (await readPortalGroupItems(pool, group, role)).map((item) => item.scan);
+
+    assert.deepEqual(await scans("invited"), [null, undefined], "not scanned yet reads as null; library items aren't scanned here");
+    await pool.query(
+      "INSERT INTO skill_scans (tree_sha, scanner, scanner_version, status, findings, started_at, finished_at) VALUES ($1, 'omg-rules', '1', 'complete', $2::jsonb, $3, $3)",
+      [treeSha, JSON.stringify([{ rule: "download_and_run", label: "download_and_run", severity: "high", path: "SKILL.md", line: 4, text: "never sent" }]),
+        "2026-11-21T10:00:00Z"]);
+    const flagged = { status: "flagged", scannedAt: "2026-11-21T10:00:00.000Z", findingCount: 1,
+      findings: [{ rule: "download_and_run", label: "download_and_run", severity: "high", path: "SKILL.md", line: 4 }] };
+    assert.deepEqual((await scans("invited"))[0], flagged);
+    assert.deepEqual((await scans("owner"))[0], flagged);
+    assert.deepEqual(await scans("public"), [undefined, undefined]);
   });
 });
 

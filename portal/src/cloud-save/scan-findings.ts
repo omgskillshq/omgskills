@@ -1,7 +1,7 @@
 // Plain words for what the background scan found, and a note to hand to your agent. The scan
 // matches patterns, so a finding is something worth a look, never proof a skill is harmful.
 
-import type { CloudScanFinding } from "./cloud-save";
+import type { CloudScan, CloudScanFinding } from "./cloud-save";
 
 export type FindingInfo = {
   /** What was matched, in a few words. */
@@ -83,4 +83,25 @@ export function agentReviewPrompt(skills: FlaggedSkill[]): string {
     if (!skill.findings.length && !skill.more) lines.push("   - The details aren't available yet; look over the skill's files.");
   });
   return lines.join("\n");
+}
+
+const SCAN_STATUSES = new Set(["clean", "flagged", "incomplete"]);
+
+/**
+ * A scan result from the server, checked: null when it hasn't been scanned, undefined when there's none to
+ * show (an older server, or something unreadable, which is never shown as clean).
+ */
+export function parseScan(value: unknown): CloudScan | null | undefined {
+  if (value === null) return null;
+  if (!value || typeof value !== "object") return undefined;
+  const scan = value as Record<string, unknown>;
+  if (typeof scan.status !== "string" || !SCAN_STATUSES.has(scan.status) || typeof scan.scannedAt !== "string") return undefined;
+  const findings = Array.isArray(scan.findings) ? scan.findings.flatMap((item): CloudScanFinding[] => {
+    if (!item || typeof item !== "object") return [];
+    const { rule, label, severity, path, line } = item as Record<string, unknown>;
+    if (typeof rule !== "string" || typeof label !== "string" || typeof severity !== "string" || typeof path !== "string") return [];
+    return [{ rule, label, severity, path, line: typeof line === "number" && Number.isInteger(line) ? line : null }];
+  }) : [];
+  const findingCount = typeof scan.findingCount === "number" && scan.findingCount >= findings.length ? scan.findingCount : findings.length;
+  return { status: scan.status as CloudScan["status"], scannedAt: scan.scannedAt, findings, findingCount };
 }
