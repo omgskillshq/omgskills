@@ -6,7 +6,7 @@
     if (!badges.length || !window.fetch) return;
     var words = {
       no_issues: ["No issues found", "Our rules and an AI review found no issues in this version"],
-      under_review: ["Under review", "Our checks flagged something in this version; a person is looking at it."],
+      under_review: ["Under review", "Our checks flagged something in this version and the second look didn't clear it. Read it closely before you install it."],
       not_reviewed: ["Not reviewed yet", "We haven't reviewed this version yet."]
     };
     Array.prototype.forEach.call(badges, function (badge) {
