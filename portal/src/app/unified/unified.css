@@ -1981,6 +1981,9 @@
   display: inline-flex;
   color: var(--ua-muted);
 }
+/* Our review of the catalog version: words only, a check mark when nothing was found. */
+.ua-detail-meta > .ua-review-badge[data-state="no_issues"]::before { content: "\2713"; font-weight: 600; }
+.ua-detail-meta > .ua-review-badge[data-state="under_review"]::before { content: "\25CB"; }
 /* Scanned, nothing found: a shield the size and grey of the star, with words on hover or tap. */
 .ua-scan-tip {
   position: relative; display: inline-flex; align-items: center;

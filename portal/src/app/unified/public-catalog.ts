@@ -86,6 +86,7 @@ function parseSkill(value: unknown): CatalogSummary {
     hasPinnedInstall: skill.pinned_install != null || skill.repo_commit_sha != null || skill.skill_tree_sha != null,
     installCommand: installCommandFor(skill),
     stars: skill.stars as number | undefined, tags: strings(skill.tags ?? []), avatar: author ? avatar(author) : undefined,
+    ...(typeof skill.skill_tree_sha === "string" && /^[0-9a-f]{40}$/.test(skill.skill_tree_sha) ? { treeSha: skill.skill_tree_sha } : {}),
   };
 }
 export function parseCollections(value: unknown): CatalogDisplay {
@@ -464,3 +465,4 @@ export async function loadPublicView(client: PublicCatalogClient, nav: Navigatio
   if (!page && !note && (query || nav.view === "creator") && skills.length === LIST_LIMIT) note = `Showing up to ${LIST_LIMIT} results.`;
   return client.rememberView(nav, { catalog: { ...catalog, skills, resultIds: skills.map((skill) => skill.id), trendingIds: !query && ["top", "discover"].includes(nav.view) ? skills.map((skill) => skill.id) : [] }, note, ...(page ? { page } : {}) });
 }
+export { parseSkill as parsePublicSkill };

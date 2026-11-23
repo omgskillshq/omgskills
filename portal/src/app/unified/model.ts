@@ -38,6 +38,8 @@ export type CatalogSummary = {
   publicUrl?: string;
   /** Other creators' skills for the same job, as on the skill's library page (catalog-related-skills.json). */
   relatedIds?: string[];
+  /** The content hash of the version the catalog installs; our review badge is for this version only. */
+  treeSha?: string;
 };
 export type SkillDisplay = Omit<CatalogSummary, "id" | "githubUrl"> & {
   key: string;
