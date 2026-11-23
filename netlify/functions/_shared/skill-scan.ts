@@ -107,14 +107,6 @@ const DOWNLOAD_AND_RUN = [
   /\bpowershell(?:\.exe)?\b[^\n]{0,1000}\s-(?:e|enc|encodedcommand)\s+[A-Za-z0-9+/=]{20,}/i
 ];
 
-/**
- * A placeholder command for a reserved example host ("curl -fsSL example.com/install.sh | bash" in a
- * template) can't download anything. Only the exact shape counts: flags with no values, one example
- * address, the pipe. Anything more (a second address, a variable, an output file) still counts.
- */
-const EXAMPLE_ONLY = /^(?:curl|wget)(?:\s+-{1,2}[A-Za-z][\w-]*)*\s+(["']?)(?:https?:\/\/)?(?:[a-z0-9-]+\.)*example\.(?:com|org|net)(?:\/[\w.\/-]*)?\1\s*\|\s*(?:sudo\s+)?[\w.]+$/i;
-const PIPES_TO_RUN = new Set(DOWNLOAD_AND_RUN.slice(0, 2));
-
 // Bidirectional overrides and Unicode tag characters can reorder or hide text from readers, so one is enough.
 const INVISIBLE_ALWAYS = /[\u202A-\u202E\u2066-\u2069\u{E0000}-\u{E007F}]/gu;
 // Zero-width characters hide text in numbers, or by splitting a word so a check misses it. One or
@@ -178,8 +170,9 @@ const OTHER_LANGUAGES = [
   /(?<!\p{L})не\s+(?:говори|сообщай|рассказывай)(?:те)?\s+(?:об\s+этом|это)\s+пользователю/iu
 ];
 
-// Asking to send secrets away counts even when quoted. "Fail loudly rather than silently exfiltrate keys" is a safety note.
-const EXFILTRATE = /(?<!\b(?:not|never|don't|won't|cannot|can't|rather\s+than|instead\s+of|refuse\s+to|prevents?|preventing)\s+(?:silently\s+|secretly\s+|quietly\s+)?)\b(?:exfiltrate|send\s+(?:the\s+)?(?:contents?\s+of\s+)?(?:~\/\.ssh|\.env|credentials|api\s+keys?)\b)/i;
+// Asking to send secrets away counts even when quoted. "Fail loudly rather than silently exfiltrate keys" is a safety
+// note; only that narrow wording is excused, since "never exfiltrate… unless" can still be an instruction.
+const EXFILTRATE = /\b(?:(?<!\b(?:rather[ \t]+than|instead[ \t]+of)[ \t]+(?:(?:silently|secretly|quietly)[ \t]+)?)exfiltrate|send\s+(?:the\s+)?(?:contents?\s+of\s+)?(?:~\/\.ssh|\.env|credentials|api\s+keys?)\b)/i;
 
 const INJECTION = [
   /\bignore\s+(?:all\s+|any\s+)?(?:the\s+)?(?:previous|prior|above|earlier)\s+(?:instructions|prompts?|rules)\b/i,
@@ -253,7 +246,7 @@ function earliest(...indexes: number[]): number {
 
 function contentLabelIndexes(text: string): [SkillLabel, number][] {
   return [
-    ["download_and_run", firstIndex(text, DOWNLOAD_AND_RUN, (match, pattern) => !(PIPES_TO_RUN.has(pattern) && EXAMPLE_ONLY.test(match[0])))],
+    ["download_and_run", firstIndex(text, DOWNLOAD_AND_RUN)],
     ["invisible_characters", invisibleAt(text)],
     ["hidden_instructions", earliest(
       firstIndex(text, INJECTION, (match, pattern) => pattern === EXFILTRATE || !quotedAlone(text, match.index, match[0].length)),
