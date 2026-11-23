@@ -2657,8 +2657,9 @@ export function UnifiedApp({
                   </section>
                 )}
                 {detail.setItemReleaseId && detail.setItemScan !== undefined && <SetItemScan key={detail.key} scan={detail.setItemScan} />}
-                {!detail.catalogId && detail.installed && chooseLibraryMatch && libraryMatchDetails && (() => {
-                  const match = libraryMatchOf(detail.installed.sourceSkills);
+                {detail.installed && chooseLibraryMatch && libraryMatchDetails && (() => {
+                  // Any copy still unlinked with several library matches, even when another copy is linked.
+                  const match = libraryMatchOf(detail.installed.sourceSkills.filter(copy => !copy.catalogSkillId?.trim()));
                   return match ? <LibraryMatchPicker key={match.matchKey} match={match} load={libraryMatchDetails} choose={chooseLibraryMatch} /> : null;
                 })()}
                 <SkillReadme skill={detail} />
