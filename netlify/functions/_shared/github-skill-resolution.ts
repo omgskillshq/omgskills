@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { PublishedCatalogIdentity, ShaHistoryAsset } from "./published-catalog.js";
+import type { PublishedCatalogIdentity } from "./published-catalog.js";
 import { withTimeout } from "./http.js";
 
 const maximumSkillMdBytes = 2 * 1024 * 1024;
@@ -182,77 +182,6 @@ export function resolveCatalogSkillId(
     };
   }
   return { status: "unresolved", reason: "ambiguous" };
-}
-
-function repoOf(githubUrl: string | null | undefined): string | null {
-  return githubUrl ? /^https:\/\/github\.com\/([^/]+\/[^/]+?)\/?$/i.exec(githubUrl)?.[1]?.toLowerCase() ?? null : null;
-}
-
-/**
- * The only catalog skills that can decide a content match, so just those are checked: a sha's
- * single published skill, its high-confidence same-repo canonical skill, or skills from the
- * copy's own repo. Popular content copied into dozens of repos never fetches them all.
- */
-export function contentMatchCandidates(
-  history: ShaHistoryAsset,
-  copies: readonly { skillMdSha?: string | null; githubUrl?: string | null }[],
-): string[] {
-  return copies.flatMap((copy) => {
-    const sha = copy.skillMdSha?.trim().toLowerCase();
-    const raw: unknown = sha ? history.shaToSkillIds[sha] : undefined;
-    const ids = Array.isArray(raw) ? raw.filter((id): id is string => typeof id === "string") : [];
-    // A few historical IDs (a fork, a moved skill): check them all, so the one still live is found.
-    if (ids.length <= FEW_CANDIDATES) return ids;
-    const canonical = history.canonicalBySha?.[sha!];
-    const repo = repoOf(copy.githubUrl);
-    return [
-      ...(canonical?.confidence === "high" && canonical.reason === "same-repo" && typeof canonical.skillId === "string" ? [canonical.skillId] : []),
-      ...(repo ? ids.filter((id) => id.split(":")[0].toLowerCase() === repo) : []),
-    ];
-  });
-}
-
-/** Up to this many skills sharing one SKILL.md are all checked; more (popular content copied around) aren't. */
-const FEW_CANDIDATES = 6;
-
-/**
- * The library skill a copy installed outside omgskills is, by its content: its SKILL.md is
- * byte-for-byte one of that skill's published versions. When the copy comes from a known GitHub
- * repo, only that repo's skills count (and its folder decides between them); otherwise the content
- * must point to one live skill, or a high-confidence canonical one. Anything unclear stays unlinked.
- */
-export function catalogSkillForContent(
-  skillMdSha: string | null | undefined,
-  identity: PublishedCatalogIdentity | null,
-  source: { githubUrl?: string | null; gitRelativePath?: string | null } = {},
-): string | null {
-  if (!skillMdSha || !identity?.shaHistory) return null;
-  const sha = skillMdSha.trim().toLowerCase();
-  const raw: unknown = identity.shaHistory.shaToSkillIds[sha];
-  // A mirror stands for its original; a mirror whose original isn't listed never counts.
-  const mirrorOriginal = (id: string) => identity.originalOf?.get(id);
-  const live: string[] = [...new Set((Array.isArray(raw) ? raw : [])
-    .filter((id): id is string => typeof id === "string" && identity.liveSkillIds.has(id))
-    .flatMap((id) => identity.originalOf?.has(id) ? [mirrorOriginal(id)!] : isMirror(identity, id) ? [] : [id]))];
-  if (!live.length) return null;
-  const repo = repoOf(source.githubUrl);
-  const sameRepo = repo ? live.filter((id) => id.split(":")[0].toLowerCase() === repo) : [];
-  if (sameRepo.length) {
-    if (sameRepo.length === 1) return sameRepo[0];
-    // Several folders in the copy's repo share this content: its own folder decides, or none.
-    const path = source.gitRelativePath?.replace(/^\/+|\/+$/g, "").toLowerCase() ?? "";
-    const samePath = sameRepo.filter((id) => id.split(":").slice(1).join(":").toLowerCase() === path);
-    return samePath.length === 1 ? samePath[0] : null;
-  }
-  if (live.length === 1) return live[0];
-  const canonical = identity.shaHistory.canonicalBySha?.[sha];
-  return canonical?.confidence === "high" && canonical.reason === "same-repo" && typeof canonical.skillId === "string"
-    && live.includes(canonical.skillId) ? canonical.skillId : null;
-}
-
-/** A checked skill the catalog lists as a mirror (whether or not its original is listed). */
-function isMirror(identity: PublishedCatalogIdentity, id: string): boolean {
-  return identity.mirrorIds?.has(id) ?? false;
 }
 
 /**

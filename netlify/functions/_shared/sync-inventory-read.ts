@@ -2,9 +2,11 @@ import type { Pool } from "pg";
 import { listUserDevices } from "./device-auth.js";
 import { cloudSkillKeys } from "./cloud-skill-keys.js";
 import { readCloudRecordNames } from "./cloud-save.js";
-import { catalogSkillForContent, contentMatchCandidates, verifiedCatalogHint } from "./github-skill-resolution.js";
+import { verifiedCatalogHint } from "./github-skill-resolution.js";
+import { contentIndexReader, keysFor, matchCopy, type ContentIndexEntry } from "./catalog-content-index.js";
+import { getStore } from "@netlify/blobs";
 import { withTimeout } from "./http.js";
-import { loadCatalogHintIdentity, type PublishedCatalogIdentity, type ShaHistoryAsset } from "./published-catalog.js";
+import { loadCatalogHintIdentity, type PublishedCatalogIdentity } from "./published-catalog.js";
 import { installationFolderFromKey } from "./sync-skill.js";
 import type { RootCoverage } from "./inventory-reconciliation.js";
 import { readLegacySyncInventory } from "./sync-inventory.js";
@@ -25,7 +27,8 @@ export async function readSyncInventory(
   userId: string,
   version: 1 | 2 | 3,
   now = new Date(),
-  loadCatalogIdentity: (hintIds: string[], candidates?: (history: ShaHistoryAsset) => readonly string[]) => Promise<PublishedCatalogIdentity> = loadCatalogHintIdentity,
+  loadCatalogIdentity: (hintIds: string[]) => Promise<PublishedCatalogIdentity> = loadCatalogHintIdentity,
+  readContentIndex: (keys: string[]) => Promise<Record<string, ContentIndexEntry>> = defaultContentIndex,
 ) {
   if (version === 1) {
     const { skills } = await readLegacySyncInventory(pool, userId);
@@ -57,26 +60,25 @@ export async function readSyncInventory(
   // The cloud save record each copy uses; same-name folders holding different skills are saved apart.
   const records = await readCloudRecordNames(pool, userId);
   for (const [skill, cloudKey] of cloudSkillKeys(skills, records)) Object.assign(skill, { cloudKey });
-  // Presence reports store the Mac's catalog hint unverified; link the rows it proves. A copy
-  // with no hint (installed from GitHub directly) is linked when its SKILL.md is exactly a
-  // published version of one library skill. Edited copies stay personal.
-  // The two lookups run apart, each with its own limit, so content matching never costs a hint.
+  // Presence reports store the Mac's catalog hint unverified; link the rows it proves.
+  // Copies with no hint (installed from GitHub directly) are matched by the prebuilt content index:
+  // the exact SKILL.md first, then the same name and description (another version of a library
+  // skill, possibly edited). The two lookups run apart, so a slow one never costs the other.
   const hinted = skills.filter((skill) => !skill.catalogSkillId && skill.catalogSkillIdHint && skill.skillMdSha);
-  const unhinted = skills.filter((skill) => !skill.catalogSkillId && !skill.catalogSkillIdHint && skill.skillMdSha);
-  const [hintIdentity, contentIdentity] = await Promise.all([
+  const unhinted = skills.filter((skill) => !skill.catalogSkillId && !skill.catalogSkillIdHint);
+  const keys = [...new Set(unhinted.flatMap((skill) => keysFor(skill)))];
+  const [hintIdentity, index] = await Promise.all([
     hinted.length
       ? withTimeout(loadCatalogIdentity(hinted.map((skill) => skill.catalogSkillIdHint as string)), 4_000).catch(() => null)
       : null,
-    unhinted.length
-      ? withTimeout(loadCatalogIdentity([], (history) => contentMatchCandidates(history, unhinted)), 4_000).catch(() => null)
-      : null,
+    keys.length ? withTimeout(readContentIndex(keys), 3_000).catch(() => ({})) : {},
   ]);
   for (const skill of hinted) {
     const catalogSkillId = verifiedCatalogHint(skill.catalogSkillIdHint, skill.skillMdSha, hintIdentity);
     if (catalogSkillId) Object.assign(skill, { catalogSkillId, identityStatus: "resolved", isLocalOnly: false });
   }
   for (const skill of unhinted) {
-    const catalogSkillId = catalogSkillForContent(skill.skillMdSha, contentIdentity, skill);
+    const catalogSkillId = matchCopy(skill, index);
     if (catalogSkillId) Object.assign(skill, { catalogSkillId, identityStatus: "resolved", isLocalOnly: false });
   }
   const devices = await listUserDevices(pool, userId, now);
@@ -122,4 +124,17 @@ function safeRepositoryUrl(value: string | null): string | null {
     url.hash = "";
     return url.toString();
   } catch { return null; }
+}
+
+let indexReader: ReturnType<typeof contentIndexReader> | null = null;
+/** The content index the background scan writes to Netlify Blobs ("catalog-index"). */
+async function defaultContentIndex(keys: string[]) {
+  if (!indexReader) {
+    const store = getStore("catalog-index");
+    indexReader = contentIndexReader({
+      get: (key) => store.get(key, { type: "json" }),
+      set: (key, value) => store.setJSON(key, value).then(() => undefined),
+    });
+  }
+  return indexReader(keys);
 }
