@@ -48,3 +48,14 @@ test("help and privacy distinguish reporting, local installs and account deletio
   }
   assert.match(read("site/terms/index.html"), /Set installation is available in the Mac app; automatic skill updates are coming soon/);
 });
+
+test("the security page explains the badges and the limits, with honest numbers, and every footer links it", () => {
+  const page = read("site/security/index.html");
+  for (const words of ["No issues found", "Under review", "Not reviewed yet", "Team-safe", "never sent to an AI", "63%", "1.5%", "not a guarantee", "We never run them"]) {
+    assert.ok(page.includes(words), words);
+  }
+  assert.doesNotMatch(page.replace(/Team-safe|Mac app safety page/g, ""), /\bsafe\b/i);
+  for (const file of ["site/index.html", "site/about/index.html", "site/privacy/index.html", "site/security/index.html", "scripts/build-web-library.mjs"]) {
+    assert.ok(read(file).includes('<a href="/security/">Security</a>'), file);
+  }
+});

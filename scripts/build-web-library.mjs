@@ -238,6 +238,7 @@ const siteFooterHtml = `  <footer class="site-footer">
         <h2>Company</h2>
         <a href="/about/">About</a>
         <a href="/support/">Support</a>
+        <a href="/security/">Security</a>
         <a href="/privacy/">Privacy</a>
         <a href="/terms/">Terms</a>
         <a href="https://github.com/omgskillshq/omgskills" rel="noreferrer">GitHub</a>
@@ -1776,6 +1777,7 @@ async function main() {
   const sitemapUrls = new Map([
     ["/", { source: "home" }],
     ["/about/", { source: "about" }],
+    ["/security/", { source: "security" }],
     ["/guide/", { source: "guide" }],
     ["/connect-stripe-to-claude/", { source: "stripe video page" }],
   ]);
