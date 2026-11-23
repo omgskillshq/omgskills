@@ -129,4 +129,8 @@ test("a private Set item carries its scan to the row; unreadable results are dro
   const mixed = html({ status: "flagged", scannedAt: flagged.scannedAt, findingCount: 2, findings: [email, flagged.findings[0]] });
   assert.match(mixed, /Worth a look before you install/);
   assert.doesNotMatch(mixed, /email address|And \d+ more/i);
+  // The Set's header uses the same view, so it never warns about a skill whose panel says no issues.
+  const { installerView } = await import("../src/cloud-save/scan-findings");
+  assert.equal(installerView({ status: "flagged", scannedAt: flagged.scannedAt, findingCount: 1, findings: [email] }).clean, true);
+  assert.equal(installerView({ status: "flagged", scannedAt: flagged.scannedAt, findingCount: 2, findings: [email] }).clean, false);
 });

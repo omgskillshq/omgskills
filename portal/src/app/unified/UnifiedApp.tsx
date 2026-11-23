@@ -154,7 +154,7 @@ import { looksLikeGithubLink, type MySkillAdditions } from "../my-skills-additio
 import { AddSkillForm } from "./AddSkillDialog";
 import { PortalApiError } from "../../api-error";
 import { cleanScan, cloudSkillRows, installationCloudKey, safetyGroups, safetyStatus, scanCopyKeys, type CloudScanFinding, type SafetyStatus, needsAttention, setsNote, skillCloudRow, statusText } from "../../cloud-save/cloud-save";
-import { agentReviewPrompt, findingInfo, findingPlace, skillFolder, type FlaggedSkill } from "../../cloud-save/scan-findings";
+import { agentReviewPrompt, findingInfo, findingPlace, installerView, skillFolder, type FlaggedSkill } from "../../cloud-save/scan-findings";
 
 // Official Lucide artwork (ISC): https://lucide.dev/icons/package-question-mark (not in our installed version yet).
 const PackageQuestionMark = createLucideIcon("PackageQuestionMark", [
@@ -478,8 +478,9 @@ function ManagedSetHeader({ set, skills, choices, management, theme, headingActi
   open: (skill: SkillDisplay) => void;
 }) {
   // Private skills whose scan matched something, named before anyone installs the Set.
-  const worthALook = skills.filter(skill => skill.setItemScan && (skill.setItemScan.status === "flagged"
-    || (skill.setItemScan.findingCount ?? skill.setItemScan.findings?.length ?? 0) > 0));
+  // Sharing advice (the owner's email, say) isn't a warning for the people installing, as in SetItemScan.
+  const worthALook = skills.filter(skill => skill.setItemScan && !installerView(skill.setItemScan).clean
+    && (skill.setItemScan.status === "flagged" || installerView(skill.setItemScan).total > 0));
   const editable = set.role === "owner" && !set.hidden && !set.isFavorites;
   const disabled = management.busy || management.blocked;
   const access = setAccessSummary(set);
