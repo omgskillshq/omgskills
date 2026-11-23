@@ -291,17 +291,16 @@ export function createCatalogHintIdentityLoader(
   return async (hintIds, candidates) => {
     const catalog = await loadCatalog();
     const live = new Set<string>();
+    // One budget for the whole content lookup (both passes): IDs past it stay unchecked.
+    const shards = new Set<string>();
+    const withinBudget = (id: string) => {
+      const shard = createHash("sha256").update(id, "utf8").digest("hex").slice(0, 2);
+      if (!shards.has(shard) && shards.size >= MAX_CONTENT_SHARDS) return false;
+      shards.add(shard);
+      return true;
+    };
     let ids = [...new Set(hintIds)];
-    if (candidates) {
-      const picked = catalog.shaHistory ? [...new Set(candidates(catalog.shaHistory))] : [];
-      const shards = new Set<string>();
-      ids = picked.filter((id) => {
-        const shard = createHash("sha256").update(id, "utf8").digest("hex").slice(0, 2);
-        if (!shards.has(shard) && shards.size >= MAX_CONTENT_SHARDS) return false;
-        shards.add(shard);
-        return true;
-      });
-    }
+    if (candidates) ids = (catalog.shaHistory ? [...new Set(candidates(catalog.shaHistory))] : []).filter(withinBudget);
     const mirrors = new Map<string, string>();
     const check = async (id: string) => {
       const url = catalog.detailShards[createHash("sha256").update(id, "utf8").digest("hex").slice(0, 2)];
@@ -316,7 +315,7 @@ export function createCatalogHintIdentityLoader(
     // A content match on a mirror counts for its original, so the originals are checked too.
     const originalOf = new Map<string, string>();
     if (candidates && mirrors.size) {
-      await Promise.all([...new Set(mirrors.values())].slice(0, MAX_CONTENT_SHARDS).map(check));
+      await Promise.all([...new Set(mirrors.values())].filter(withinBudget).map(check));
       for (const [mirror, original] of mirrors) if (live.has(original)) originalOf.set(mirror, original);
     }
     return { track: catalog.track, liveSkillIds: live, shaHistory: catalog.shaHistory, ...(candidates ? { originalOf, mirrorIds: new Set(mirrors.keys()) } : {}) };
