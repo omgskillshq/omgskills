@@ -21,14 +21,11 @@ const defaults: ReviewDeps = {
 };
 
 function reply(status: number, body: unknown, maxAge: number) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      "content-type": "application/json",
-      "cache-control": `public, max-age=${Math.min(maxAge, 300)}`,
-      "netlify-cdn-cache-control": `public, s-maxage=${maxAge}, stale-while-revalidate=600`
-    }
-  });
+  // Errors aren't kept anywhere, so a passing skill shows again as soon as the badges can be read.
+  const headers: Record<string, string> = maxAge > 0
+    ? { "cache-control": `public, max-age=${Math.min(maxAge, 300)}`, "netlify-cdn-cache-control": `public, s-maxage=${maxAge}, stale-while-revalidate=600` }
+    : { "cache-control": "no-store", "netlify-cdn-cache-control": "no-store" };
+  return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", ...headers } });
 }
 
 export async function skillReview(request: Request, deps: ReviewDeps = defaults) {

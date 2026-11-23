@@ -21,7 +21,8 @@ test("a skill page gets the badge for the exact version it shows, and nothing un
   assert.equal((await ask("other/repo")).body.badge, "not_reviewed");
   assert.equal((await ask("acme/skills:notes", tree, async () => null)).body.badge, "not_reviewed");
   // Can't read them: an error, never "not reviewed" for a skill that was.
-  assert.equal((await ask("acme/skills:notes", tree, async () => { throw new Error("down"); })).status, 503);
+  const down = await ask("acme/skills:notes", tree, async () => { throw new Error("down"); });
+  assert.deepEqual([down.status, down.cache], [503, "no-store"]);
   assert.equal((await ask("not an id")).status, 400);
   assert.equal((await ask("acme/skills:notes", "nope")).status, 400);
   assert.match((await ask("acme/skills:notes")).cache ?? "", /s-maxage=900/);
