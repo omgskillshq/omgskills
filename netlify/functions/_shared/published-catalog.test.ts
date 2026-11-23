@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   createCatalogHintIdentityLoader,
   createPublishedCatalogIdentityLoader,
+  mirroredOriginalId,
   fetchPublishedCatalogIdentity,
   fetchPublishedSkills,
 } from "./published-catalog.js";
@@ -163,4 +164,42 @@ test("hint identity checks only the detail shards holding the hints, never the f
   await load([live]);
   assert.equal(calls.filter((url) => url.endsWith("details-live.json")).length, 1, "shards are cached");
   assert.ok(!calls.some((url) => url.endsWith("skills.json")));
+  // By content: the caller picks IDs from the SHA history; only those are checked.
+  let seen: unknown = null;
+  const byContent = await load([], (history) => { seen = history.shaToSkillIds; return [live, "owner/repo:removed"]; });
+  assert.deepEqual([...byContent.liveSkillIds], [live]);
+  assert.deepEqual(seen, { ["a".repeat(40)]: [live] });
+});
+
+test("a mirror's original is read from where the mirror keeps it", () => {
+  assert.equal(mirroredOriginalId({ provenance_type: "mirrored", skill_md_path: "mirrors/repos/garrytan@gstack/plan-devex-review/SKILL.md" }), "garrytan/gstack:plan-devex-review");
+  assert.equal(mirroredOriginalId({ provenance_type: "mirrored", skill_md_path: "repos/blader@humanizer/SKILL.md" }), "blader/humanizer");
+  assert.equal(mirroredOriginalId({ provenance_type: "mirrored", skill_md_path: "skills/x/SKILL.md" }), null);
+  assert.equal(mirroredOriginalId({ provenance_type: "original", skill_md_path: "mirrors/repos/a@b/x/SKILL.md" }), null);
+});
+
+test("the content lookup's shard budget covers mirror originals too", async () => {
+  const manifestUrl = "https://example.test/crawl4/manifest.json";
+  const bucket = (id: string) => createHash("sha256").update(id, "utf8").digest("hex").slice(0, 2);
+  // 60 mirror skills, each in its own shard, each pointing at an original in another shard.
+  const mirrors = Array.from({ length: 300 }, (_, i) => `mirror/all:s${i}`).filter((id, i, all) => all.findIndex((other) => bucket(other) === bucket(id)) === i).slice(0, 60);
+  const fixtures: Record<string, { body: unknown }> = {
+    [manifestUrl]: { body: { shaHistory: { path: "sha-history.json" }, searchCatalog: { path: "search-catalog.json" } } },
+    "https://example.test/crawl4/sha-history.json": { body: { version: 1, shaToSkillIds: {} } },
+    "https://example.test/crawl4/search-catalog.json": { body: { details: { path: "detail-index.json" } } },
+  };
+  const shards: Record<string, unknown[]> = {};
+  for (const id of mirrors) {
+    const name = id.split(":")[1];
+    (shards[bucket(id)] ??= []).push({ id, provenance_type: "mirrored", skill_md_path: `mirrors/repos/orig@repo/${name}/SKILL.md` });
+    (shards[bucket(`orig/repo:${name}`)] ??= []).push({ id: `orig/repo:${name}` });
+  }
+  fixtures["https://example.test/crawl4/detail-index.json"] = { body: { partition: "sha256-first-byte",
+    shards: Object.fromEntries(Object.keys(shards).map((b) => [b, { path: `details-${b}.json` }])) } };
+  for (const [b, rows] of Object.entries(shards)) fixtures[`https://example.test/crawl4/details-${b}.json`] = { body: rows };
+  const calls: string[] = [];
+  const load = createCatalogHintIdentityLoader({ tracks: [{ name: "crawl4", manifestUrl }], fetcher: fixtureFetcher(fixtures, calls) });
+  const identity = await load([], () => mirrors);
+  assert.ok(calls.filter((url) => url.includes("/details-")).length <= 48, "never more than 48 shards in all");
+  assert.ok((identity.originalOf?.size ?? 0) > 0);
 });
