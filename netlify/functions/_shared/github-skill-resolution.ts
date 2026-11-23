@@ -201,7 +201,8 @@ export function contentMatchCandidates(
     const sha = copy.skillMdSha?.trim().toLowerCase();
     const raw: unknown = sha ? history.shaToSkillIds[sha] : undefined;
     const ids = Array.isArray(raw) ? raw.filter((id): id is string => typeof id === "string") : [];
-    if (ids.length <= 1) return ids;
+    // A few historical IDs (a fork, a moved skill): check them all, so the one still live is found.
+    if (ids.length <= FEW_CANDIDATES) return ids;
     const canonical = history.canonicalBySha?.[sha!];
     const repo = repoOf(copy.githubUrl);
     return [
@@ -211,31 +212,36 @@ export function contentMatchCandidates(
   });
 }
 
+/** Up to this many skills sharing one SKILL.md are all checked; more (popular content copied around) aren't. */
+const FEW_CANDIDATES = 6;
+
 /**
  * The library skill a copy installed outside omgskills is, by its content: its SKILL.md is
- * byte-for-byte one of that skill's published versions. When several published skills share
- * that content (forks, mirrors), the copy's own GitHub repo (and folder) picks one; otherwise
- * it stays unlinked rather than guessing.
+ * byte-for-byte one of that skill's published versions. When the copy comes from a known GitHub
+ * repo, only that repo's skills count (and its folder decides between them); otherwise the content
+ * must point to one live skill, or a high-confidence canonical one. Anything unclear stays unlinked.
  */
 export function catalogSkillForContent(
   skillMdSha: string | null | undefined,
   identity: PublishedCatalogIdentity | null,
   source: { githubUrl?: string | null; gitRelativePath?: string | null } = {},
 ): string | null {
-  if (!skillMdSha) return null;
-  const resolution = resolveCatalogSkillId(skillMdSha, identity);
-  if (resolution.status === "resolved") return resolution.catalogSkillId;
-  if (resolution.reason !== "ambiguous" || !source.githubUrl) return null;
+  if (!skillMdSha || !identity?.shaHistory) return null;
+  const raw: unknown = identity.shaHistory.shaToSkillIds[skillMdSha.trim().toLowerCase()];
+  const live: string[] = [...new Set((Array.isArray(raw) ? raw : [])
+    .filter((id): id is string => typeof id === "string" && identity.liveSkillIds.has(id)))];
+  if (!live.length) return null;
   const repo = repoOf(source.githubUrl);
-  if (!repo) return null;
-  const raw: unknown = identity?.shaHistory?.shaToSkillIds[skillMdSha.trim().toLowerCase()];
-  const mapped: unknown[] = Array.isArray(raw) ? raw : [];
-  const sameRepo: string[] = [...new Set(mapped.filter((id): id is string => typeof id === "string" && identity!.liveSkillIds.has(id)
-    && id.split(":")[0].toLowerCase() === repo))];
-  if (sameRepo.length === 1) return sameRepo[0];
-  const path = source.gitRelativePath?.replace(/^\/+|\/+$/g, "").toLowerCase();
-  const samePath = sameRepo.filter((id) => (id.split(":").slice(1).join(":").toLowerCase() || "") === (path ?? ""));
-  return samePath.length === 1 ? samePath[0] : null;
+  const sameRepo = repo ? live.filter((id) => id.split(":")[0].toLowerCase() === repo) : [];
+  if (sameRepo.length) {
+    if (sameRepo.length === 1) return sameRepo[0];
+    // Several folders in the copy's repo share this content: its own folder decides, or none.
+    const path = source.gitRelativePath?.replace(/^\/+|\/+$/g, "").toLowerCase() ?? "";
+    const samePath = sameRepo.filter((id) => id.split(":").slice(1).join(":").toLowerCase() === path);
+    return samePath.length === 1 ? samePath[0] : null;
+  }
+  const resolution = resolveCatalogSkillId(skillMdSha, identity);
+  return resolution.status === "resolved" ? resolution.catalogSkillId : null;
 }
 
 /**

@@ -105,7 +105,8 @@ test("a copy installed from GitHub directly is linked when its SKILL.md is exact
   assert.equal(skills.find((skill) => skill.id === "copied")?.isLocalOnly, false);
   // No hinted copies, so no hint lookup; the content lookup checks only skills that can decide a match.
   assert.equal(hintsAsked, null);
-  assert.deepEqual([...new Set(picked)].sort(), ["acme/skills:other/notes", "acme/skills:tools/notes", "fork/skills:notes", "remotion-dev/skills:remotion-render"]);
+  // A few skills sharing the content are all checked.
+  assert.deepEqual([...new Set(picked)].sort(), ["acme/skills:notes", "acme/skills:other/notes", "acme/skills:tools/notes", "fork/skills:notes", "remotion-dev/skills:remotion-render"]);
 });
 
 test("a hinted copy is still checked against its hint only, never re-matched by content", async () => {
@@ -131,4 +132,26 @@ test("popular content copied into many repos never checks them all, and a slow c
   }) as { skills: Array<{ id: string; catalogSkillId: string | null }> };
   assert.deepEqual(picked, ["copy7/skills:canvas"], "only the copy's own repo is checked");
   assert.deepEqual(skills.map((skill) => [skill.id, skill.catalogSkillId]), [["clone", null], ["hinted", "remotion-dev/skills:remotion-render"]]);
+});
+
+test("the copy's own folder beats the catalog's canonical pick, and a forked-then-removed skill still matches", async () => {
+  const shared = "9".repeat(40), moved = "8".repeat(40);
+  const identity: PublishedCatalogIdentity = {
+    track: "fixture",
+    liveSkillIds: new Set(["acme/skills:a", "acme/skills:b", "new/skills:notes"]),
+    shaHistory: { version: 1, shaToSkillIds: { [shared]: ["acme/skills:a", "acme/skills:b"], [moved]: ["old/skills:notes", "new/skills:notes"] },
+      canonicalBySha: { [shared]: { skillId: "acme/skills:a", confidence: "high", reason: "same-repo" } } },
+  };
+  const rows = [
+    row({ id: "folder-b", catalogSkillIdHint: null, skillMdSha: shared, githubUrl: "https://github.com/acme/skills", gitRelativePath: "b" }),
+    row({ id: "no-folder", catalogSkillIdHint: null, skillMdSha: shared, githubUrl: "https://github.com/acme/skills" }),
+    row({ id: "no-repo", catalogSkillIdHint: null, skillMdSha: shared }),
+    row({ id: "moved", catalogSkillIdHint: null, skillMdSha: moved }),
+  ];
+  const { skills } = await readSyncInventory(pool(rows), "user", 2, new Date(), async () => identity) as {
+    skills: Array<{ id: string; catalogSkillId: string | null }>
+  };
+  assert.deepEqual(Object.fromEntries(skills.map((skill) => [skill.id, skill.catalogSkillId])), {
+    "folder-b": "acme/skills:b", "no-folder": null, "no-repo": "acme/skills:a", moved: "new/skills:notes",
+  });
 });
