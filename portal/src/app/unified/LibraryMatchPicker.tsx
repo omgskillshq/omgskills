@@ -1,7 +1,7 @@
 // A personal skill whose content several library skills share (forks): the person says which one
 // it is, most stars first, or that it's their own. One choice covers every copy with that content.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Star } from "lucide-react";
 import type { CatalogSummary } from "./model";
 
@@ -33,12 +33,19 @@ export function LibraryMatchPicker({ match, load, choose }: {
   const [selected, setSelected] = useState(match.candidates[0]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // Refreshes (on focus, on a tab coming back) hand over new arrays and loaders for the same choice;
+  // only a different list of candidates resets the selection, so a pick survives switching tabs.
+  const loadRef = useRef(load);
+  loadRef.current = load;
+  const candidates = match.candidates.join("\n");
   useEffect(() => {
     const controller = new AbortController();
-    setSelected(match.candidates[0]);
-    load(match.candidates, controller.signal).then(value => { if (!controller.signal.aborted) setDetails(value); }).catch(() => {});
+    const ids = candidates.split("\n");
+    setSelected(current => ids.includes(current) ? current : ids[0]);
+    loadRef.current(ids, controller.signal).then(value => { if (!controller.signal.aborted) setDetails(value); }).catch(() => {});
     return () => controller.abort();
-  }, [match.matchKey, match.candidates, load]);
+  }, [match.matchKey, candidates]);
+  const headingId = `library-match-${match.matchKey}`;
   const save = async (catalogSkillId: string | null) => {
     setBusy(true);
     setError("");
@@ -52,9 +59,9 @@ export function LibraryMatchPicker({ match, load, choose }: {
   };
   return (
     <section className="ua-library-match" aria-label="Library match">
-      <strong>Looks like a library skill</strong>
+      <strong id={headingId}>Looks like a library skill</strong>
       <p className="ua-muted">Its instructions match {match.candidates.length} library skills. Which one is it?</p>
-      <ul role="radiogroup">
+      <ul role="radiogroup" aria-labelledby={headingId}>
         {match.candidates.map((id, index) => {
           const skill = details[index];
           return (

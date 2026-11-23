@@ -228,14 +228,16 @@ export function resolveCopy(
   const key = exactKey && entries[exactKey]?.ids.length ? exactKey : namedKeyValue && entries[namedKeyValue]?.ids.length ? namedKeyValue : null;
   if (!key) return null;
   const entry = entries[key];
+  // The copy's own evidence (its repo and folder, a single candidate, the catalog's pick) decides
+  // first; a person's choice only settles copies nothing else can.
+  const found = matchCopy(copy, entries);
+  if (found) return { catalogSkillId: found };
   if (choices.has(key)) {
     const chosen = choices.get(key);
     // A choice of a skill that's no longer a candidate (removed, changed) is asked again.
     if (chosen === null) return null;
     if (chosen && entry.ids.includes(chosen)) return { catalogSkillId: chosen };
   }
-  const found = matchCopy(copy, entries);
-  if (found) return { catalogSkillId: found };
   return entry.ids.length > 1 ? { matchKey: key, candidates: entry.ids.slice(0, MAX_CHOICES) } : null;
 }
 

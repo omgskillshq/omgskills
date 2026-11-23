@@ -83,6 +83,10 @@ test("forks are offered most stars first; a choice decides, and 'my own' keeps i
   assert.deepEqual(resolveCopy(copy, entries), { matchKey: `sha:${sha}`, candidates: ["big/repo:x", "small/repo:x"] });
   assert.deepEqual(resolveCopy(copy, entries, new Map([[`sha:${sha}`, "small/repo:x"]])), { catalogSkillId: "small/repo:x" });
   assert.equal(resolveCopy(copy, entries, new Map([[`sha:${sha}`, null]])), null);
+  // A choice never overrides a copy's own evidence: one from a candidate's repo keeps that repo's skill.
+  const fromRepo = { ...copy, githubUrl: "https://github.com/small/repo" };
+  assert.deepEqual(resolveCopy(fromRepo, entries, new Map([[`sha:${sha}`, null]])), { catalogSkillId: "small/repo:x" });
+  assert.deepEqual(resolveCopy(fromRepo, entries, new Map([[`sha:${sha}`, "big/repo:x"]])), { catalogSkillId: "small/repo:x" });
   // A choice no longer among the candidates is asked again.
   assert.deepEqual(resolveCopy(copy, entries, new Map([[`sha:${sha}`, "gone/repo:x"]])), { matchKey: `sha:${sha}`, candidates: ["big/repo:x", "small/repo:x"] });
 });

@@ -6,6 +6,9 @@ import { requireJsonObject } from "./validation.js";
 
 type QueryPool = Pick<ReturnType<typeof getPgPool>, "query">;
 
+/** Most library-match choices one person keeps. */
+export const MAX_CHOICES_PER_USER = 2000;
+
 const defaults = {
   getPgPool: (): QueryPool => getPgPool(),
   requirePortalUser: (req: Request) => requirePortalUser(req),
@@ -30,20 +33,26 @@ export async function handleSkillLinkChoice(req: Request, overrides: Partial<Ski
     if (catalogSkillId !== null && (typeof catalogSkillId !== "string" || catalogSkillId.length < 1 || catalogSkillId.length > 500)) {
       return errorResponse(req, 400, "Invalid catalogSkillId");
     }
-    if (catalogSkillId !== null) {
-      let entries: Record<string, ContentIndexEntry>;
-      try {
-        entries = await deps.readContentIndex([body.matchKey]);
-      } catch {
-        return errorResponse(req, 503, "Library is unavailable; try again");
-      }
-      if (!entries[body.matchKey]?.ids.includes(catalogSkillId)) return errorResponse(req, 404, "Not one of this skill's library matches");
+    // Only content the library has several matches for can be chosen for, "my own" included.
+    let entries: Record<string, ContentIndexEntry>;
+    try {
+      entries = await deps.readContentIndex([body.matchKey]);
+    } catch {
+      return errorResponse(req, 503, "Library is unavailable; try again");
     }
-    await deps.getPgPool().query(
-      `INSERT INTO skill_link_choices (user_id, match_key, catalog_skill_id) VALUES ($1, $2, $3)
-       ON CONFLICT (user_id, match_key) DO UPDATE SET catalog_skill_id = EXCLUDED.catalog_skill_id, chosen_at = now()`,
-      [user.id, body.matchKey, catalogSkillId],
+    const ids = entries[body.matchKey]?.ids ?? [];
+    if (ids.length < 2) return errorResponse(req, 404, "This skill has no library matches to choose from");
+    if (catalogSkillId !== null && !ids.includes(catalogSkillId)) return errorResponse(req, 404, "Not one of this skill's library matches");
+    const saved = await deps.getPgPool().query(
+      `INSERT INTO skill_link_choices (user_id, match_key, catalog_skill_id)
+       SELECT $1, $2, $3
+       WHERE EXISTS (SELECT 1 FROM skill_link_choices WHERE user_id = $1 AND match_key = $2)
+          OR (SELECT count(*) FROM skill_link_choices WHERE user_id = $1) < $4
+       ON CONFLICT (user_id, match_key) DO UPDATE SET catalog_skill_id = EXCLUDED.catalog_skill_id, chosen_at = now()
+       RETURNING match_key`,
+      [user.id, body.matchKey, catalogSkillId, MAX_CHOICES_PER_USER],
     );
+    if (!saved.rows.length) return errorResponse(req, 409, `Too many saved choices (${MAX_CHOICES_PER_USER})`);
     return jsonResponse(req, { matchKey: body.matchKey, catalogSkillId });
   } catch (error) {
     if (error instanceof Response) return errorResponse(req, error.status, await error.text());

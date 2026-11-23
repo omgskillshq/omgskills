@@ -25,4 +25,5 @@ test("the picker lists the candidates, most stars first already selected, with a
   assert.match(html, /checked=""[^>]*>.*?big\/repo/s);
   assert.match(html, /This one/);
   assert.match(html, /It&#x27;s my own/);
+  assert.match(html, /role="radiogroup" aria-labelledby="library-match-sha:a{40}"/);
 });
