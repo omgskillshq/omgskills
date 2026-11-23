@@ -74,6 +74,16 @@ function collectionImage(value: unknown, id: string): string | undefined {
     return url.href;
   } catch { return; }
 }
+/**
+ * The content hash of the version get_skill says installs (pinned_install.skill_tree_sha). List
+ * summaries leave it out, so only a full record gets a review badge. Cached for up to 2 minutes
+ * like the rest of the record, so it can trail a just-published catalog by that much.
+ */
+function treeShaOf(skill: RecordValue): { treeSha?: string } {
+  const pin = skill.pinned_install;
+  const sha = pin && typeof pin === "object" ? (pin as Record<string, unknown>).skill_tree_sha : undefined;
+  return typeof sha === "string" && /^[0-9a-f]{40}$/.test(sha) ? { treeSha: sha } : {};
+}
 function parseSkill(value: unknown): CatalogSummary {
   const skill = record(value);
   const id = text(skill.id), name = text(skill.name), author = text(skill.author_handle);
@@ -86,6 +96,7 @@ function parseSkill(value: unknown): CatalogSummary {
     hasPinnedInstall: skill.pinned_install != null || skill.repo_commit_sha != null || skill.skill_tree_sha != null,
     installCommand: installCommandFor(skill),
     stars: skill.stars as number | undefined, tags: strings(skill.tags ?? []), avatar: author ? avatar(author) : undefined,
+    ...treeShaOf(skill),
   };
 }
 export function parseCollections(value: unknown): CatalogDisplay {
@@ -464,3 +475,4 @@ export async function loadPublicView(client: PublicCatalogClient, nav: Navigatio
   if (!page && !note && (query || nav.view === "creator") && skills.length === LIST_LIMIT) note = `Showing up to ${LIST_LIMIT} results.`;
   return client.rememberView(nav, { catalog: { ...catalog, skills, resultIds: skills.map((skill) => skill.id), trendingIds: !query && ["top", "discover"].includes(nav.view) ? skills.map((skill) => skill.id) : [] }, note, ...(page ? { page } : {}) });
 }
+export { parseSkill as parsePublicSkill };

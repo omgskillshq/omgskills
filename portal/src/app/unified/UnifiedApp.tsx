@@ -150,6 +150,7 @@ import { PullToRefresh } from "./PullToRefresh";
 import { AlphaRail, railLetter, railLettersOf as railLetters } from "./AlphaRail";
 import { CloudStatusBadge, CloudStatusSection, type CloudInfo } from "./CloudStatus";
 import { SetItemScan } from "./SetItemScan";
+import { ReviewBadge } from "./ReviewBadge";
 import { looksLikeGithubLink, type MySkillAdditions } from "../my-skills-additions";
 import { AddSkillForm } from "./AddSkillDialog";
 import { PortalApiError } from "../../api-error";
@@ -2433,6 +2434,7 @@ export function UnifiedApp({
                               {starCount(detail.stars)}
                             </span>
                           )}
+                          {detail.catalogId && detail.treeSha && <ReviewBadge catalogId={detail.catalogId} treeSha={detail.treeSha} />}
                           {!detail.setItemReleaseId && cloudRows.size > 0 && (() => {
                             // On a library skill the words say it's your copy; the library itself isn't scanned yet.
                             const keys = detail.cloudKey ? [detail.cloudKey] : scanCopyKeys(detail.installed?.sourceSkills ?? []);
