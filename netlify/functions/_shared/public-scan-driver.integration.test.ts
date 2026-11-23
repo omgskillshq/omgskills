@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import pg, { type Pool } from "pg";
 import { scanSummarySql } from "./cloud-save.js";
 import { GithubImportError } from "./github-skill-import.js";
-import { curatedTargets, publicScanScopeFromEnv, runPublicScanQueue, type CatalogTarget, type PublicScanDeps } from "./public-scan-driver.js";
+import { catalogTargetLoader, curatedTargets, publicScanScopeFromEnv, runPublicScanQueue, type CatalogTarget, type PublicScanDeps } from "./public-scan-driver.js";
 import { gitObjectSha, validateSkillManifest } from "./skill-package.js";
 import { handle } from "../../../scanner/src/handler.js";
 import { aiReview, type AskClaude } from "../../../scanner/src/ai-review.js";
@@ -239,4 +239,27 @@ test("a long outage uses up the tries, then one more try every 6 hours", async (
     await pool.query("UPDATE public_scan_targets SET not_before = now() - interval '7 hours'");
     assert.equal((await runPublicScanQueue(pool, d)).scanned, 1, "six hours later: tried again");
   });
+});
+
+test("the catalog loader reads the published manifest's asset paths", async () => {
+  const sha = (c: string) => c.repeat(40);
+  const assets: Record<string, unknown> = {
+    "https://omgskills.com/data/crawl4/manifest.json": {
+      version: 1, generatedAt: "2026-11-23T00:00:00.000Z",
+      skills: { path: "skills-abc.json" }, collections: { path: "collections-def.json" }
+    },
+    "https://omgskills.com/data/crawl4/collections-def.json": { version: 1, collections: [{ type: "topic", skillIds: ["a/r:one"] }] },
+    "https://omgskills.com/data/crawl4/skills-abc.json": [
+      { id: "a/r:one", repo_slug: "a/r", skill_md_path: "one/SKILL.md", repo_commit_sha: sha("1"), skill_tree_sha: sha("2") }
+    ]
+  };
+  const fetcher = (async (url: string | URL | Request) => {
+    const body = assets[String(url)];
+    return body === undefined ? new Response("missing", { status: 404 }) : Response.json(body);
+  }) as typeof fetch;
+  const loader = catalogTargetLoader(["topics"], fetcher);
+  const key = await loader.catalogKey();
+  assert.equal(key, "2026-11-23T00:00:00.000Z|topics");
+  assert.deepEqual((await loader.loadTargets(key)).map((t) => [t.catalogSkillId, t.rootPath]), [["a/r:one", "one"]]);
+  await assert.rejects(loader.loadTargets("older|topics"), /catalog changed/);
 });

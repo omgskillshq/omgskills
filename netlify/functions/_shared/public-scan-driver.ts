@@ -115,7 +115,9 @@ export function catalogTargetLoader(scopes: PublicScanScope[], fetcher: typeof f
     return value;
   };
   const keyOf = (value: Manifest) => `${value.generatedAt}|${scopes.join(",")}`;
-  const asset = (name: unknown) => {
+  // Assets are listed as { path: "skills-<hash>.json" }.
+  const asset = (reference: unknown) => {
+    const name = (reference as { path?: unknown } | null)?.path;
     if (typeof name !== "string" || !/^[\w.-]+\.json$/.test(name)) throw new Error("catalog asset missing");
     return new URL(name, track.manifestUrl).toString();
   };
