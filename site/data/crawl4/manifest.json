@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-22T23:37:25.458Z",
+  "generatedAt": "2026-11-23T15:43:27.851Z",
   "skills": {
     "path": "skills-c81ca8abe551.json",
     "sha256": "c81ca8abe551b3d3c8b32c0077c05b481487dd9345413fcb50954b8895ab71d6",
     "bytes": 88441297
   },
   "trending": {
-    "path": "trending-bde1d66b265c.json",
-    "sha256": "bde1d66b265c8a6b7dcabd2bce7fcf2842ceefb166197b40d19a35d8189f6787",
-    "bytes": 50746
+    "path": "trending-27cad4e206c9.json",
+    "sha256": "27cad4e206c9ccd4dcca2840298b25046fadce2030b24dc76f4cb1964e066809",
+    "bytes": 53322
   },
   "xTrending": {
     "path": "x-trending-c2ec558d316a.json",
@@ -37,8 +37,8 @@
     "bytes": 813
   },
   "sourceTrending": {
-    "path": "source-trending-fcc88507b1bc.json",
-    "sha256": "fcc88507b1bc2c51978918e4bf9f5123502d8ab7ab324c582cac9a0148ed8032",
-    "bytes": 138257
+    "path": "source-trending-a0bad558f5ae.json",
+    "sha256": "a0bad558f5ae17b88dd19fb0731c24c823f4df2753c8dabf47620984a8425f1a",
+    "bytes": 137331
   }
 }

@@ -438,9 +438,9 @@ skill-equivalence-ebd3d050953e.json
 skills-a6769d341f26.json
 skills-b08aac9464d2.json
 skills-c81ca8abe551.json
-source-trending-80505f9f4e4e.json
+source-trending-a0bad558f5ae.json
 source-trending-fcc88507b1bc.json
-trending-94eb8e0a9050.json
+trending-27cad4e206c9.json
 trending-bde1d66b265c.json
 x-trending-6a6823eff7e0.json
 x-trending-c2ec558d316a.json
