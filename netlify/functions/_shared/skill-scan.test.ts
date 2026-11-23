@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { combineLabels, pathLabels, riskLines, scanFileContents } from "./skill-scan.js";
+import { combineLabels, pathLabels, riskLines, scanFileContents, shareLines } from "./skill-scan.js";
 
 // Fake credentials are assembled at run time so this file never contains a
 // string that looks like a real key.
@@ -304,4 +304,31 @@ test("sample keys, doc headers and downloads passed as text aren't flagged; hidd
   const started = Date.now();
   scan("curl/https://".repeat(80_000));
   assert.ok(Date.now() - started < 3000, "slow download rule");
+});
+
+test("before sharing: someone's email, home folder or an inside-only address is found; placeholders aren't", () => {
+  const share = (text: string) => shareLines(new TextEncoder().encode(text)).map((found) => found.label);
+  assert.deepEqual(share("Ask jon.smith@acme.io"), ["personal_email"]);
+  assert.deepEqual(share("run /Users/jonslimak/Projects/x.py"), ["home_folder"]);
+  assert.deepEqual(share("C:\\Users\\Maria\\tools\\a.ps1"), ["home_folder"]);
+  assert.deepEqual(share("ssh deploy@10.0.4.12"), ["internal_address"]);
+  assert.deepEqual(share("open http://192.168.1.40:8080"), ["internal_address"]);
+  assert.deepEqual(share("push to git.acme.internal"), ["internal_address"]);
+  assert.deepEqual(share("Line 1\nLine 2 http://printer.local/status"), ["internal_address"]);
+  assert.deepEqual(share('"cwd": "/Users/jon"'), ["home_folder"]);
+  assert.deepEqual(share('"path": "C:\\\\Users\\\\Maria\\\\AppData"'), ["home_folder"]);
+  assert.deepEqual(share("cd /Users/jon"), ["home_folder"]);
+  assert.deepEqual(share("open file:///Users/jon/a.html"), ["home_folder"]);
+  assert.deepEqual(share('<a href="mailto:jon@acme.io">Email</a>'), ["personal_email"]);
+  assert.deepEqual(shareLines(new TextEncoder().encode("a\nb\nmail me: x.y@acme.io")), [{ label: "personal_email", line: 3 }]);
+  for (const fine of [
+    "you@example.com", "Co-Authored-By: Claude <noreply@anthropic.com>", "logo@2x.png", "git@github.com:org/repo.git",
+    "mongodb+srv://user:password@cluster.mongodb.net/db", "sa@my-project.iam.gserviceaccount.com", "npm i react@18.3.1",
+    "cd /Users/you/project", "/home/runner/work/x", "/Users/Shared/x", "~/Projects/x",
+    "cidr = 10.0.0.0/16", "subnet 192.168.1.0", "version 10.2.3.4.5", "localhost:3000", "host.docker.internal",
+    "settings.local.json", "https://auth.internal.example.com",
+    "ssh jon@myserver.com", "scp f deploy@prod.acme.com:/tmp", "y = x@self.weight", "a@np.linalg.inv(b)", "brew install openssl@3.lib",
+    "/home/linuxbrew/.linuxbrew/bin", "/home/pi/app", "/Users/alice/x", "Edit CLAUDE.local", "README.local", "docker 172.17.0.1",
+    "v10.2.3.4", "10.0.0.0-10.255.255.255", "https://github.com/Users/jon", "see src/home/jon/notes.md", "app/Users/admin2/x"
+  ]) assert.deepEqual(share(fine), [], fine);
 });

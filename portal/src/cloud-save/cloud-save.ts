@@ -338,7 +338,7 @@ export type SafetyGroup = "flagged" | "held" | "incomplete" | "not_scanned" | "n
 
 /** Sections of the Safety scan page, worst first. */
 export const safetyGroups: { group: Exclude<SafetyGroup, "clean">; title: string; help: string }[] = [
-  { group: "flagged", title: "Worth a look", help: "Our checks matched a pattern here. Most turn out fine, like an example key or an install command, so a match doesn't mean a skill is harmful. Ask your agent to look them over." },
+  { group: "flagged", title: "Worth a look", help: "Our checks matched a pattern here, like a key, an email address or an install command. Most turn out fine, but look before you share. Ask your agent to look them over." },
   { group: "held", title: "Held back", help: "A file looks like it holds a key or password, so it wasn't saved or scanned." },
   { group: "incomplete", title: "Scan didn't finish", help: "Part of the skill was scanned; the rest was too big or couldn't be read." },
   { group: "not_scanned", title: "Not scanned yet", help: "Saved, but the scan hasn't finished. It keeps trying in the background." },

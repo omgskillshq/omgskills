@@ -27,7 +27,34 @@ const INFO: Record<string, FindingInfo> = {
     title: "Invisible characters",
     usuallyFine: "Often a stray character left by copy and paste.",
   },
+  personal_email: {
+    title: "An email address",
+    usuallyFine: "Often your own address in a license, or an example. Remove it if teammates shouldn't see it.",
+  },
+  home_folder: {
+    title: "A path into someone's home folder",
+    usuallyFine: "Teammates won't have this folder. Use ~ or a path inside the skill instead.",
+  },
+  internal_address: {
+    title: "An address only your network can reach",
+    usuallyFine: "Fine if your team is on the same network; otherwise teammates can't reach it.",
+  },
 };
+
+/** Advice for the person sharing (their email, a home-folder path), not a reason for others to hold off installing. */
+export const SHARING_ONLY = new Set(["personal_email", "home_folder", "internal_address"]);
+
+/**
+ * A Set item's scan as the people installing it see it: sharing advice left out. `clean` when that
+ * advice was all it found (and all of it is listed, so nothing else could be hiding).
+ */
+export function installerView(scan: CloudScan): { findings: CloudScanFinding[]; total: number; clean: boolean } {
+  const listed = scan.findings ?? [];
+  const findings = listed.filter(finding => !SHARING_ONLY.has(finding.label));
+  const advice = listed.length - findings.length;
+  const total = Math.max(0, (scan.findingCount ?? listed.length) - advice);
+  return { findings, total, clean: scan.status === "clean" || (scan.status === "flagged" && advice > 0 && total === 0) };
+}
 
 export function findingInfo(finding: Pick<CloudScanFinding, "label">): FindingInfo {
   return INFO[finding.label] ?? { title: "Matched one of our checks", usuallyFine: "Worth a quick look." };

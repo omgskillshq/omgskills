@@ -111,11 +111,26 @@ test("a private Set item carries its scan to the row; unreadable results are dro
   assert.match(flaggedHtml, /SKILL\.md, line 37/);
   assert.match(flaggedHtml, /And 2 more/);
   assert.doesNotMatch(flaggedHtml, /dropped/);
-  assert.match(html({ status: "clean", scannedAt: flagged.scannedAt, findings: [], findingCount: 0 }), /Passed our checks/);
+  assert.match(html({ status: "clean", scannedAt: flagged.scannedAt, findings: [], findingCount: 0 }), /Team-safe/);
   assert.match(html({ status: "incomplete", scannedAt: flagged.scannedAt }), /Scan didn&#x27;t finish/);
   assert.match(html(null), /Not scanned yet/);
   const unfinished = html({ status: "incomplete", scannedAt: flagged.scannedAt, findingCount: 1, findings: [flagged.findings[0]] });
   assert.match(unfinished, /Worth a look before you install/, "an unfinished scan still lists what it found");
   assert.match(unfinished, /there may be more/);
-  assert.doesNotMatch(html({ status: "clean", scannedAt: flagged.scannedAt }), /verified safe|<strong>[^<]*safe/i, "never claims a skill is safe");
+  // "Team-safe" is the one badge (for sharing, with what was checked beside it); nothing claims a skill is safe.
+  const clean = html({ status: "clean", scannedAt: flagged.scannedAt });
+  assert.doesNotMatch(clean.replace("<strong>Team-safe</strong>", ""), /verified safe|\bsafe\b|<strong>[^<]*safe/i, "never claims a skill is safe");
+  assert.match(clean, /pattern check, not a guarantee/);
+  // The owner's own email is advice for them, not a warning to the people installing.
+  const email = { rule: "personal_email", label: "personal_email", severity: "medium", path: "SKILL.md", line: 3 };
+  const advice = html({ status: "flagged", scannedAt: flagged.scannedAt, findingCount: 1, findings: [email] });
+  assert.match(advice, /No issues found/);
+  assert.doesNotMatch(advice, /Worth a look|email address/i);
+  const mixed = html({ status: "flagged", scannedAt: flagged.scannedAt, findingCount: 2, findings: [email, flagged.findings[0]] });
+  assert.match(mixed, /Worth a look before you install/);
+  assert.doesNotMatch(mixed, /email address|And \d+ more/i);
+  // The Set's header uses the same view, so it never warns about a skill whose panel says no issues.
+  const { installerView } = await import("../src/cloud-save/scan-findings");
+  assert.equal(installerView({ status: "flagged", scannedAt: flagged.scannedAt, findingCount: 1, findings: [email] }).clean, true);
+  assert.equal(installerView({ status: "flagged", scannedAt: flagged.scannedAt, findingCount: 2, findings: [email] }).clean, false);
 });

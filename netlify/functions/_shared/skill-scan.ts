@@ -423,3 +423,56 @@ export function riskLines(
   if (hidden !== -1) found.push({ label: "hidden_code", line: lineAt(text, hidden) });
   return found;
 }
+
+/**
+ * What's worth knowing before sharing a skill with a team, beyond keys (found separately): someone's
+ * email address, a path into someone's home folder, or an address only reachable inside one network.
+ * Advice for the person sharing, never a sign the skill is harmful, so public skills aren't flagged for it.
+ */
+export type ShareLabel = "personal_email" | "home_folder" | "internal_address";
+export const SHARE_LABELS: readonly ShareLabel[] = ["personal_email", "home_folder", "internal_address"];
+
+// Addresses meant as placeholders or for machines: reserved domains, no-reply senders, "you@…".
+// The ending must be a real top-level domain (a country code or a common one), so code like x@self.weight isn't one.
+const EMAIL = /(?<![\w.%+\/-])([A-Za-z0-9._%+-]{1,64})@((?:[A-Za-z0-9-]{1,63}\.){1,8}([A-Za-z]{2,24}))(?![\w-])/g;
+const EMAIL_TLD = /^(?:[a-z]{2}|com|org|net|edu|gov|mil|int|info|biz|dev|app|ai|io|co|me|tech|cloud|xyz|online|site|email|team|work|company|studio|design|agency|digital|solutions|systems|software|consulting|services|group|global|media|news|blog|shop|store)$/i;
+const PLACEHOLDER_DOMAIN = /(?:^|\.)(?:example\.(?:com|org|net)|[a-z0-9-]+\.(?:example|test|invalid|localhost)|localhost|domain\.com|email\.com|company\.com|yourdomain\.com|users\.noreply\.github\.com|[a-z0-9-]+\.iam\.gserviceaccount\.com)$/i;
+const PLACEHOLDER_USER = /^(?:no-?reply|do-?not-?reply|you|your[._-]?(?:name|email)?|user(?:name)?|name|me|someone|somebody|email|first[._-]?last|john[._-]?doe|jane[._-]?doe|test|foo|bar|admin|info|support|hello|contact|security|team|example|git)$/i;
+// A login to a server (ssh deploy@host), not an email address.
+const REMOTE_LOGIN = /\b(?:ssh|scp|sftp|rsync|mosh|ssh-copy-id)\b[^\n]{0,80}$/;
+// Home folders by name; placeholders, machine accounts and common container users aren't anyone's.
+// Windows paths may be written with doubled backslashes, as in JSON.
+// Only at the start of a path: not inside a web address (site.com/Users/…) or a project folder (src/home/…).
+const HOME = /(?<![\w.%-])(?:\/Users\/|\/home\/|[A-Za-z]:\\{1,2}Users\\{1,2})([A-Za-z0-9._-]{1,64})(?=[\/\\"'`\s),;]|$)/gm;
+const PLACEHOLDER_HOME = /^(?:shared|you|your[._-]?name|user(?:name)?\d*|name|me|someone|runner|ubuntu|node|root|admin|example|default|public|guest|vagrant|ec2-user|linuxbrew|pi|jovyan|coder|app|dev|developer|alice|bob|john|jane|johndoe|janedoe|\.{1,3}|x+|<.*|\$.*|%.*)$/i;
+// Private IPv4 addresses and hostnames that only resolve inside one network. localhost works anywhere.
+// A network range ("10.0.0.0/16", ending in .0, or "a-b") is configuration; 172.17.0.1 is Docker's own bridge.
+const PRIVATE_IP = /(?<![\d.vV-])(?:10\.\d{1,3}|192\.168|172\.(?:1[6-9]|2\d|3[01]))\.\d{1,3}\.(?!0(?![\d]))\d{1,3}(?![\d.]*\d|\/\d|-\d)/g;
+const DOCKER_BRIDGE = /^172\.17\.0\.1$/;
+// .local only as a host in an address (http://printer.local), so file names like CLAUDE.local don't count.
+const INTERNAL_HOST = /(?<![\w.-])(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.){1,6}(?:internal|corp|intranet|lan)(?![\w-]|\.[A-Za-z0-9])|(?<=:\/\/)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.){1,6}local(?![\w.-])/gi;
+const GENERIC_INTERNAL_HOST = /^(?:host\.docker\.internal|gateway\.docker\.internal|metadata\.google\.internal|kubernetes\.default\.svc\.cluster\.local|[a-z0-9.-]*\.svc\.cluster\.local)$/i;
+
+function firstMatch(text: string, pattern: RegExp, keep: (match: RegExpExecArray) => boolean): number {
+  const global = new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`);
+  for (let match = global.exec(text); match; match = global.exec(text)) if (keep(match)) return match.index;
+  return -1;
+}
+
+/** Where a file has each thing worth knowing before sharing it, first place only. */
+export function shareLines(data: Uint8Array, options: { text?: boolean } = {}): { label: ShareLabel; line: number }[] {
+  if (!options.text && isBinary(data)) return [];
+  const text = Buffer.from(data).toString("utf8");
+  const found: [ShareLabel, number][] = [
+    ["personal_email", firstMatch(text, EMAIL, (m) => {
+      const before = text.slice(Math.max(0, m.index - 100), m.index);
+      // After ":" it's a login in a connection string (user:pass@host), unless it's mailto:.
+      if (before.endsWith(":") && !/mailto:$/i.test(before)) return false;
+      return EMAIL_TLD.test(m[3]) && !PLACEHOLDER_DOMAIN.test(m[2]) && !PLACEHOLDER_USER.test(m[1])
+        && !REMOTE_LOGIN.test(before.slice(before.lastIndexOf("\n") + 1));
+    })],
+    ["home_folder", firstMatch(text, HOME, (m) => !PLACEHOLDER_HOME.test(m[1]))],
+    ["internal_address", earliest(firstMatch(text, PRIVATE_IP, (m) => !DOCKER_BRIDGE.test(m[0])), firstMatch(text, INTERNAL_HOST, (m) => !GENERIC_INTERNAL_HOST.test(m[0])))]
+  ];
+  return found.filter(([, index]) => index !== -1).map(([label, index]) => ({ label, line: lineAt(text, index) }));
+}

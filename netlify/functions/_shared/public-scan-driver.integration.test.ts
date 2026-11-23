@@ -353,3 +353,17 @@ test("a skill with a file the AI can't read is never shown as no issues found", 
     assert.deepEqual((await publicScanReport(pool, run.versions)).skills.map((r) => [r.aiStatus, r.badge]), [["partial", "not_reviewed"]]);
   });
 });
+
+test("sharing advice (an email address) never sends a public skill for the second look", async () => {
+  await withMigratedSchema(async (pool) => {
+    const looks = { count: 0 };
+    const withEmail: Skill = { id: "acme/skills:mail", files: [{ path: "SKILL.md", text: "---\nname: mail\ndescription: Mail.\n---\nAsk jon.smith@acme.io\n" }] };
+    const run = await runPublicScanQueue(pool, deps(worker({ looks, look: lookClears }), () => [targetOf(withEmail)], async () => filesOf(withEmail)));
+    assert.deepEqual(await scansOf(pool, targetOf(withEmail).treeSha), [["ai-review", "complete", []], ["omg-rules", "complete", ["personal_email"]]]);
+    assert.equal(looks.count, 0);
+    assert.deepEqual((await publicScanReport(pool, run.versions)).skills.map((r) => [r.rules, r.badge]), [[[], "no_issues"]]);
+    // On a private copy of the same content it's worth a look before sharing.
+    const summary = (await pool.query(`SELECT ${scanSummarySql("$1::text")} AS scan`, [targetOf(withEmail).treeSha])).rows[0].scan;
+    assert.deepEqual([summary.status, summary.findings.map((f: { label: string }) => f.label)], ["flagged", ["personal_email"]]);
+  });
+});
