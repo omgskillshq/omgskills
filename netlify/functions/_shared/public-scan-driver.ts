@@ -413,3 +413,51 @@ export async function runPublicScanQueue(pool: Pool, deps: PublicScanDeps, runLi
   }
   return result;
 }
+
+export type PublicScanReportRow = {
+  id: string;
+  verdict: string | null;
+  checks: string[];
+  notes: string[];
+  rules: string[];
+  aiStatus: string | null;
+  rulesStatus: string | null;
+  lastError: string | null;
+  held: boolean;
+  scannedAt: string | null;
+};
+
+/**
+ * What the curated public skills' scans found, for people reviewing them: verdicts and the names of
+ * checks and rules, never file contents. Public skills only.
+ */
+export async function publicScanReport(pool: Pool): Promise<{ generatedAt: string; counts: Record<string, number>; skills: PublicScanReportRow[] }> {
+  const result = await pool.query<PublicScanReportRow>(
+    `
+      SELECT target.catalog_skill_id AS id,
+        CASE WHEN ai.status = 'complete' THEN COALESCE(
+          (SELECT substr(f->>'label', 4) FROM jsonb_array_elements(ai.findings) f WHERE f->>'rule' IN ('ai-review/verdict', 'ai-review/refused') LIMIT 1),
+          'clear') END AS verdict,
+        COALESCE(ARRAY(SELECT f->>'label' FROM jsonb_array_elements(ai.findings) f
+          WHERE f->>'rule' NOT IN ('ai-review/verdict', 'ai-review/refused') AND f->>'severity' <> 'info' ORDER BY 1), '{}') AS checks,
+        COALESCE(ARRAY(SELECT f->>'label' FROM jsonb_array_elements(ai.findings) f
+          WHERE f->>'rule' NOT IN ('ai-review/verdict', 'ai-review/refused') AND f->>'severity' = 'info' ORDER BY 1), '{}') AS notes,
+        COALESCE(ARRAY(SELECT DISTINCT f->>'label' FROM jsonb_array_elements(rules.findings) f
+          WHERE f->>'severity' IN ('high', 'medium') ORDER BY 1), '{}') AS rules,
+        ai.status AS "aiStatus", rules.status AS "rulesStatus", target.last_error AS "lastError", target.gave_up AS held,
+        to_char(GREATEST(ai.finished_at, rules.finished_at) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "scannedAt"
+      FROM public_scan_targets target
+      LEFT JOIN LATERAL (SELECT status, findings, finished_at FROM skill_scans
+        WHERE tree_sha = target.tree_sha AND scanner = 'ai-review' ORDER BY finished_at DESC LIMIT 1) ai ON true
+      LEFT JOIN LATERAL (SELECT status, findings, finished_at FROM skill_scans
+        WHERE tree_sha = target.tree_sha AND scanner = 'omg-rules' ORDER BY finished_at DESC LIMIT 1) rules ON true
+      ORDER BY target.priority, target.catalog_skill_id
+    `
+  );
+  const counts: Record<string, number> = {};
+  for (const row of result.rows) {
+    const key = row.held ? "held" : row.verdict ?? "not_yet";
+    counts[key] = (counts[key] ?? 0) + 1;
+  }
+  return { generatedAt: new Date().toISOString(), counts, skills: result.rows };
+}
