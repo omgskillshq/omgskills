@@ -29,5 +29,10 @@ test("switching skills never shows the previous skill's answer", async () => {
   const { createElement } = await import("react");
   const { ReviewBadge } = await import("../src/app/unified/ReviewBadge");
   // First render, before any answer: not reviewed.
-  assert.match(renderToStaticMarkup(createElement(ReviewBadge, { catalogId: "a/b:c", treeSha: "a".repeat(40) })), /Not reviewed yet/);
+  const html = renderToStaticMarkup(createElement(ReviewBadge, { catalogId: "a/b:c", treeSha: "a".repeat(40) }));
+  // An icon, with the words in its label and on hover rather than written out.
+  assert.match(html, /data-state="not_reviewed"/);
+  assert.match(html, /aria-label="Not reviewed yet: we haven&#x27;t checked this version\."/);
+  assert.match(html, /lucide-shield-question/);
+  assert.match(html, /class="ua-scan-tip-text" aria-hidden="true">Not reviewed yet/);
 });

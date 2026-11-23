@@ -1,7 +1,11 @@
 // Our review of a library skill, for the exact version the catalog installs: the same answer the
 // skill's web page shows (/api/skill-review). It only reports what the review found.
 
+import { ShieldCheck, ShieldEllipsis, ShieldQuestion } from "lucide-react";
 import { useEffect, useState } from "react";
+
+// One shield per state; the words show on hover, tap or focus, like the scan tip beside it.
+const ICONS = { no_issues: ShieldCheck, under_review: ShieldEllipsis, not_reviewed: ShieldQuestion } as const;
 
 export type ReviewAnswer = { badge: "no_issues" | "under_review" | "not_reviewed"; reviewedAt: string | null };
 
@@ -9,11 +13,11 @@ export function reviewWords(answer: ReviewAnswer): { text: string; title: string
   if (answer.badge === "no_issues") {
     const day = answer.reviewedAt ? new Date(answer.reviewedAt) : null;
     const when = day && !Number.isNaN(day.getTime())
-      ? ` (checked ${day.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })})` : "";
-    return { text: "No issues found", title: `Our rules and an AI review found no issues in this version${when}. It's a check, not a guarantee.` };
+      ? ` on ${day.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}` : "";
+    return { text: "No issues found", title: `No issues found: our rules and an AI review checked this version${when}. It's a check, not a guarantee.` };
   }
-  if (answer.badge === "under_review") return { text: "Under review", title: "Our checks flagged something in this version; a person is looking at it." };
-  return { text: "Not reviewed yet", title: "We haven't reviewed this version yet." };
+  if (answer.badge === "under_review") return { text: "Under review", title: "Under review: our checks flagged something in this version, and a person is looking at it." };
+  return { text: "Not reviewed yet", title: "Not reviewed yet: we haven't checked this version." };
 }
 
 export function parseReviewAnswer(value: unknown): ReviewAnswer | null {
@@ -37,5 +41,15 @@ export function ReviewBadge({ catalogId, treeSha }: { catalogId: string; treeSha
   }, [catalogId, treeSha, version]);
   const current: ReviewAnswer = answer?.version === version ? answer : { badge: "not_reviewed", reviewedAt: null };
   const words = reviewWords(current);
-  return <span className="ua-review-badge" data-state={current.badge} title={words.title}>{words.text}</span>;
+  const [open, setOpen] = useState(false);
+  const Icon = ICONS[current.badge];
+  const label = words.title;
+  return (
+    <button type="button" className="ua-scan-tip ua-review-badge" data-state={current.badge} aria-label={label} data-open={open}
+      onClick={() => setOpen(value => !value)} onBlur={() => setOpen(false)}
+      onKeyDown={event => { if (event.key === "Escape" && open) { event.stopPropagation(); setOpen(false); } }}>
+      <Icon aria-hidden="true" />
+      <span className="ua-scan-tip-text" aria-hidden="true">{label}</span>
+    </button>
+  );
 }
