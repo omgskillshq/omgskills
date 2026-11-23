@@ -3,7 +3,7 @@ import {
   gitObjectSha,
   validateSkillManifest
 } from "../../netlify/functions/_shared/skill-package.js";
-import { AI_REVIEW_SCANNER, AI_REVIEW_VERSION } from "./ai-review.js";
+import { FIRST_REVIEW, SECOND_LOOK, type Reviewer } from "./ai-review.js";
 import {
   decodeFiles,
   frameFiles,
@@ -25,6 +25,8 @@ export type ScanDependencies = {
   container(path: string, init?: { method: string; body?: Uint8Array }): Promise<Response>;
   /** The AI review, when the Worker has an Anthropic key; only the public scan queue calls it. */
   aiReview?(files: ContainerFile[]): Promise<ScannerResult>;
+  /** The second look (Opus) on skills the first review or the rules flagged; public skills only too. */
+  secondLook?(files: ContainerFile[]): Promise<ScannerResult>;
   now?: () => number;
 };
 
@@ -163,10 +165,10 @@ async function tooBig(request: ScanRequest, deps: ScanDependencies): Promise<Sca
   }));
 }
 
-function tooBigReview(request: ScanRequest, deps: ScanDependencies): ScannerResult {
+function tooBigReview(request: ScanRequest, deps: ScanDependencies, reviewer: Reviewer): ScannerResult {
   const now = new Date(deps.now?.() ?? Date.now()).toISOString();
   return {
-    scanner: AI_REVIEW_SCANNER, version: AI_REVIEW_VERSION, status: "partial", findings: [],
+    scanner: reviewer.scanner, version: reviewer.version, status: "partial", findings: [],
     filesScanned: 0, filesSkipped: request.files.length, startedAt: now, finishedAt: now
   };
 }
@@ -175,13 +177,14 @@ function tooBigReview(request: ScanRequest, deps: ScanDependencies): ScannerResu
  * The Worker's routes, all signed:
  *   POST /scan       files (stored or inline) → every scanner's results
  *   POST /review     the same files → the AI review alone (public skills only; it sends them to Anthropic)
+ *   POST /second-look the same files → the second look alone (public skills the review or rules flagged)
  *   GET  /scanners   the scanners and versions the container runs now
  *   GET  /selftest   proves the container can't reach the internet
  */
 export async function handle(request: Request, deps: ScanDependencies): Promise<Response> {
   const url = new URL(request.url);
   const route = `${request.method} ${url.pathname}`;
-  if (!["POST /scan", "POST /review", "GET /scanners", "GET /selftest"].includes(route)) return json(404, { error: "not_found" });
+  if (!["POST /scan", "POST /review", "POST /second-look", "GET /scanners", "GET /selftest"].includes(route)) return json(404, { error: "not_found" });
   if (typeof deps.signingKey !== "string" || deps.signingKey.length < 32) return json(503, { error: "not_configured" });
 
   try {
@@ -200,17 +203,23 @@ export async function handle(request: Request, deps: ScanDependencies): Promise<
     if (route === "GET /scanners") {
       // The AI review is listed apart: the private queue must never wait on it.
       const listed = await readContainerJson<{ scanners: ScannerInfo[] }>(await deps.container("/scanners"));
-      return json(200, { ...listed, review: deps.aiReview ? { scanner: AI_REVIEW_SCANNER, version: AI_REVIEW_VERSION } : null });
+      const info = (reviewer: Reviewer) => ({ scanner: reviewer.scanner, version: reviewer.version });
+      return json(200, {
+        ...listed,
+        review: deps.aiReview ? info(FIRST_REVIEW) : null,
+        secondLook: deps.aiReview && deps.secondLook ? info(SECOND_LOOK) : null
+      });
     }
     if (route === "GET /selftest") {
       return json(200, await readContainerJson<{ internet: boolean }>(await deps.container("/selftest")));
     }
     const scanRequest = parseScanRequest(body);
-    if (route === "POST /review") {
+    if (route === "POST /review" || route === "POST /second-look") {
+      const [review, reviewer] = route === "POST /review" ? [deps.aiReview, FIRST_REVIEW] : [deps.secondLook, SECOND_LOOK];
       // Not set up: an error the caller retries, never a missing result read as clean.
-      if (!deps.aiReview) return json(503, { error: "ai_review_not_configured" });
+      if (!review) return json(503, { error: "ai_review_not_configured" });
       const files = await loadFiles(scanRequest, deps);
-      const result = files ? await deps.aiReview(decodeFiles(files)) : tooBigReview(scanRequest, deps);
+      const result = files ? await review(decodeFiles(files)) : tooBigReview(scanRequest, deps, reviewer);
       return json(200, { treeSha: scanRequest.treeSha, results: [result] } satisfies ScanResponse);
     }
     const files = await loadFiles(scanRequest, deps);
