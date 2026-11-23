@@ -1077,8 +1077,9 @@ test("private release access follows live restricted-group ACLs and records meta
         hasTime: true
       }
     );
+    // A content fetch names both its source and release, or neither (once that content is deleted); never one.
     await assert.rejects(
-      pool.query("INSERT INTO analytics_events (event_name) VALUES ('content_fetch')"),
+      pool.query("INSERT INTO analytics_events (event_name, source_id) VALUES ('content_fetch', $1)", [sourceId]),
       (error: any) => error.code === "23514"
     );
 
