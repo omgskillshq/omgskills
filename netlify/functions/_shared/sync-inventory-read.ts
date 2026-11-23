@@ -2,7 +2,7 @@ import type { Pool } from "pg";
 import { listUserDevices } from "./device-auth.js";
 import { cloudSkillKeys } from "./cloud-skill-keys.js";
 import { readCloudRecordNames } from "./cloud-save.js";
-import { verifiedCatalogHint } from "./github-skill-resolution.js";
+import { catalogSkillForContent, verifiedCatalogHint } from "./github-skill-resolution.js";
 import { withTimeout } from "./http.js";
 import { loadCatalogHintIdentity, type PublishedCatalogIdentity } from "./published-catalog.js";
 import { installationFolderFromKey } from "./sync-skill.js";
@@ -25,7 +25,7 @@ export async function readSyncInventory(
   userId: string,
   version: 1 | 2 | 3,
   now = new Date(),
-  loadCatalogIdentity: (hintIds: string[]) => Promise<PublishedCatalogIdentity> = loadCatalogHintIdentity,
+  loadCatalogIdentity: (hintIds: string[], skillMdShas?: string[]) => Promise<PublishedCatalogIdentity> = loadCatalogHintIdentity,
 ) {
   if (version === 1) {
     const { skills } = await readLegacySyncInventory(pool, userId);
@@ -57,12 +57,18 @@ export async function readSyncInventory(
   // The cloud save record each copy uses; same-name folders holding different skills are saved apart.
   const records = await readCloudRecordNames(pool, userId);
   for (const [skill, cloudKey] of cloudSkillKeys(skills, records)) Object.assign(skill, { cloudKey });
-  // Presence reports store the Mac's catalog hint unverified; link the rows it proves.
-  const hinted = skills.filter((skill) => !skill.catalogSkillId && skill.catalogSkillIdHint && skill.skillMdSha);
-  if (hinted.length) {
-    const identity = await withTimeout(loadCatalogIdentity(hinted.map((skill) => skill.catalogSkillIdHint as string)), 4_000).catch(() => null);
-    for (const skill of hinted) {
-      const catalogSkillId = verifiedCatalogHint(skill.catalogSkillIdHint, skill.skillMdSha, identity);
+  // Presence reports store the Mac's catalog hint unverified; link the rows it proves. A copy
+  // with no hint (installed from GitHub directly) is linked when its SKILL.md is exactly a
+  // published version of one library skill. Edited copies stay personal.
+  const unlinked = skills.filter((skill) => !skill.catalogSkillId && skill.skillMdSha);
+  if (unlinked.length) {
+    const hints = unlinked.flatMap((skill) => skill.catalogSkillIdHint ? [skill.catalogSkillIdHint as string] : []);
+    const shas = [...new Set(unlinked.filter((skill) => !skill.catalogSkillIdHint).map((skill) => skill.skillMdSha as string))];
+    const identity = await withTimeout(loadCatalogIdentity(hints, shas), 4_000).catch(() => null);
+    for (const skill of unlinked) {
+      const catalogSkillId = skill.catalogSkillIdHint
+        ? verifiedCatalogHint(skill.catalogSkillIdHint, skill.skillMdSha, identity)
+        : catalogSkillForContent(skill.skillMdSha, identity, skill);
       if (catalogSkillId) Object.assign(skill, { catalogSkillId, identityStatus: "resolved", isLocalOnly: false });
     }
   }

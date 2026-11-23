@@ -185,6 +185,33 @@ export function resolveCatalogSkillId(
 }
 
 /**
+ * The library skill a copy installed outside omgskills is, by its content: its SKILL.md is
+ * byte-for-byte one of that skill's published versions. When several published skills share
+ * that content (forks, mirrors), the copy's own GitHub repo (and folder) picks one; otherwise
+ * it stays unlinked rather than guessing.
+ */
+export function catalogSkillForContent(
+  skillMdSha: string | null | undefined,
+  identity: PublishedCatalogIdentity | null,
+  source: { githubUrl?: string | null; gitRelativePath?: string | null } = {},
+): string | null {
+  if (!skillMdSha) return null;
+  const resolution = resolveCatalogSkillId(skillMdSha, identity);
+  if (resolution.status === "resolved") return resolution.catalogSkillId;
+  if (resolution.reason !== "ambiguous" || !source.githubUrl) return null;
+  const repo = /^https:\/\/github\.com\/([^/]+\/[^/]+?)\/?$/i.exec(source.githubUrl)?.[1]?.toLowerCase();
+  if (!repo) return null;
+  const raw: unknown = identity?.shaHistory?.shaToSkillIds[skillMdSha.trim().toLowerCase()];
+  const mapped: unknown[] = Array.isArray(raw) ? raw : [];
+  const sameRepo: string[] = [...new Set(mapped.filter((id): id is string => typeof id === "string" && identity!.liveSkillIds.has(id)
+    && id.split(":")[0].toLowerCase() === repo))];
+  if (sameRepo.length === 1) return sameRepo[0];
+  const path = source.gitRelativePath?.replace(/^\/+|\/+$/g, "").toLowerCase();
+  const samePath = sameRepo.filter((id) => (id.split(":").slice(1).join(":").toLowerCase() || "") === (path ?? ""));
+  return samePath.length === 1 ? samePath[0] : null;
+}
+
+/**
  * A Mac's catalog hint is only a claim. It names the catalog skill when that skill is still
  * published and the reported SKILL.md is one of its published versions.
  */

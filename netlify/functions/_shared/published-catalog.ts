@@ -248,20 +248,27 @@ function shardIds(catalog: HintCatalog, url: string, fetcher: typeof fetch): Pro
 /**
  * Identity for checking catalog hints without the full skills asset: SHA history plus
  * the detail shards that hold the hinted IDs, so `liveSkillIds` covers only those hints.
+ * Given SKILL.md shas too, it also checks every skill each sha was published as, so a
+ * copy installed outside omgskills can be matched by its content.
  */
 export function createCatalogHintIdentityLoader(
   options: LoaderOptions = {},
-): (hintIds: readonly string[]) => Promise<PublishedCatalogIdentity> {
+): (hintIds: readonly string[], skillMdShas?: readonly string[]) => Promise<PublishedCatalogIdentity> {
   const fetcher = options.fetcher ?? fetch;
   const loadCatalog = cachedLoader(
     () => fetchHintCatalog(fetcher, options.tracks ?? publishedCatalogTracks),
     options.now ?? Date.now,
     options.cacheMs ?? 5 * 60_000,
   );
-  return async (hintIds) => {
+  return async (hintIds, skillMdShas = []) => {
     const catalog = await loadCatalog();
     const live = new Set<string>();
-    await Promise.all([...new Set(hintIds)].map(async (id) => {
+    const bySha = catalog.shaHistory?.shaToSkillIds ?? {};
+    const candidates = skillMdShas.flatMap((sha) => {
+      const ids = bySha[sha.trim().toLowerCase()];
+      return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string") : [];
+    });
+    await Promise.all([...new Set([...hintIds, ...candidates])].map(async (id) => {
       const url = catalog.detailShards[createHash("sha256").update(id, "utf8").digest("hex").slice(0, 2)];
       if (url && (await shardIds(catalog, url, fetcher)).has(id)) live.add(id);
     }));

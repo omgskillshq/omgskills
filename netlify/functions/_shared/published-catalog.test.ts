@@ -163,4 +163,7 @@ test("hint identity checks only the detail shards holding the hints, never the f
   await load([live]);
   assert.equal(calls.filter((url) => url.endsWith("details-live.json")).length, 1, "shards are cached");
   assert.ok(!calls.some((url) => url.endsWith("skills.json")));
+  // By content: every skill a SKILL.md sha was published as is checked, with no hint needed.
+  const byContent = await load([], ["A".repeat(40), "b".repeat(40)]);
+  assert.deepEqual([...byContent.liveSkillIds], [live]);
 });
