@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { needsAnalyticsDocumentReload, startPublicAnalytics, trackEvent } from "../src/app/unified/analytics";
+import { needsAnalyticsDocumentReload, publicCampaignAddress, startPublicAnalytics, trackEvent } from "../src/app/unified/analytics";
 import { navigationLocation } from "../src/app/unified/model";
 import { entryNavigation } from "../src/integration/unified/entry-navigation";
 import { accountNavigation } from "../src/integration/unified/policy";
@@ -52,6 +52,8 @@ const publicPages = [
   "/app/?view=discover&skill=catalog:anthropics/skills:skills/frontend-design",
   "/app/?view=top", "/app/?view=collections", "/app/?view=collection&id=design",
   "/library/anthropics/", "/developers/",
+  "/app/?utm_source=reddit&utm_medium=paid&utm_campaign=launch",
+  "/app/?view=discover&utm_source=google&utm_content=test&utm_term=skills&utm_id=123",
 ];
 const privatePages = [
   "/app/library/me/", "/app/library/%6de/", "/app/profile/", "/app/pair/",
@@ -60,6 +62,8 @@ const privatePages = [
   "/app/?view=discover&skill=synced:private", "/app/?view=discover&source=claude",
   "/app/?view=discover&token=private", "/app/?q=private", "/app/?view=unknown",
   "/library/me/", "/library/me", "/library/%6de/", "/pair/", "/developers-private/", "/",
+  "/app/?view=all&utm_source=reddit", "/app/?view=sets&utm_campaign=launch",
+  "/app/?utm_source=reddit&token=private", "/app/?q=private&utm_source=google",
 ];
 
 test("direct public app entries and existing public pages load exactly one tracker", () => {
@@ -193,4 +197,54 @@ test("blocked analytics never breaks the app and SDK retries are bounded", () =>
 test("the shared app shell never loads the automatic tracker unconditionally", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   assert.doesNotMatch(html, /humblytics\.com\/hmbl|Humblytics/);
+});
+
+test("campaign tags survive public app normalization before the SDK loads", () => {
+  withBrowser(({ browser, scripts, visit }) => {
+    for (const input of [
+      "/app/?utm_source=reddit&utm_medium=paid&utm_campaign=new%20skills",
+      "/app/library/?utm_source=google&utm_content=a%26b&utm_term=skills&utm_id=123",
+      "/library/anthropics/?utm_source=perplexity",
+    ]) {
+      scripts.length = 0;
+      visit(input);
+      const entry = browser.location.href;
+      const nav = entryNavigation(browser.location.pathname, browser.location.search, "/app/");
+      const address = publicCampaignAddress(`/app/${navigationLocation(nav, true)}`, entry);
+      visit(address);
+      startPublicAnalytics();
+      assert.equal(scripts.length, 1, input);
+      for (const [key, value] of new URL(entry).searchParams) {
+        assert.equal(browser.location.searchParams.get(key), value, `${input}: ${key}`);
+      }
+    }
+  });
+  const session = readFileSync(new URL("../src/integration/unified/Session.tsx", import.meta.url), "utf8");
+  assert.match(session, /const \[analyticsEntry\] = useState\(\(\) => location\.href\)/);
+  assert.match(session, /const address = .*publicCampaignAddress\(/);
+});
+
+test("only campaign tags cross public navigation; private routes and hosts stay isolated", () => {
+  const entry = "https://omgskills.com/app/library/?utm_source=reddit&utm_campaign=launch&token=secret&email=private";
+  assert.equal(publicCampaignAddress("/app/library/?q=design", entry),
+    "/app/library/?q=design&utm_source=reddit&utm_campaign=launch");
+  assert.equal(publicCampaignAddress("/app/library/?utm_source=google", entry),
+    "/app/library/?utm_source=google&utm_campaign=launch");
+  for (const path of privatePages) assert.equal(publicCampaignAddress(path, entry), path);
+  for (const source of ["https://omgskills.com/app/?view=all&utm_source=private",
+    "https://localhost/app/?utm_source=test", "https://preview.netlify.app/app/?utm_source=test"]) {
+    assert.equal(publicCampaignAddress("/app/library/", source), "/app/library/");
+  }
+  assert.equal(publicCampaignAddress("https://example.org/?view=discover", entry), "https://example.org/?view=discover");
+  assert.equal(publicCampaignAddress("/app/library/", "not a URL"), "/app/library/");
+});
+
+test("campaign-tagged public entries still fully reload before private navigation", () => {
+  withBrowser(({ visit, scripts }) => {
+    visit("/app/?utm_source=reddit");
+    startPublicAnalytics();
+    assert.equal(scripts.length, 1);
+    assert.equal(needsAnalyticsDocumentReload("/app/?view=all&utm_source=reddit"), true);
+    assert.equal(needsAnalyticsDocumentReload("/app/library/?utm_source=reddit"), false);
+  });
 });

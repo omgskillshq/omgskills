@@ -12,7 +12,7 @@ const publishAt = "2026-10-31T12:36:19Z";
 const previousDeployAt = "2026-10-31T06:39:00Z";
 const checkedAt = "2026-10-31T12:57:53Z";
 
-function buildHealth(t, { crawl = crawlAt, publish = publishAt, deploy = previousDeployAt } = {}) {
+function buildHealth(t, { crawl = crawlAt, publish = publishAt, deploy = previousDeployAt, marketing = null } = {}) {
   const root = mkdtempSync(join(tmpdir(), "omgskills-build-health-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   function save(path, value) {
@@ -45,7 +45,8 @@ function buildHealth(t, { crawl = crawlAt, publish = publishAt, deploy = previou
   const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith("HEALTH_") && name !== "GITHUB_OUTPUT"));
   execFileSync(process.execPath, [script], {
     cwd: root,
-    env: { ...env, HEALTH_CHECKED_AT: checkedAt, HEALTH_PIPELINE_JSON: JSON.stringify(pipeline), HEALTH_PRODUCT_JSON: JSON.stringify(product) },
+    env: { ...env, HEALTH_CHECKED_AT: checkedAt, HEALTH_PIPELINE_JSON: JSON.stringify(pipeline), HEALTH_PRODUCT_JSON: JSON.stringify(product),
+      ...(marketing ? { HEALTH_MARKETING_FUNNEL_JSON: JSON.stringify(marketing) } : {}) },
   });
   return JSON.parse(readFileSync(join(root, "site/data/health.json"), "utf8"));
 }
@@ -69,6 +70,19 @@ test("a successful verified deployment clears the pending summary", t => {
   assert.equal(summary.message, "v2 publish is current");
   assert.deepEqual(summary.issues, []);
   assert.equal(summary.lastPassedAt, checkedAt);
+  assert.equal(health.status, "ok");
+});
+
+test("reporting failure preserves its fields without degrading download or data health", t => {
+  const health = buildHealth(t, { deploy: "2026-10-31T13:02:41Z", marketing: {
+    status: "degraded", issues: ["Humblytics: provider unavailable"], checkedAt,
+    window: "2026-10-30 (America/New_York, complete day)", legacyForegroundUsers: 2,
+  } });
+  assert.equal(health.sections.marketingFunnel.status, "degraded");
+  assert.equal(health.sections.marketingFunnel.legacyForegroundUsers, 2);
+  assert.match(health.sections.marketingFunnel.window, /complete day/);
+  assert.equal(health.sections.release.status, "ok");
+  assert.equal(health.sections.v2AppData.status, "ok");
   assert.equal(health.status, "ok");
 });
 

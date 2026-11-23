@@ -5,6 +5,7 @@ type EventName = "App Search" | "App Skill Open" | "App Copy Install";
 type Humblytics = { trackClickEvent?: (name: string) => void };
 const trackerSource = "https://app.humblytics.com/hmbl.min.js?id=a156a68";
 const trackerSelector = 'script[src="' + trackerSource + '"]';
+const campaignKeys = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "utm_id"];
 
 function isPublicAnalyticsPage(hostname: string, pathname: string) {
   return (hostname === "omgskills.com" || hostname === "www.omgskills.com")
@@ -15,17 +16,32 @@ function isPublicAppPage(url: URL) {
   if (url.hostname !== "omgskills.com" && url.hostname !== "www.omgskills.com") return false;
   if (!url.pathname.startsWith("/app/")) return false;
   if (url.pathname !== "/app/") return parsePublicNavigationPath(url.pathname.slice("/app/".length), url.search) !== null;
-  const params = url.searchParams;
+  const params = new URLSearchParams(url.search);
+  for (const key of campaignKeys) params.delete(key);
   // A bare /app/ opens public Discover, not the signed-in library.
   if (params.size === 0) return true;
   if ([...params.keys()].some(key => !["view", "id", "q", "skill", "source", "sort"].includes(key))) return false;
-  const nav = parseNavigation(url.search);
+  const nav = parseNavigation(params.toString());
   return params.get("view") === nav.view && isDiscovery(nav.view) && nav.source === "all"
     && (!nav.selected || nav.selected.startsWith("catalog:"));
 }
 
 function isTrackedPublicPage(url: URL) {
   return isPublicAnalyticsPage(url.hostname, url.pathname) || isPublicAppPage(url);
+}
+
+/** Keep public entry attribution through URL normalization, never across the private boundary. */
+export function publicCampaignAddress(href: string, entryHref: string) {
+  try {
+    const entry = new URL(entryHref);
+    const next = new URL(href, entry);
+    if (entry.origin !== next.origin || !isTrackedPublicPage(entry) || !isTrackedPublicPage(next)) return href;
+    for (const key of campaignKeys) {
+      const value = entry.searchParams.get(key);
+      if (value && !next.searchParams.has(key)) next.searchParams.set(key, value);
+    }
+    return next.pathname + next.search + next.hash;
+  } catch { return href; }
 }
 
 export function startPublicAnalytics() {

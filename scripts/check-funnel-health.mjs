@@ -16,24 +16,38 @@ function loadEnv(path = ".env") {
   }
 }
 
-function requireEnv(name) {
-  const value = process.env[name];
+function requireEnv(name, env = process.env) {
+  const value = env[name];
   if (!value) throw new Error(`Missing ${name}`);
   return value;
 }
 
-function localDayBounds(daysBack = 0) {
-  const now = new Date();
-  const start = new Date(now);
-  start.setDate(start.getDate() - daysBack);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setHours(23, 59, 59, 999);
-  return { start: start.toISOString(), end: end.toISOString() };
+export function reportingWindow(now = new Date(), timezone = "America/New_York") {
+  const formatter = new Intl.DateTimeFormat("en-CA", { timeZone: timezone,
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" });
+  const wallTime = date => {
+    const parts = Object.fromEntries(formatter.formatToParts(date).map(part => [part.type, part.value]));
+    return Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
+  };
+  const today = new Date(wallTime(now));
+  today.setUTCHours(0, 0, 0, 0);
+  // Resolve each local midnight independently: a daylight-saving day need not be 24 hours.
+  const midnight = calendar => {
+    let instant = calendar;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const adjustment = calendar - wallTime(new Date(instant));
+      if (!adjustment) return new Date(instant).toISOString();
+      instant += adjustment;
+    }
+    throw new Error(`Could not resolve midnight in ${timezone}`);
+  };
+  const previous = today.getTime() - 24 * 60 * 60 * 1000;
+  return { start: midnight(previous), end: midnight(today.getTime()),
+    date: new Date(previous).toISOString().slice(0, 10), timezone };
 }
 
 async function fetchJson(url, options = {}) {
-  const response = await fetch(url, options);
+  const response = await fetch(url, { signal: AbortSignal.timeout(15_000), ...options });
   const text = await response.text();
   let json = null;
   try {
@@ -48,12 +62,14 @@ async function fetchJson(url, options = {}) {
   return json;
 }
 
-function safeRate(numerator, denominator) {
-  return denominator ? Number((numerator / denominator).toFixed(4)) : null;
+function count(value, label) {
+  if (value === null || value === undefined || value === "" || !Number.isFinite(Number(value)) || Number(value) < 0) {
+    throw new Error(`Missing or invalid ${label}`);
+  }
+  return Number(value);
 }
 
-// The landing page and public library entry points. /app/ may contain historical rows;
-// this release deliberately does not load its automatic tracker there.
+// Public app and static library entries; private account pages deliberately have no pixel.
 const webAppEntryPages = new Set(["/", "/developers/"]);
 export const webAppEvents = {
   webSearches: "App Search",
@@ -70,10 +86,24 @@ export function isWebAppPage(row) {
   return webAppEntryPages.has(path) || /^\/(?:app|library)(?:\/|$)/.test(path) || row.page_group === "app";
 }
 
-// The documented API supports limit, but not offset pagination.
 export async function breakdownRows(url, headers) {
-  const json = await fetchJson(`${url}&limit=50`, { headers });
-  return Array.isArray(json?.data) ? json.data : [];
+  const rows = [];
+  const seen = new Set();
+  const next = new URL(url);
+  next.searchParams.set("limit", "50");
+  for (let offset = 0; offset < 5000; offset += 50) {
+    next.searchParams.set("offset", String(offset));
+    const json = await fetchJson(next.href, { headers });
+    const page = Array.isArray(json?.data) ? json.data : json?.data?.clicks;
+    if (!Array.isArray(page)) throw new Error("Invalid analytics breakdown response");
+    if (!page.length) return rows;
+    const fingerprint = JSON.stringify(page);
+    if (seen.has(fingerprint)) throw new Error("Analytics pagination repeated a page");
+    seen.add(fingerprint);
+    rows.push(...page);
+    if (page.length < 50) return rows;
+  }
+  throw new Error("Analytics breakdown exceeded 5000 rows; totals are unavailable");
 }
 
 export function webAppFunnel(pages, clicks) {
@@ -83,44 +113,49 @@ export function webAppFunnel(pages, clicks) {
     if (isWebAppPage(row)) funnel.webAppPageViews += Number(row.page_views) || 0;
   }
   for (const [key, target] of Object.entries(webAppEvents)) {
-    funnel[key] = clicks.flatMap((row) => row.top_targets ?? [row])
+    funnel[key] = clicks.filter(isWebAppPage).flatMap((row) => row.top_targets ?? [row])
       .filter((item) => item.target === target)
       .reduce((total, item) => total + (Number(item.clicks) || 0), 0);
   }
-  funnel.webSearchRate = safeRate(funnel.webSearches, funnel.webVisitors);
-  funnel.webSetupDownloadRate = safeRate(funnel.webSetupDownloads, funnel.webVisitors);
+  // Homepage visitors and actions on other pages are not a matched conversion cohort.
+  funnel.webSearchRate = null;
+  funnel.webSetupDownloadRate = null;
   return funnel;
 }
 
-async function humblyticsMetrics() {
-  const propertyId = requireEnv("HUMBLYTICS_PROPERTY_ID");
-  const token = requireEnv("HUMBLYTICS_API_KEY");
-  const timezone = process.env.FUNNEL_TIMEZONE ?? "America/New_York";
-  const { start, end } = localDayBounds(0);
-  const params = new URLSearchParams({ start, end, timezone });
+export async function humblyticsMetrics(window, env = process.env) {
+  const propertyId = requireEnv("HUMBLYTICS_PROPERTY_ID", env);
+  const token = requireEnv("HUMBLYTICS_API_KEY", env);
+  const { start, timezone } = window;
+  const end = new Date(Date.parse(window.end) - 1).toISOString();
+  const params = new URLSearchParams({ start, end, timezone, include_bots: "false" });
   const base = `https://app.humblytics.com/api/external/v1/properties/${propertyId}`;
   const headers = { authorization: `Bearer ${token}` };
 
-  const [summary, traffic, clicks, pageRows, clickRows] = await Promise.all([
+  const [summary, comparison, traffic, clicks, pageRows, namedClickRows] = await Promise.all([
     fetchJson(`${base}/traffic/summary?${params}`, { headers }),
+    fetchJson(`${base}/traffic/bots-comparison?${params}`, { headers }),
     fetchJson(`${base}/traffic/breakdown?${params}`, { headers }),
-    fetchJson(`${base}/clicks/details?${params}&page=/`, { headers }),
+    breakdownRows(`${base}/clicks/details?${params}&page=/`, headers),
     breakdownRows(`${base}/pages/breakdown?${params}`, headers),
-    breakdownRows(`${base}/clicks/breakdown?${params}`, headers),
+    // A page's top_targets is capped. Filter each named event before pagination to avoid losing it.
+    Promise.all(Object.values(webAppEvents).map(target =>
+      breakdownRows(`${base}/clicks/breakdown?${params}&search=${encodeURIComponent(target)}`, headers))),
   ]);
 
-  const sessions = Number(summary?.data?.sessions ?? summary?.data?.total_sessions ?? summary?.sessions ?? 0);
-  const pageViews = Number(summary?.data?.page_views ?? summary?.data?.pageviews ?? summary?.page_views ?? 0);
+  const human = comparison?.data?.human;
+  const bots = comparison?.data?.bot;
+  const visitors = count(human?.unique_visitors, "bot-filtered visitors");
+  const pageViews = count(human?.page_views, "bot-filtered page views");
   const paidX = (traffic?.data?.utm ?? [])
-    .filter((row) => ["x", "twitter"].includes(String(row.source ?? "").toLowerCase()) ||
-      String(row.medium ?? "").toLowerCase().includes("paid"))
+    .filter((row) => ["x", "twitter"].includes(String(row.source ?? "").toLowerCase()))
     .reduce((total, row) => ({
       sessions: total.sessions + (Number(row.sessions) || 0),
       pageViews: total.pageViews + (Number(row.page_views) || 0),
     }), { sessions: 0, pageViews: 0 });
 
   const cta = { hero: 0, reviews: 0, legacy: 0, total: 0, uniqueSessions: 0, paidXDownloads: 0 };
-  for (const click of clicks?.data?.clicks ?? []) {
+  for (const click of clicks) {
     const target = String(click.target ?? "");
     const secondary = String(click.secondary ?? "");
     const isDownload = target === "Hero Download Mac DMG" ||
@@ -137,31 +172,36 @@ async function humblyticsMetrics() {
 
     for (const utm of click.utm_breakdown ?? []) {
       const source = String(utm.utm_source ?? "").toLowerCase();
-      const medium = String(utm.utm_medium ?? "").toLowerCase();
-      if (["x", "twitter"].includes(source) || medium.includes("paid")) {
+      if (["x", "twitter"].includes(source)) {
         cta.paidXDownloads += Number(utm.clicks) || 0;
       }
     }
   }
 
   return {
-    sessions,
+    // Some API versions include bots in /summary even when include_bots=false.
+    reportedVisitors: count(summary?.data?.unique_visitors, "summary visitors"),
+    visitors,
     pageViews,
+    detectedBotVisitors: count(bots?.unique_visitors, "detected bot visitors"),
+    detectedBotPageViews: count(bots?.page_views, "detected bot page views"),
+    sessions: human?.sessions == null ? null : count(human.sessions, "bot-filtered sessions"),
     downloadClicks: cta.total,
-    downloadUniqueSessions: cta.uniqueSessions,
+    downloadUniqueSessions: null,
+    downloadSessionTargetPairs: cta.uniqueSessions,
     heroDownloadClicks: cta.hero,
     reviewsDownloadClicks: cta.reviews,
     legacyDownloadClicks: cta.legacy,
     paidXSessions: paidX.sessions,
     paidXPageViews: paidX.pageViews,
     paidXDownloadClicks: cta.paidXDownloads,
-    ...webAppFunnel(pageRows, clickRows),
-    webBreakdownPossiblyTruncated: pageRows.length >= 50 || clickRows.length >= 50,
-    webFunnelScope: "Up to 50 page and click rows. Visitors are homepage-only; event/visitor ratios are not cohort conversion rates. Direct /app/ tracking is off.",
+    ...webAppFunnel(pageRows, namedClickRows.flat()),
+    webBreakdownPossiblyTruncated: false,
+    webFunnelScope: "Visitors exclude detected bots, not all automation. Public action counts are events, not unique people or conversion rates. Private account activity is untracked. webVisitors is homepage-only.",
   };
 }
 
-function telemetryQuery(appID, dataSource, type) {
+export function telemetryQuery(appID, dataSource, type, window) {
   return {
     queryType: "topN",
     dataSource,
@@ -175,36 +215,37 @@ function telemetryQuery(appID, dataSource, type) {
         { type: "selector", dimension: "appID", value: appID },
         { type: "selector", dimension: "isTestMode", value: "false" },
         { type: "selector", dimension: "type", value: type },
+        ...(type === "connected.install" ? [{ type: "selector", dimension: "outcome", value: "installed" }] : []),
       ],
     },
-    relativeIntervals: [{
-      beginningDate: { component: "day", offset: 0, position: "beginning" },
-      endDate: { component: "day", offset: 0, position: "end" },
-    }],
+    intervals: [`${window.start}/${window.end}`],
     threshold: 1,
   };
 }
 
 function telemetryTopNCount(result, type) {
-  const rows = Array.isArray(result) ? result.flatMap((bucket) => bucket.result ?? []) : [];
+  if (!Array.isArray(result) || result.some(bucket => !Array.isArray(bucket.result))) {
+    throw new Error("Invalid TelemetryDeck activity response");
+  }
+  const rows = result.flatMap(bucket => bucket.result);
   const row = rows.find((item) => item.type === type);
-  return Number(row?.count) || 0;
+  return row ? count(row.count, `${type} user count`) : 0;
 }
 
-async function telemetryMetrics() {
-  const token = requireEnv("TELEMETRYDECK_TOKEN");
-  const appID = requireEnv("TELEMETRYDECK_APP_ID");
-  const dataSource = process.env.TELEMETRYDECK_DATASOURCE ?? "com.omgskills";
+async function telemetryMetrics(window, env) {
+  const token = requireEnv("TELEMETRYDECK_TOKEN", env);
+  const appID = requireEnv("TELEMETRYDECK_APP_ID", env);
+  const dataSource = env.TELEMETRYDECK_DATASOURCE ?? "com.omgskills";
   const headers = { authorization: `Bearer ${token}`, "content-type": "application/json" };
   const types = ["app.installed.v2", "app.launched", "skill.searched", "skill.opened", "skill.installed",
-    "connected.connection", "connected.inventory"];
+    "popover.opened", "connected.install", "connected.connection", "connected.inventory"];
   const counts = {};
 
   for (const type of types) {
     const result = await fetchJson("https://api.telemetrydeckapi.com/api/v4/query/tql", {
       method: "POST",
       headers,
-      body: JSON.stringify(telemetryQuery(appID, dataSource, type)),
+      body: JSON.stringify(telemetryQuery(appID, dataSource, type, window)),
     });
     counts[type] = telemetryTopNCount(result, type);
   }
@@ -215,6 +256,8 @@ async function telemetryMetrics() {
     searches: counts["skill.searched"] ?? 0,
     skillOpens: counts["skill.opened"] ?? 0,
     skillInstalls: counts["skill.installed"] ?? 0,
+    legacyForegroundUsers: counts["popover.opened"] ?? 0,
+    connectedInstallUsers: counts["connected.install"] ?? 0,
     // These include failed outcomes, not just successful connections or syncs.
     connectedConnectionEventUsers: counts["connected.connection"] ?? 0,
     connectedInventoryEventUsers: counts["connected.inventory"] ?? 0,
@@ -226,21 +269,21 @@ async function telemetryMetrics() {
   };
 }
 
-async function main() {
-  loadEnv();
-  const checkedAt = new Date().toISOString();
+export async function collectFunnelHealth({ now = new Date(), env = process.env } = {}) {
+  const checkedAt = now.toISOString();
+  const window = reportingWindow(now, env.FUNNEL_TIMEZONE ?? "America/New_York");
   const issues = [];
   let web = null;
   let app = null;
 
   try {
-    web = await humblyticsMetrics();
+    web = await humblyticsMetrics(window, env);
   } catch (error) {
     issues.push(`Humblytics: ${error.message}`);
   }
 
   try {
-    app = await telemetryMetrics();
+    app = await telemetryMetrics(window, env);
   } catch (error) {
     issues.push(`TelemetryDeck: ${error.message}`);
   }
@@ -250,18 +293,26 @@ async function main() {
     ...(app ?? {}),
   };
 
-  metrics.downloadClickRate = safeRate(metrics.downloadClicks ?? 0, metrics.sessions ?? 0);
-  metrics.downloadToInstallRate = safeRate(metrics.installs ?? 0, metrics.downloadClicks ?? 0);
+  metrics.downloadClickRate = null;
+  metrics.downloadToInstallRate = null;
 
   const payload = {
     status: issues.length ? "degraded" : "ok",
     checkedAt,
-    window: "today",
-    timezone: process.env.FUNNEL_TIMEZONE ?? "America/New_York",
+    window: `${window.date} (${window.timezone}, complete day)`,
+    windowStart: window.start,
+    windowEnd: window.end,
+    timezone: window.timezone,
     issues,
+    appFunnelScope: "First tracked launches are not installs. Process launches and syncs may be background activity. Foreground opens cover the legacy app only; connected helper opens are not instrumented yet. Counts are device identifiers, not necessarily people.",
     ...metrics,
   };
+  return payload;
+}
 
+async function main() {
+  loadEnv();
+  const payload = await collectFunnelHealth();
   console.log(JSON.stringify(payload));
   const output = `marketing_funnel_json=${JSON.stringify(payload)}\n`;
   if (process.env.GITHUB_OUTPUT) {
@@ -273,7 +324,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) main().catch(
   const payload = {
     status: "degraded",
     checkedAt: new Date().toISOString(),
-    window: "today",
+    window: "previous complete day (unavailable)",
     timezone: process.env.FUNNEL_TIMEZONE ?? "America/New_York",
     issues: [error.message],
   };

@@ -35,7 +35,7 @@ import { setupTestDistribution } from "../../app/unified/setup-test-distribution
 import { CatalogInstallIntentStore } from "../../app/unified/catalog-install-intent";
 import { CatalogInstallSetup } from "../../app/unified/CatalogInstallSetup";
 import { checkInstallAck } from "../../app/unified/install-ack";
-import { needsAnalyticsDocumentReload, startPublicAnalytics } from "../../app/unified/analytics";
+import { needsAnalyticsDocumentReload, publicCampaignAddress, startPublicAnalytics } from "../../app/unified/analytics";
 import { isFeatureEnabled } from "../../feature-flags";
 
 const publicClient = new PublicCatalogClient(undefined, undefined, undefined, import.meta.env.VITE_CATALOG_SEARCH_ENABLED === "1");
@@ -171,6 +171,7 @@ function AccountView({ identity, signedIn, accountKey, base, local, connectedInv
   const [unknownEntry] = useState(() => unknownAppAddress(location.pathname, base));
   const [requested, setRequested] = useState(() => unknownEntry
     ? { ...initialNavigation, view: "discover" as const } : entryNavigation(location.pathname, location.search, base));
+  const [analyticsEntry] = useState(() => location.href);
   const [installStore] = useState(() => !composition && installClient && base === "/app/"
     ? new InstallIntentStore(() => window.sessionStorage, installClient, "normal") : null);
   const [catalogStore] = useState(() => !composition && (catalogInstallEnabled || productionInstall) && base === "/app/"
@@ -187,8 +188,8 @@ function AccountView({ identity, signedIn, accountKey, base, local, connectedInv
     if (catalogPending && next.selected && next.selected !== `catalog:${catalogPending.catalogId}`) catalogStore?.clear();
   };
   // Install test flows validate ?view= return routes, so they keep that form.
-  const address = (next: Navigation) => `${base}${navigationLocation(next,
-    cleanPaths && !installStore && (!catalogStore || catalogStore.client === "production"))}`;
+  const address = (next: Navigation) => publicCampaignAddress(`${base}${navigationLocation(next,
+    cleanPaths && !installStore && (!catalogStore || catalogStore.client === "production"))}`, analyticsEntry);
   const available = signedIn && !leaving;
   const nav = navigation(requested, available);
   const publicData = usePublicCatalog(publicClient, publicNavigation(nav), true);
