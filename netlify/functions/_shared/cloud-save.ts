@@ -237,8 +237,8 @@ export function scanSummarySql(treeSha: string) {
         EXISTS (SELECT 1 FROM jsonb_array_elements(scan.findings) finding WHERE finding->>'severity' IS DISTINCT FROM 'low' AND finding->>'severity' IS DISTINCT FROM 'info') AS serious,
         scan.findings
       FROM skill_scans scan
-      -- The AI review (public skills, same content) is never shown on its own: it waits for a second look.
-      WHERE scan.tree_sha = ${treeSha} AND scan.scanner <> 'ai-review'
+      -- The AI reviews (public skills, same content) are never shown on a private skill's scan summary.
+      WHERE scan.tree_sha = ${treeSha} AND scan.scanner NOT IN ('ai-review', 'ai-second-look')
       ORDER BY scan.scanner, scan.finished_at DESC, scan.scanner_version DESC
     ) latest
     LEFT JOIN LATERAL (

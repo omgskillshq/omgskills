@@ -14,11 +14,26 @@ import type { ContainerFile, Finding, ScannerResult, Severity } from "./protocol
 export const AI_REVIEW_SCANNER = "ai-review";
 export const AI_REVIEW_MODEL = "claude-haiku-5-5";
 /** Bump with any change to the prompt, checks or schema; test/scanner.test.ts pins its hash. */
-export const AI_REVIEW_VERSION = "haiku-5-5.v2";
+export const AI_REVIEW_VERSION = "haiku-5-5.v3";
 /** Bigger skills are held as partial, never cut short and passed. */
 export const AI_REVIEW_MAX_CHARS = 500_000;
 /** One call's limit; the public queue's wait must be longer than this. */
 export const AI_REVIEW_TIMEOUT_MS = 45_000;
+
+/** Who reviews: the first review on every public skill, or the second look on what it flags. */
+export type Reviewer = { scanner: string; model: string; version: string; maxTokens: number; timeoutMs: number };
+export const FIRST_REVIEW: Reviewer = {
+  scanner: AI_REVIEW_SCANNER, model: AI_REVIEW_MODEL, version: AI_REVIEW_VERSION, maxTokens: 8000, timeoutMs: AI_REVIEW_TIMEOUT_MS
+};
+/**
+ * The second look: Opus reads the same files with the same prompt, only for skills the first review or
+ * the rules flagged. Tested in the scanner trial (RESULTS.md, round 5): of attacks the first review
+ * caught it kept 98–99%, and it cleared the false alarms on real public skills while keeping the real
+ * concerns. What it also flags (or refuses) goes to a person.
+ */
+export const SECOND_LOOK: Reviewer = {
+  scanner: "ai-second-look", model: "claude-opus-5-5", version: "opus-5-5.v3", maxTokens: 16_000, timeoutMs: 120_000
+};
 
 /**
  * The checklist. The model sees only the names (as the answer's fields), exactly as tested; the
@@ -106,6 +121,9 @@ function isText(file: ContainerFile): boolean {
   return TEXT_FILE.test(file.path) || file.mode === "100755" || !isBinary(file.data);
 }
 
+/** Pictures, fonts and sound or video: an agent doesn't take instructions from these. */
+const MEDIA_FILE = /\.(?:png|jpe?g|gif|webp|bmp|ico|tiff?|avif|heic|ttf|otf|woff2?|eot|mp3|wav|ogg|flac|m4a|mp4|mov|webm|mkv)$/i;
+
 /** The description from SKILL.md's frontmatter: what the skill says it is for. */
 export function statedPurpose(skillMd: string): string {
   const frontmatter = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---/.exec(skillMd);
@@ -135,25 +153,33 @@ function parseReview(text: string): Review {
 }
 
 /** Turns a review into findings: the verdict, then each check that was found. No quoted text is kept. */
-export function reviewFindings(review: Review): Finding[] {
+export function reviewFindings(review: Review, scanner = AI_REVIEW_SCANNER): Finding[] {
   if (review.verdict === "clear") return [];
   const severity = SEVERITY[review.verdict];
-  const findings: Finding[] = [{ rule: `${AI_REVIEW_SCANNER}/verdict`, label: `ai_${review.verdict}`, severity, path: "", line: null }];
+  const findings: Finding[] = [{ rule: `${scanner}/verdict`, label: `ai_${review.verdict}`, severity, path: "", line: null }];
   for (const name of Object.keys(CHECKS) as Check[]) {
     const check = review.checks[name];
     if (!check.found) continue;
-    findings.push({ rule: `${AI_REVIEW_SCANNER}/${name}`, label: name, severity: check.fits_purpose ? "info" : severity, path: "", line: null });
+    findings.push({ rule: `${scanner}/${name}`, label: name, severity: check.fits_purpose ? "info" : severity, path: "", line: null });
   }
   return findings;
 }
 
-export async function aiReview(files: ContainerFile[], ask: AskClaude, now: () => number = Date.now): Promise<ScannerResult> {
+export async function aiReview(
+  files: ContainerFile[], ask: AskClaude, now: () => number = Date.now, reviewer: Reviewer = FIRST_REVIEW
+): Promise<ScannerResult> {
   const startedAt = new Date(now()).toISOString();
   const texts: { path: string; text: string }[] = [];
   let chars = 0;
   let tooBig = false;
+  let unread = false;
   for (const file of [...files].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))) {
-    if (file.mode === "120000" || !isText(file)) continue; // links are never followed; images and such have no text
+    if (file.mode === "120000") continue; // links are never followed
+    if (!isText(file)) {
+      // A PDF, document, archive or program can carry instructions the review can't read.
+      if (!MEDIA_FILE.test(file.path)) unread = true;
+      continue;
+    }
     // A UTF-8 character is at most 4 bytes: stop before decoding a file that can't fit.
     if (file.data.byteLength > 4 * (AI_REVIEW_MAX_CHARS - chars)) { tooBig = true; break; }
     const text = new TextDecoder().decode(file.data).replaceAll("\0", "");
@@ -162,27 +188,28 @@ export async function aiReview(files: ContainerFile[], ask: AskClaude, now: () =
     texts.push({ path: file.path, text });
   }
   const result = (status: ScannerResult["status"], findings: Finding[] = []): ScannerResult => ({
-    scanner: AI_REVIEW_SCANNER, version: AI_REVIEW_VERSION, status, findings,
+    scanner: reviewer.scanner, version: reviewer.version, status, findings,
     filesScanned: status === "complete" ? texts.length : 0,
     filesSkipped: status === "complete" ? files.length - texts.length : files.length,
     startedAt, finishedAt: new Date(now()).toISOString()
   });
-  if (tooBig) return result("partial");
+  // Not all read: partial, so it never shows as "no issues found". Nothing is sent to Claude.
+  if (tooBig || unread) return result("partial");
   try {
     const response = await ask({
-      model: AI_REVIEW_MODEL,
-      max_tokens: 8000,
+      model: reviewer.model,
+      max_tokens: reviewer.maxTokens,
       system: SYSTEM,
       output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },
       messages: [{ role: "user", content: buildPrompt(texts) }]
     });
     // A refusal is a strong hint but no verdict: it goes to a person.
     if (response.stop_reason === "refusal") {
-      return result("complete", [{ rule: `${AI_REVIEW_SCANNER}/refused`, label: "ai_refused", severity: "medium", path: "", line: null }]);
+      return result("complete", [{ rule: `${reviewer.scanner}/refused`, label: "ai_refused", severity: "medium", path: "", line: null }]);
     }
     const text = response.content.find((block) => block.type === "text")?.text;
     if (!text || response.stop_reason === "max_tokens") return result("failed");
-    return result("complete", reviewFindings(parseReview(text)));
+    return result("complete", reviewFindings(parseReview(text), reviewer.scanner));
   } catch (error) {
     // Too long for the model (dense text can pass the character limit): held like any too-big skill.
     const message = error instanceof Error ? error.message : "";

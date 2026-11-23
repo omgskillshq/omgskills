@@ -19,12 +19,16 @@ Scans skill files and reports findings. It runs on our Cloudflare account, separ
     files to Anthropic, so the private queue never calls it. `GET /scanners` lists it apart, under `review`.
   - One try per call (45 s limit, no SDK retries); the caller retries later.
   - Needs the `ANTHROPIC_API_KEY` secret; without it `/review` returns 503.
-  - Text files only. Skills over 500k characters get `partial`, never a cut-short pass.
+  - Text files only. Skills over 500k characters, or with a file it can't read (a PDF, document, archive or program;
+    pictures, fonts and media are fine), get `partial`, never a cut-short pass.
   - Findings name the verdict and checks, never the quoted text.
   - "Suspicious", "malicious" or a refusal means a second look, never a public label on its own.
+- `ai-second-look` (same file, `SECOND_LOOK`): Claude Opus reads the same files with the same prompt, on
+  `POST /second-look`, only for public skills the AI review or the rules flagged (120 s limit, one try). Tested in
+  the scanner trial, round 5. What it also flags, or refuses, waits for a person. Listed under `secondLook`.
   - The prompt is the one tested in the scanner trial; its hash is pinned in the tests, so a change needs a new trial and version.
 
-Routes (all signed): `POST /scan`, `POST /review`, `GET /scanners`, `GET /selftest` (shows the container can't reach the internet).
+Routes (all signed): `POST /scan`, `POST /review`, `POST /second-look`, `GET /scanners`, `GET /selftest` (shows the container can't reach the internet).
 
 ## Run
 

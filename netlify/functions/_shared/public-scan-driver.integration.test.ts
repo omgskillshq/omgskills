@@ -10,7 +10,7 @@ import { GithubImportError } from "./github-skill-import.js";
 import { catalogTargetLoader, curatedTargets, publicScanReport, publicScanScopeFromEnv, runPublicScanQueue, type CatalogTarget, type PublicScanDeps } from "./public-scan-driver.js";
 import { gitObjectSha, validateSkillManifest } from "./skill-package.js";
 import { handle } from "../../../scanner/src/handler.js";
-import { aiReview, type AskClaude } from "../../../scanner/src/ai-review.js";
+import { aiReview, SECOND_LOOK, type AskClaude } from "../../../scanner/src/ai-review.js";
 import type { ScanRequestFile } from "../../../scanner/src/protocol.js";
 import { runScanners } from "../../../scanner/container/src/server.js";
 import { scanners } from "../../../scanner/container/src/scanners/index.js";
@@ -74,8 +74,15 @@ const ask: AskClaude = async (request) => {
   return { stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ stated_purpose: "", checks, verdict: bad ? "suspicious" : "clear", reason: "" }) }] };
 };
 
+/** Opus, faked: clears everything, or agrees with the first review. */
+const lookClears: AskClaude = async (request) => ask({ ...request, messages: [{ role: "user", content: "clean" }] });
+const lookAgrees: AskClaude = ask;
+
 /** The real Worker logic and rules scanner, in this process, behind a fetch. */
-function worker(options: { review?: boolean; reviews?: { count: number }; rules?: string } = {}): typeof fetch {
+function worker(options: {
+  review?: boolean; reviews?: { count: number }; rules?: string;
+  look?: AskClaude | false; looks?: { count: number }; lookFails?: boolean;
+} = {}): typeof fetch {
   const list = scanners({ omgRules: options.rules ?? "1-test" });
   return (async (url: string | URL | Request, init?: RequestInit) => handle(new Request(url, init), {
     signingKey: KEY,
@@ -83,6 +90,11 @@ function worker(options: { review?: boolean; reviews?: { count: number }; rules?
     aiReview: options.review === false ? undefined : async (files) => {
       if (options.reviews) options.reviews.count += 1;
       return aiReview(files, ask);
+    },
+    secondLook: !options.look ? undefined : async (files) => {
+      if (options.looks) options.looks.count += 1;
+      if (options.lookFails) throw new Error("timeout");
+      return aiReview(files, options.look as AskClaude, Date.now, SECOND_LOOK);
     },
     async container(containerPath, containerInit) {
       if (containerPath === "/scanners") return Response.json({ scanners: list.map((s) => ({ scanner: s.name, version: s.version })) });
@@ -153,8 +165,8 @@ test("curated public skills get our rules and the AI review, once per content", 
     assert.deepEqual(summary.findings.map((f: { label: string }) => f.label), ["download_and_run"]);
     assert.doesNotMatch(JSON.stringify(summary), /ai_|reads_secrets/);
     // The report: verdicts and check names only.
-    const report = await publicScanReport(pool);
-    assert.deepEqual(report.counts, { clear: 1, suspicious: 1 });
+    const report = await publicScanReport(pool, first.versions);
+    assert.deepEqual(report.counts, { clear: 1, suspicious: 1, badge_no_issues: 1, badge_under_review: 1 });
     assert.deepEqual(report.skills.map((r) => [r.id, r.verdict, r.checks, r.rules, r.aiStatus]), [
       ["acme/skills:notes", "clear", [], [], "complete"],
       ["acme/skills:setup", "suspicious", ["reads_secrets"], ["download_and_run"], "complete"]
@@ -191,7 +203,7 @@ test("files that don't match the catalog's hash aren't scanned; unreadable skill
     const result = await runPublicScanQueue(pool, deps(worker(), () => [targetOf(clean)], tooBig));
     assert.equal(result.held, 1);
     // Not reviewed is never shown as clear.
-    assert.deepEqual((await publicScanReport(pool)).skills.map((r) => [r.verdict, r.held, r.lastError]), [[null, true, "too_large"]]);
+    assert.deepEqual((await publicScanReport(pool, result.versions)).skills.map((r) => [r.verdict, r.held, r.lastError]), [[null, true, "too_large"]]);
     // Held on the target, never as a result under a hash nobody checked.
     assert.equal((await pool.query("SELECT 1 FROM skill_scans")).rowCount, 0);
     assert.deepEqual((await pool.query("SELECT last_error, gave_up FROM public_scan_targets")).rows, [{ last_error: "too_large", gave_up: true }]);
@@ -272,4 +284,72 @@ test("the catalog loader reads the published manifest's asset paths", async () =
   assert.equal(key, "2026-11-23T00:00:00.000Z|topics");
   assert.deepEqual((await loader.loadTargets(key)).map((t) => [t.catalogSkillId, t.rootPath]), [["a/r:one", "one"]]);
   await assert.rejects(loader.loadTargets("older|topics"), /catalog changed/);
+});
+
+test("flagged skills get the second look; it clears them or they stay under review, and it's never paid twice", async () => {
+  await withMigratedSchema(async (pool) => {
+    const reviews = { count: 0 }, looks = { count: 0 };
+    // Set up later: skills flagged before it existed get it on the next run, and the review isn't paid again.
+    const d = deps(worker({ reviews }), () => [targetOf(clean), targetOf(risky)]);
+    const before = await runPublicScanQueue(pool, d);
+    assert.deepEqual((await publicScanReport(pool, before.versions)).skills.map((r) => r.badge), ["no_issues", "under_review"]);
+    // The second look times out: the first review stays stored, and only the look is tried again.
+    const failing = await runPublicScanQueue(pool, { ...d, fetch: worker({ reviews, looks, look: lookClears, lookFails: true }) });
+    assert.deepEqual([failing.scanned, failing.retried, reviews.count, looks.count], [0, 1, 2, 1]);
+    await pool.query("UPDATE public_scan_targets SET not_before = now()");
+    const run = await runPublicScanQueue(pool, { ...d, fetch: worker({ reviews, looks, look: lookClears }) });
+    assert.deepEqual([run.scanned, reviews.count, looks.count], [1, 2, 2]);
+    // A newer AI review version: the old review no longer counts, so no badge until it's reviewed again.
+    const stale = await publicScanReport(pool, { ...run.versions, review: { scanner: "ai-review", version: "next" } });
+    assert.deepEqual(stale.skills.map((r) => [r.aiStatus, r.badge]), [[null, "not_reviewed"], [null, "not_reviewed"]]);
+    // Only the flagged skill was looked at, and the clean one never sent for it.
+    assert.deepEqual((await scansOf(pool, targetOf(clean).treeSha)).map((r) => r[0]), ["ai-review", "omg-rules"]);
+    const report = await publicScanReport(pool, run.versions);
+    assert.deepEqual(report.skills.map((r) => [r.id, r.verdict, r.secondLook, r.badge]), [
+      ["acme/skills:notes", "clear", null, "no_issues"],
+      ["acme/skills:setup", "suspicious", "clear", "no_issues"]
+    ]);
+    // Nothing new: no second look again.
+    await runPublicScanQueue(pool, { ...d, fetch: worker({ reviews, looks, look: lookClears }) });
+    assert.equal(looks.count, 2);
+  });
+  await withMigratedSchema(async (pool) => {
+    // Set up from the start: review and second look in one run; Opus agrees, so it waits for a person.
+    const looks = { count: 0 };
+    const d = deps(worker({ looks, look: lookAgrees }), () => [targetOf(clean), targetOf(risky)]);
+    const run = await runPublicScanQueue(pool, d);
+    assert.deepEqual([run.scanned, looks.count], [2, 1]);
+    const report = await publicScanReport(pool, run.versions);
+    assert.deepEqual(report.skills.map((r) => [r.secondLook, r.badge]), [[null, "no_issues"], ["suspicious", "under_review"]]);
+    // Never on a private skill's summary.
+    const summary = (await pool.query(`SELECT ${scanSummarySql("$1::text")} AS scan`, [targetOf(risky).treeSha])).rows[0].scan;
+    assert.doesNotMatch(JSON.stringify(summary), /ai_|reads_secrets/);
+  });
+});
+
+test("a skill with a file the AI can't read is never shown as no issues found", async () => {
+  await withMigratedSchema(async (pool) => {
+    const withPdf: Skill = { id: "acme/skills:guide", files: [...clean.files, { path: "guide.pdf", text: "%PDF-1.7\u0000\u0001binary" }] };
+    const d = deps(worker({ look: lookClears }), () => [targetOf(withPdf)], async () => filesOf(withPdf));
+    const run = await runPublicScanQueue(pool, d);
+    assert.deepEqual((await publicScanReport(pool, run.versions)).skills.map((r) => [r.aiStatus, r.badge]), [["partial", "not_reviewed"]]);
+  });
+  await withMigratedSchema(async (pool) => {
+    // Rules flag it but the first review is partial (too long for the model): Opus isn't paid, it stays not reviewed.
+    const looks = { count: 0 };
+    const tooLong: AskClaude = async () => { throw Object.assign(new Error("400 prompt is too long"), { status: 400 }); };
+    const fetchImpl = (async (url: string | URL | Request, init?: RequestInit) => {
+      const base = worker({ looks, look: lookClears });
+      return new URL(String(url)).pathname === "/review"
+        ? handle(new Request(url, init), {
+          signingKey: KEY, async readStoredFile() { return null; },
+          aiReview: (files) => aiReview(files, tooLong),
+          async container() { throw new Error("unused"); }
+        })
+        : base(url, init);
+    }) as typeof fetch;
+    const run = await runPublicScanQueue(pool, deps(fetchImpl, () => [targetOf(risky)]));
+    assert.equal(looks.count, 0);
+    assert.deepEqual((await publicScanReport(pool, run.versions)).skills.map((r) => [r.aiStatus, r.badge]), [["partial", "not_reviewed"]]);
+  });
 });

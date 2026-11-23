@@ -1,7 +1,8 @@
 import { Container, getContainer } from "@cloudflare/containers";
 import Anthropic from "@anthropic-ai/sdk";
-import { AI_REVIEW_TIMEOUT_MS, aiReview, type AskClaude } from "./ai-review.js";
+import { FIRST_REVIEW, SECOND_LOOK, aiReview, type AskClaude, type Reviewer } from "./ai-review.js";
 import { handle } from "./handler.js";
+import type { ContainerFile } from "./protocol.js";
 
 /** The scanner: files in, findings out. No internet, no keys, never runs skill code. */
 export class Scanner extends Container {
@@ -24,6 +25,15 @@ type Env = {
  */
 const INSTANCE = "scanner";
 
+/** One try, well inside the caller's wait; the queue retries later rather than paying for answers it dropped. */
+function reviewWith(apiKey: string, reviewer: Reviewer) {
+  return (files: ContainerFile[]) => {
+    const client = new Anthropic({ apiKey, timeout: reviewer.timeoutMs, maxRetries: 0 });
+    const ask: AskClaude = (request) => client.messages.create(request);
+    return aiReview(files, ask, Date.now, reviewer);
+  };
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     return handle(request, {
@@ -32,14 +42,8 @@ export default {
         const object = await env.CLOUD_FILES.get(key);
         return object ? new Uint8Array(await object.arrayBuffer()) : null;
       },
-      aiReview: env.ANTHROPIC_API_KEY
-        ? (files) => {
-          // One try, well inside the caller's wait; the queue retries later rather than paying for answers it dropped.
-          const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, timeout: AI_REVIEW_TIMEOUT_MS, maxRetries: 0 });
-          const ask: AskClaude = (request) => client.messages.create(request);
-          return aiReview(files, ask);
-        }
-        : undefined,
+      aiReview: env.ANTHROPIC_API_KEY ? reviewWith(env.ANTHROPIC_API_KEY, FIRST_REVIEW) : undefined,
+      secondLook: env.ANTHROPIC_API_KEY ? reviewWith(env.ANTHROPIC_API_KEY, SECOND_LOOK) : undefined,
       async container(path, init) {
         const stub = getContainer(env.SCANNER, INSTANCE);
         return stub.fetch(new Request(`http://scanner${path}`, { method: init?.method ?? "GET", body: init?.body }));

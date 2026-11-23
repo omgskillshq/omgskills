@@ -9,7 +9,7 @@ import { scanners } from "../container/src/scanners/index.js";
 import type { Scanner } from "../container/src/scanners/types.js";
 import { createHash } from "node:crypto";
 import {
-  AI_REVIEW_MAX_CHARS, AI_REVIEW_MODEL, AI_REVIEW_VERSION, SCHEMA, SYSTEM, aiReview, statedPurpose, type AskClaude
+  AI_REVIEW_MAX_CHARS, AI_REVIEW_MODEL, AI_REVIEW_VERSION, SCHEMA, SECOND_LOOK, SYSTEM, aiReview, statedPurpose, type AskClaude
 } from "../src/ai-review.js";
 
 const KEY = "k".repeat(40);
@@ -153,7 +153,7 @@ test("a scanner that throws reports failed, never clean, and the others still ru
 
 test("scanner list and self-test pass through, signed", async () => {
   const list = await handle(await signed("GET", "/scanners"), deps());
-  assert.deepEqual(await list.json(), { scanners: [{ scanner: "omg-rules", version: "test" }], review: null });
+  assert.deepEqual(await list.json(), { scanners: [{ scanner: "omg-rules", version: "test" }], review: null, secondLook: null });
   const self = await handle(await signed("GET", "/selftest"), deps());
   assert.deepEqual(await self.json(), { internet: false });
   assert.equal(await internetReachable(async () => { throw new TypeError("blocked"); }), false);
@@ -243,8 +243,8 @@ const files = skill.map(({ path, mode, data }) => ({ path, mode, data }));
 
 test("the AI review prompt is the one we tested; changing it means a new version", () => {
   const hash = createHash("sha256").update(AI_REVIEW_MODEL + SYSTEM + JSON.stringify(SCHEMA)).digest("hex").slice(0, 16);
-  assert.deepEqual([AI_REVIEW_VERSION, hash], ["haiku-5-5.v2", "d0ee17ced73c0d79"],
-    "prompt changed: rerun the trial, then bump AI_REVIEW_VERSION and this hash");
+  assert.deepEqual([AI_REVIEW_VERSION, SECOND_LOOK.version, hash], ["haiku-5-5.v3", "opus-5-5.v3", "d0ee17ced73c0d79"],
+    "prompt changed: rerun the trial, then bump AI_REVIEW_VERSION, SECOND_LOOK.version and this hash");
 });
 
 test("AI review sends text files only, inside random tags, with the stated purpose", async () => {
@@ -323,10 +323,46 @@ test("AI review reads text files with a stray zero byte, and skips big images in
   assert.deepEqual([result.filesScanned, result.filesSkipped], [1, 1]);
 });
 
+test("AI review holds a skill with a file it can't read (a PDF, archive or program) as partial, without asking Claude", async () => {
+  for (const path of ["guide.pdf", "bundle.zip", "tool.bin", "notes.docx"]) {
+    let called = false;
+    const withDoc = [...files, { path, mode: "100644", data: new Uint8Array([0x25, 0x50, 0, 1, 2, 3]) }];
+    const result = await aiReview(withDoc, async (request) => { called = true; return answer("clear")(request); });
+    assert.equal(result.status, "partial", path);
+    assert.equal(called, false, path);
+  }
+  const withFont = [...files, { path: "fonts/a.woff2", mode: "100644", data: new Uint8Array([0, 1, 2]) }];
+  assert.equal((await aiReview(withFont, answer("clear"))).status, "complete");
+});
+
 test("AI review stops before decoding a skill that can't fit, and too long for the model is partial", async () => {
   const huge = [{ path: "a.md", mode: "100644", data: new Uint8Array(Buffer.from("a".repeat(4 * AI_REVIEW_MAX_CHARS + 4))) }];
   assert.equal((await aiReview(huge, answer("clear"))).status, "partial");
   const overflow = Object.assign(new Error("400 prompt is too long: 250000 tokens > 200000 maximum"), { status: 400 });
   assert.equal((await aiReview(files, async () => { throw overflow; })).status, "partial");
   assert.equal((await aiReview(files, async () => { throw Object.assign(new Error("400 bad schema"), { status: 400 }); })).status, "failed");
+});
+
+test("the second look is Opus with the same prompt, on its own route and scanner name", async () => {
+  let sent: Parameters<AskClaude>[0] | undefined;
+  const result = await aiReview(files, async (request) => { sent = request; return answer("suspicious", { reads_secrets: false })(request); }, Date.now, SECOND_LOOK);
+  assert.equal(sent?.model, "claude-opus-5-5");
+  assert.equal(sent?.system, SYSTEM);
+  assert.equal(sent?.output_config.effort, "low");
+  assert.deepEqual([result.scanner, result.version], ["ai-second-look", SECOND_LOOK.version]);
+  assert.deepEqual(result.findings.map((f) => f.rule), ["ai-second-look/verdict", "ai-second-look/reads_secrets"]);
+  const refused = await aiReview(files, async () => ({ stop_reason: "refusal", content: [] }), Date.now, SECOND_LOOK);
+  assert.deepEqual(refused.findings.map((f) => [f.rule, f.label]), [["ai-second-look/refused", "ai_refused"]]);
+
+  let first = 0, second = 0;
+  const both = deps({
+    async aiReview(input) { first += 1; return aiReview(input, answer("clear")); },
+    async secondLook(input) { second += 1; return aiReview(input, answer("clear"), Date.now, SECOND_LOOK); }
+  });
+  const looked = await (await handle(await signed("POST", "/second-look", { treeSha, files: requestFiles(true) }), both)).json() as ScanResponse;
+  assert.deepEqual([first, second], [0, 1]);
+  assert.deepEqual(looked.results.map((r) => [r.scanner, r.status]), [["ai-second-look", "complete"]]);
+  assert.equal((await handle(await signed("POST", "/second-look", { treeSha, files: requestFiles(true) }), deps())).status, 503);
+  const listed = await (await handle(await signed("GET", "/scanners"), both)).json() as { secondLook: unknown };
+  assert.deepEqual(listed.secondLook, { scanner: "ai-second-look", version: SECOND_LOOK.version });
 });
