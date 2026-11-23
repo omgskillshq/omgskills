@@ -75,8 +75,8 @@ const ask: AskClaude = async (request) => {
 };
 
 /** The real Worker logic and rules scanner, in this process, behind a fetch. */
-function worker(options: { review?: boolean; reviews?: { count: number } } = {}): typeof fetch {
-  const list = scanners({ omgRules: "1-test" });
+function worker(options: { review?: boolean; reviews?: { count: number }; rules?: string } = {}): typeof fetch {
+  const list = scanners({ omgRules: options.rules ?? "1-test" });
   return (async (url: string | URL | Request, init?: RequestInit) => handle(new Request(url, init), {
     signingKey: KEY,
     async readStoredFile() { return null; },
@@ -96,11 +96,10 @@ function deps(fetchImpl: typeof fetch, targets: () => CatalogTarget[], read?: Pu
     loads: 0,
     config: { workerUrl: "https://scan.test", signingKey: KEY },
     fetch: fetchImpl,
-    async loadTargets(since: string | null) {
+    async catalogKey() { return targets().map((t) => `${t.catalogSkillId}@${t.treeSha}`).join(",") || "empty"; },
+    async loadTargets() {
       state.loads += 1;
-      const list = targets();
-      const key = list.map((t) => `${t.catalogSkillId}@${t.treeSha}`).join(",");
-      return key === since ? null : { generatedAt: key, targets: list };
+      return targets();
     },
     readFiles: read ?? (async (target: CatalogTarget) => filesOf([clean, risky].find((s) => s.id === target.catalogSkillId)!))
   };
@@ -153,9 +152,13 @@ test("curated public skills get our rules and the AI review, once per content", 
     const summary = (await pool.query(`SELECT ${scanSummarySql("$1::text")} AS scan`, [targetOf(risky).treeSha])).rows[0].scan;
     assert.deepEqual(summary.findings.map((f: { label: string }) => f.label), ["download_and_run"]);
     assert.doesNotMatch(JSON.stringify(summary), /ai_|reads_secrets/);
-    // Nothing new: the catalog isn't re-read into the table and nothing is scanned or paid for again.
+    // Nothing new: the catalog isn't read again and nothing is scanned or paid for again.
     const second = await runPublicScanQueue(pool, d);
-    assert.deepEqual([second.synced, second.scanned, reviews.count], [null, 0, 2]);
+    assert.deepEqual([second.synced, second.scanned, reviews.count, d.loads], [null, 0, 2, 1]);
+    // New rules: rules only, no second AI review.
+    const third = await runPublicScanQueue(pool, { ...d, fetch: worker({ reviews, rules: "2-test" }) });
+    assert.deepEqual([third.scanned, reviews.count], [2, 2]);
+    assert.equal((await pool.query("SELECT 1 FROM skill_scans WHERE scanner = 'omg-rules' AND scanner_version = '2-test'")).rowCount, 2);
   });
 });
 
@@ -179,7 +182,9 @@ test("files that don't match the catalog's hash aren't scanned; unreadable skill
     const tooBig = async () => { throw new GithubImportError("too_large", "too big", 413); };
     const result = await runPublicScanQueue(pool, deps(worker(), () => [targetOf(clean)], tooBig));
     assert.equal(result.held, 1);
-    assert.deepEqual(await scansOf(pool, targetOf(clean).treeSha), [["ai-review", "partial", []], ["omg-rules", "partial", []]]);
+    // Held on the target, never as a result under a hash nobody checked.
+    assert.equal((await pool.query("SELECT 1 FROM skill_scans")).rowCount, 0);
+    assert.deepEqual((await pool.query("SELECT last_error, gave_up FROM public_scan_targets")).rows, [{ last_error: "too_large", gave_up: true }]);
     // Held until the catalog pins new content: not tried again every run.
     assert.equal((await runPublicScanQueue(pool, deps(worker(), () => [targetOf(clean)], tooBig))).held, 0);
   });
@@ -203,12 +208,35 @@ test("GitHub being down retries later; a skill dropped from the curated lists ta
     list = [targetOf(clean)];
     const synced = await runPublicScanQueue(pool, d);
     assert.deepEqual([synced.synced, synced.removed], [1, 1]);
-    assert.equal((await pool.query("SELECT 1 FROM skill_scans WHERE tree_sha = $1", [targetOf(risky).treeSha])).rowCount, 0);
-    assert.equal((await pool.query("SELECT 1 FROM skill_scans WHERE tree_sha = $1", [targetOf(clean).treeSha])).rowCount, 2);
-    // A broken catalog (no curated skills) changes nothing.
+    // Paid-for results stay, by content, for when it comes back.
+    assert.equal((await pool.query("SELECT 1 FROM skill_scans WHERE tree_sha = $1", [targetOf(risky).treeSha])).rowCount, 2);
+    // A broken catalog (no curated skills) changes nothing, and isn't read again every run.
     list = [];
-    const broken = await runPublicScanQueue(pool, d);
-    assert.deepEqual(broken.errors, { catalog_unavailable: 1 });
+    const loads = d.loads;
+    assert.deepEqual((await runPublicScanQueue(pool, d)).errors, { catalog_unavailable: 1 });
+    assert.deepEqual((await runPublicScanQueue(pool, d)).errors, { catalog_unavailable: 1 });
+    assert.equal(d.loads, loads + 1);
     assert.equal((await pool.query("SELECT 1 FROM public_scan_targets")).rowCount, 1);
+  });
+});
+
+test("a long outage uses up the tries, then one more try every 6 hours", async () => {
+  await withMigratedSchema(async (pool) => {
+    let down = true;
+    const read: PublicScanDeps["readFiles"] = async () => {
+      if (down) throw new GithubImportError("unavailable", "down", 503);
+      return filesOf(clean);
+    };
+    const d = deps(worker(), () => [targetOf(clean)], read);
+    for (let tries = 0; tries < 6; tries += 1) {
+      await pool.query("UPDATE public_scan_targets SET not_before = now()");
+      await runPublicScanQueue(pool, d);
+    }
+    assert.equal((await pool.query("SELECT attempts FROM public_scan_targets")).rows[0].attempts, 6);
+    down = false;
+    await pool.query("UPDATE public_scan_targets SET not_before = now() - interval '1 hour'");
+    assert.equal((await runPublicScanQueue(pool, d)).scanned, 0, "out of tries: waits");
+    await pool.query("UPDATE public_scan_targets SET not_before = now() - interval '7 hours'");
+    assert.equal((await runPublicScanQueue(pool, d)).scanned, 1, "six hours later: tried again");
   });
 });

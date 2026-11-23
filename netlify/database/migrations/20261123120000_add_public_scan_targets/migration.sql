@@ -13,6 +13,8 @@ CREATE TABLE public_scan_targets (
   not_before timestamptz NOT NULL DEFAULT now(),
   attempts integer NOT NULL DEFAULT 0,
   last_error text,
+  -- Can't be scanned as pinned (too big, a symlink, files that don't match the hash): waits for new content.
+  gave_up boolean NOT NULL DEFAULT false,
   lease_token uuid,
   lease_until timestamptz,
   CONSTRAINT public_scan_targets_id_check CHECK (char_length(catalog_skill_id) BETWEEN 3 AND 512),
@@ -25,9 +27,12 @@ CREATE TABLE public_scan_targets (
 CREATE INDEX public_scan_targets_due_idx ON public_scan_targets(priority, not_before);
 CREATE INDEX public_scan_targets_tree_sha_idx ON public_scan_targets(tree_sha);
 
--- Which catalog build the targets were last synced from, so a run only re-reads the catalog when it changes.
+-- Which catalog build the targets were last synced from, so a run only re-reads the catalog when it
+-- changes; and the build last tried, so one that can't be read is tried every few hours, not every run.
 CREATE TABLE public_scan_sync (
   id integer PRIMARY KEY CHECK (id = 1),
-  catalog_generated_at text NOT NULL,
-  synced_at timestamptz NOT NULL DEFAULT now()
+  catalog_generated_at text,
+  tried_catalog text,
+  tried_at timestamptz,
+  synced_at timestamptz
 );

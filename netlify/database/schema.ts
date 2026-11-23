@@ -733,6 +733,7 @@ export const publicScanTargets = pgTable(
     notBefore: timestamp("not_before", { withTimezone: true }).notNull().defaultNow(),
     attempts: integer("attempts").notNull().default(0),
     lastError: text("last_error"),
+    gaveUp: boolean("gave_up").notNull().default(false),
     leaseToken: uuid("lease_token"),
     leaseUntil: timestamp("lease_until", { withTimezone: true })
   },
@@ -752,8 +753,10 @@ export const publicScanSync = pgTable(
   "public_scan_sync",
   {
     id: integer("id").primaryKey(),
-    catalogGeneratedAt: text("catalog_generated_at").notNull(),
-    syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow()
+    catalogGeneratedAt: text("catalog_generated_at"),
+    triedCatalog: text("tried_catalog"),
+    triedAt: timestamp("tried_at", { withTimezone: true }),
+    syncedAt: timestamp("synced_at", { withTimezone: true })
   },
   (table) => [check("public_scan_sync_id_check", sql`${table.id} = 1`)]
 );

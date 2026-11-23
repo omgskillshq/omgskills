@@ -29,8 +29,10 @@ export type PublicScanDeps = {
   config: ScanDriverConfig;
   fetch?: typeof fetch;
   now?: () => number;
-  /** Curated catalog skills; null when the catalog is unchanged since `since`. */
-  loadTargets(since: string | null): Promise<{ generatedAt: string; targets: CatalogTarget[] } | null>;
+  /** Names the catalog build (and scope), cheaply: only a new one is read in full. */
+  catalogKey(): Promise<string>;
+  /** That build's curated skills. Reads the full catalog (about 88 MB). */
+  loadTargets(key: string): Promise<CatalogTarget[]>;
   /** A skill's files at its pinned commit. */
   readFiles(target: CatalogTarget, deadline: number): Promise<ScanRequestFile[]>;
 };
@@ -49,7 +51,12 @@ const LIST_TIMEOUT_MS = 30_000;
 const GITHUB_TIMEOUT_MS = 60_000;
 /** A skill takes at most about two and a half minutes; the lease outlasts that. */
 const LEASE = "5 minutes";
-const BATCH = 4;
+/** One at a time, so a skill's lease always outlasts its scan. */
+const BATCH = 1;
+/** Out of tries (GitHub or the scanner down for an hour or more): one more try every 6 hours, never stuck. */
+const REVIVE_AFTER = "6 hours";
+/** A catalog build that couldn't be read is tried again after this, not every run. */
+const CATALOG_RETRY = "6 hours";
 const ID = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?::[^\s]{1,400})?$/;
 const SHA = /^[0-9a-f]{40}$/;
 const REPO = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
@@ -97,22 +104,32 @@ async function fetchJson(fetcher: typeof fetch, url: string, timeoutMs: number):
   return response.json();
 }
 
-/** Reads the curated lists from the published catalog, and the full skills list only when it changed. */
-export function catalogTargetLoader(scopes: PublicScanScope[], fetcher: typeof fetch = fetch): PublicScanDeps["loadTargets"] {
-  return async (since) => {
-    const track = publishedCatalogTracks[0];
-    const manifest = await fetchJson(fetcher, track.manifestUrl, 15_000) as { generatedAt?: unknown; skills?: unknown; collections?: unknown };
-    if (typeof manifest.generatedAt !== "string") throw new Error("catalog manifest has no date");
-    const key = `${manifest.generatedAt}|${scopes.join(",")}`;
-    if (key === since) return null;
-    const asset = (name: unknown) => {
-      if (typeof name !== "string" || !/^[\w.-]+\.json$/.test(name)) throw new Error("catalog asset missing");
-      return new URL(name, track.manifestUrl).toString();
-    };
-    const collections = await fetchJson(fetcher, asset(manifest.collections), 30_000) as { collections?: unknown };
-    const skills = await fetchJson(fetcher, asset(manifest.skills), 180_000);
-    if (!Array.isArray(collections.collections) || !Array.isArray(skills)) throw new Error("catalog asset has the wrong shape");
-    return { generatedAt: key, targets: curatedTargets(collections.collections as Collection[], skills as CatalogRecord[], scopes) };
+type Manifest = { generatedAt?: unknown; skills?: unknown; collections?: unknown };
+
+/** Reads the curated lists from the published catalog; the full skills list only for a new build. */
+export function catalogTargetLoader(scopes: PublicScanScope[], fetcher: typeof fetch = fetch): Pick<PublicScanDeps, "catalogKey" | "loadTargets"> {
+  const track = publishedCatalogTracks[0];
+  const manifest = async () => {
+    const value = await fetchJson(fetcher, track.manifestUrl, 15_000) as Manifest;
+    if (typeof value.generatedAt !== "string") throw new Error("catalog manifest has no date");
+    return value;
+  };
+  const keyOf = (value: Manifest) => `${value.generatedAt}|${scopes.join(",")}`;
+  const asset = (name: unknown) => {
+    if (typeof name !== "string" || !/^[\w.-]+\.json$/.test(name)) throw new Error("catalog asset missing");
+    return new URL(name, track.manifestUrl).toString();
+  };
+  return {
+    async catalogKey() { return keyOf(await manifest()); },
+    async loadTargets(key) {
+      const value = await manifest();
+      // A newer build since the key was read: say so, and the next run reads that one.
+      if (keyOf(value) !== key) throw new Error("catalog changed while reading");
+      const collections = await fetchJson(fetcher, asset(value.collections), 30_000) as { collections?: unknown };
+      const skills = await fetchJson(fetcher, asset(value.skills), 180_000);
+      if (!Array.isArray(collections.collections) || !Array.isArray(skills)) throw new Error("catalog asset has the wrong shape");
+      return curatedTargets(collections.collections as Collection[], skills as CatalogRecord[], scopes);
+    }
   };
 }
 
@@ -131,15 +148,27 @@ export function githubFileReader(token: string | undefined, fetcher?: typeof fet
 }
 
 async function sync(pool: Pool, deps: PublicScanDeps): Promise<{ synced: number | null; removed: number }> {
-  const state = await pool.query<{ catalog_generated_at: string }>("SELECT catalog_generated_at FROM public_scan_sync WHERE id = 1");
-  const loaded = await deps.loadTargets(state.rows[0]?.catalog_generated_at ?? null);
-  if (!loaded) return { synced: null, removed: 0 };
-  // An empty list would drop every target and its results; that's a broken catalog, not a decision.
-  if (loaded.targets.length === 0) throw new Error("catalog lists no curated skills");
+  const key = await deps.catalogKey();
+  const state = await pool.query<{ current: boolean; wait: boolean }>(
+    `SELECT catalog_generated_at = $1 AS current,
+       tried_catalog = $1 AND tried_at > now() - interval '${CATALOG_RETRY}' AS wait
+     FROM public_scan_sync WHERE id = 1`,
+    [key]
+  );
+  if (state.rows[0]?.current) return { synced: null, removed: 0 };
+  // A build that failed (or ran out of memory) recently isn't read again every run.
+  if (state.rows[0]?.wait) throw new Error("catalog build failed recently; trying again later");
+  await pool.query(
+    `INSERT INTO public_scan_sync (id, tried_catalog, tried_at) VALUES (1, $1, now())
+     ON CONFLICT (id) DO UPDATE SET tried_catalog = EXCLUDED.tried_catalog, tried_at = now()`,
+    [key]
+  );
+  const t = await deps.loadTargets(key);
+  // An empty list would drop every target; that's a broken catalog, not a decision.
+  if (t.length === 0) throw new Error("catalog lists no curated skills");
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const t = loaded.targets;
     await client.query(
       `
         INSERT INTO public_scan_targets (catalog_skill_id, repo_slug, root_path, commit_sha, tree_sha, priority, catalog_seen_at)
@@ -150,35 +179,19 @@ async function sync(pool: Pool, deps: PublicScanDeps): Promise<{ synced: number 
           -- New content starts over; unchanged content keeps its place and its tries.
           attempts = CASE WHEN public_scan_targets.tree_sha = EXCLUDED.tree_sha THEN public_scan_targets.attempts ELSE 0 END,
           last_error = CASE WHEN public_scan_targets.tree_sha = EXCLUDED.tree_sha THEN public_scan_targets.last_error END,
+          gave_up = public_scan_targets.gave_up AND public_scan_targets.tree_sha = EXCLUDED.tree_sha,
           not_before = CASE WHEN public_scan_targets.tree_sha = EXCLUDED.tree_sha THEN public_scan_targets.not_before ELSE now() END
       `,
       [t.map((x) => x.catalogSkillId), t.map((x) => x.repoSlug), t.map((x) => x.rootPath), t.map((x) => x.commitSha),
         t.map((x) => x.treeSha), t.map((x) => x.priority)]
     );
-    // Skills no longer curated (or no longer in the catalog) stop being scanned; their results go
-    // unless another public target or a live private version has the same content.
-    const removed = await client.query<{ tree_sha: string }>(
-      "DELETE FROM public_scan_targets WHERE NOT (catalog_skill_id = ANY($1::text[])) RETURNING tree_sha",
+    // Skills no longer curated stop being scanned. Their results stay (they're by content, and paid
+    // for): a skill that comes back, or a private copy, finds them.
+    const removed = await client.query(
+      "DELETE FROM public_scan_targets WHERE NOT (catalog_skill_id = ANY($1::text[]))",
       [t.map((x) => x.catalogSkillId)]
     );
-    await client.query(
-      `
-        DELETE FROM skill_scans scan
-        WHERE scan.tree_sha = ANY($1::text[])
-          AND NOT EXISTS (SELECT 1 FROM public_scan_targets target WHERE target.tree_sha = scan.tree_sha)
-          AND NOT EXISTS (
-            SELECT 1 FROM skill_releases release
-            JOIN skill_sources source ON source.id = release.source_id
-            WHERE release.tree_sha = scan.tree_sha AND source.tombstoned_at IS NULL
-          )
-      `,
-      [removed.rows.map((row) => row.tree_sha)]
-    );
-    await client.query(
-      `INSERT INTO public_scan_sync (id, catalog_generated_at, synced_at) VALUES (1, $1, now())
-       ON CONFLICT (id) DO UPDATE SET catalog_generated_at = EXCLUDED.catalog_generated_at, synced_at = now()`,
-      [loaded.generatedAt]
-    );
+    await client.query("UPDATE public_scan_sync SET catalog_generated_at = $1, synced_at = now() WHERE id = 1", [key]);
     await client.query("COMMIT");
     return { synced: t.length, removed: removed.rowCount ?? 0 };
   } catch (error) {
@@ -189,24 +202,31 @@ async function sync(pool: Pool, deps: PublicScanDeps): Promise<{ synced: number 
   }
 }
 
-type Leased = CatalogTarget & { attempts: number; leaseToken: string };
+type Leased = CatalogTarget & { attempts: number; leaseToken: string; needRules: boolean; needReview: boolean };
 
-/** Targets missing a usable result from a current scanner: collections first, then the longest waiting. */
-async function lease(pool: Pool, scanners: ScannerInfo[], limit: number): Promise<Leased[]> {
+/** Has this content no usable result from one of these scanners? */
+const MISSING = (scanners: string, versions: string) => `EXISTS (
+  SELECT 1 FROM unnest(${scanners}::text[], ${versions}::text[]) AS s(scanner, version)
+  WHERE NOT EXISTS (
+    SELECT 1 FROM skill_scans scan
+    WHERE scan.tree_sha = target.tree_sha AND scan.scanner = s.scanner AND scan.scanner_version = s.version
+      AND scan.status <> 'failed'
+  )
+)`;
+
+/**
+ * Targets missing a usable result from a current scanner: collections first, then the longest
+ * waiting. Says which are missing, so a new rules version never pays for another AI review.
+ */
+async function lease(pool: Pool, rules: ScannerInfo[], review: ScannerInfo, limit: number): Promise<Leased[]> {
   const result = await pool.query<Leased>(
     `
       WITH due AS (
         SELECT target.catalog_skill_id FROM public_scan_targets target
         WHERE target.not_before <= now() AND (target.lease_until IS NULL OR target.lease_until < now())
-          AND target.attempts < $3
-          AND EXISTS (
-            SELECT 1 FROM unnest($4::text[], $5::text[]) AS s(scanner, version)
-            WHERE NOT EXISTS (
-              SELECT 1 FROM skill_scans scan
-              WHERE scan.tree_sha = target.tree_sha AND scan.scanner = s.scanner AND scan.scanner_version = s.version
-                AND scan.status <> 'failed'
-            )
-          )
+          AND NOT target.gave_up
+          AND (target.attempts < $3 OR target.not_before <= now() - interval '${REVIVE_AFTER}')
+          AND (${MISSING("$4", "$5")} OR ${MISSING("$6", "$7")})
         ORDER BY target.priority, target.not_before
         LIMIT $2
         FOR UPDATE SKIP LOCKED
@@ -216,9 +236,9 @@ async function lease(pool: Pool, scanners: ScannerInfo[], limit: number): Promis
       FROM due WHERE target.catalog_skill_id = due.catalog_skill_id
       RETURNING target.catalog_skill_id AS "catalogSkillId", target.repo_slug AS "repoSlug", target.root_path AS "rootPath",
         target.commit_sha AS "commitSha", target.tree_sha AS "treeSha", target.priority, target.attempts,
-        target.lease_token AS "leaseToken"
+        target.lease_token AS "leaseToken", ${MISSING("$4", "$5")} AS "needRules", ${MISSING("$6", "$7")} AS "needReview"
     `,
-    [randomUUID(), limit, MAX_ATTEMPTS, scanners.map((s) => s.scanner), scanners.map((s) => s.version)]
+    [randomUUID(), limit, MAX_ATTEMPTS, rules.map((s) => s.scanner), rules.map((s) => s.version), [review.scanner], [review.version]]
   );
   return result.rows.sort((a, b) => a.priority - b.priority);
 }
@@ -262,14 +282,22 @@ async function store(pool: Pool, target: Leased, results: ScannerResult[]): Prom
   }
 }
 
-/** Backs off 4, 8, 16… minutes; `final` gives up now (the content won't change until the catalog does). */
-async function retryLater(pool: Pool, target: Leased, code: string, final = false) {
+/** Backs off 2, 4, 8… minutes; out of tries, one more every 6 hours (see the lease). */
+async function retryLater(pool: Pool, target: Leased, code: string) {
   await pool.query(
     `UPDATE public_scan_targets SET lease_token = NULL, lease_until = NULL, last_error = $3,
-       attempts = CASE WHEN $4 THEN $5 ELSE attempts END,
        not_before = now() + make_interval(mins => power(2, LEAST(attempts, 8))::int)
      WHERE catalog_skill_id = $1 AND lease_token = $2`,
-    [target.catalogSkillId, target.leaseToken, code, final, MAX_ATTEMPTS]
+    [target.catalogSkillId, target.leaseToken, code]
+  );
+}
+
+/** Can't be scanned as pinned: waits for the catalog to pin new content. Nothing is stored as a result. */
+async function giveUp(pool: Pool, target: Leased, code: string) {
+  await pool.query(
+    `UPDATE public_scan_targets SET lease_token = NULL, lease_until = NULL, last_error = $3, gave_up = true
+     WHERE catalog_skill_id = $1 AND lease_token = $2`,
+    [target.catalogSkillId, target.leaseToken, code]
   );
 }
 
@@ -278,14 +306,6 @@ async function done(pool: Pool, target: Leased) {
     "UPDATE public_scan_targets SET lease_token = NULL, lease_until = NULL, attempts = 0, last_error = NULL WHERE catalog_skill_id = $1 AND lease_token = $2",
     [target.catalogSkillId, target.leaseToken]
   );
-}
-
-/** Every current scanner, partial: the skill couldn't be read whole, so nothing about it counts as clean. */
-function heldResults(scanners: ScannerInfo[], fileCount: number, now: number): ScannerResult[] {
-  const at = new Date(now).toISOString();
-  return scanners.map(({ scanner, version }) => ({
-    scanner, version, status: "partial", findings: [], filesScanned: 0, filesSkipped: fileCount, startedAt: at, finishedAt: at
-  }));
 }
 
 /** GitHub refusals that won't change until the catalog pins a new commit. */
@@ -306,7 +326,6 @@ export async function runPublicScanQueue(pool: Pool, deps: PublicScanDeps, runLi
     result.stoppedBy = "review_not_configured";
     return result;
   }
-  const scanners = [...rules, review];
 
   try {
     Object.assign(result, await sync(pool, deps));
@@ -318,7 +337,7 @@ export async function runPublicScanQueue(pool: Pool, deps: PublicScanDeps, runLi
 
   const perSkill = GITHUB_TIMEOUT_MS + SCAN_TIMEOUT_MS + REVIEW_TIMEOUT_MS;
   while (runLimitMs - (now() - started) >= perSkill && !result.stoppedBy) {
-    const targets = await lease(pool, scanners, BATCH);
+    const targets = await lease(pool, rules, review, BATCH);
     if (targets.length === 0) break;
     for (const target of targets) {
       if (result.stoppedBy || runLimitMs - (now() - started) < perSkill) {
@@ -335,9 +354,8 @@ export async function runPublicScanQueue(pool: Pool, deps: PublicScanDeps, runLi
           files = await deps.readFiles(target, now() + GITHUB_TIMEOUT_MS);
         } catch (error) {
           if (error instanceof GithubImportError && UNREADABLE.has(error.code)) {
-            // Can't be read as a skill (too big, a symlink, gone): held, never counted clean.
-            await store(pool, { ...target, attempts: MAX_ATTEMPTS }, heldResults(scanners, 0, now()));
-            await retryLater(pool, target, error.code, true);
+            // Can't be read as a skill (too big, a symlink, gone): held, and never counted clean.
+            await giveUp(pool, target, error.code);
             result.held += 1;
             count(error.code);
             continue;
@@ -350,25 +368,31 @@ export async function runPublicScanQueue(pool: Pool, deps: PublicScanDeps, runLi
             files.map(({ path, mode, blobSha, byteSize }) => ({ path, mode, blobSha, byteSize })), STANDARD_SKILL_PACKAGE_LIMITS
           ).treeSha;
         } catch {
-          treeSha = "";
+          // Over the scanner's limits, or not a valid package: held like any skill that can't be read.
+          await giveUp(pool, target, "unsupported_file");
+          result.held += 1;
+          count("unsupported_file");
+          continue;
         }
         if (treeSha !== target.treeSha) {
           // Not what the catalog pinned: wait for the catalog to catch up rather than scan something else.
-          await retryLater(pool, target, "tree_mismatch", true);
+          await giveUp(pool, target, "tree_mismatch");
           count("tree_mismatch");
           continue;
         }
         const body = { treeSha: target.treeSha, files };
-        const scan = await callScanner<ScanResponse>(deps, "POST", "/scan", SCAN_TIMEOUT_MS, body);
-        const reviewed = await callScanner<ScanResponse>(deps, "POST", "/review", REVIEW_TIMEOUT_MS, body);
-        for (const response of [scan, reviewed]) {
+        // Only what's missing: a new rules version doesn't pay for the AI review again.
+        const responses: ScanResponse[] = [];
+        if (target.needRules) responses.push(await callScanner<ScanResponse>(deps, "POST", "/scan", SCAN_TIMEOUT_MS, body));
+        if (target.needReview) responses.push(await callScanner<ScanResponse>(deps, "POST", "/review", REVIEW_TIMEOUT_MS, body));
+        for (const response of responses) {
           if (response.treeSha !== target.treeSha || !Array.isArray(response.results)) throw new ScannerCallError("bad_response", true);
         }
-        const results = [...scan.results, ...reviewed.results];
+        const results = responses.flatMap((response) => response.results);
         if (!(await store(pool, target, results))) continue;
         if (results.some((r) => r.status === "failed")) {
-          // Out of tries, the failure is stored and the skill waits for new content or a new scanner.
-          await retryLater(pool, target, "scanner_failed", target.attempts >= MAX_ATTEMPTS);
+          // Out of tries, the failure is stored and tried again every 6 hours.
+          await retryLater(pool, target, "scanner_failed");
           result.retried += 1;
           count("scanner_failed");
         } else {
@@ -379,7 +403,8 @@ export async function runPublicScanQueue(pool: Pool, deps: PublicScanDeps, runLi
         const code = error instanceof ScannerCallError ? error.code : "internal";
         count(code);
         if (error instanceof ScannerCallError && error.stopRun) result.stoppedBy = code;
-        await retryLater(pool, target, code, error instanceof ScannerCallError && !error.retry);
+        if (error instanceof ScannerCallError && !error.retry) await giveUp(pool, target, code);
+        else await retryLater(pool, target, code);
         result.retried += 1;
       }
     }

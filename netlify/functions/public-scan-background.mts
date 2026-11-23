@@ -25,7 +25,7 @@ export default async (request: Request) => {
   try {
     const result = await runPublicScanQueue(getPgPool(), {
       config: scanConfig,
-      loadTargets: catalogTargetLoader(scopes),
+      ...catalogTargetLoader(scopes),
       readFiles: githubFileReader(process.env.GITHUB_PUBLIC_READ_TOKEN?.trim() || undefined)
     });
     console.info("public scan", result);
