@@ -1,11 +1,11 @@
 // Our review of a library skill, for the exact version the catalog installs: the same answer the
 // skill's web page shows (/api/skill-review). It only reports what the review found.
 
-import { ShieldCheck, ShieldEllipsis, ShieldQuestion } from "lucide-react";
+import { ShieldCheck, ShieldCogCorner, ShieldQuestionMark } from "lucide-react";
 import { useEffect, useState } from "react";
 
 // One shield per state; the words show on hover, tap or focus, like the scan tip beside it.
-const ICONS = { no_issues: ShieldCheck, under_review: ShieldEllipsis, not_reviewed: ShieldQuestion } as const;
+const ICONS = { no_issues: ShieldCheck, under_review: ShieldCogCorner, not_reviewed: ShieldQuestionMark } as const;
 
 export type ReviewAnswer = { badge: "no_issues" | "under_review" | "not_reviewed"; reviewedAt: string | null };
 

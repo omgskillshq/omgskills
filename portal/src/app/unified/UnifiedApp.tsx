@@ -70,6 +70,7 @@ import {
   Share,
   ShieldAlert,
   ShieldCheck,
+  ShieldUser,
   Smartphone,
   PanelsTopLeft,
   Star,
@@ -271,7 +272,7 @@ function ScanTip({ scannedAt, yourCopy }: { scannedAt: string; yourCopy: boolean
     <button type="button" className="ua-scan-tip" aria-label={label} data-open={open}
       onClick={() => setOpen(value => !value)} onBlur={() => setOpen(false)}
       onKeyDown={event => { if (event.key === "Escape" && open) { event.stopPropagation(); setOpen(false); } }}>
-      <ShieldCheck aria-hidden="true" />
+      <ShieldUser aria-hidden="true" />
       <span className="ua-scan-tip-text" aria-hidden="true">{label}</span>
     </button>
   );
@@ -299,7 +300,7 @@ function SafetyScan({ skills, status, ready, available, open, copy }: {
   return (
     <div className="ua-account-page ua-safety">
       <div className="ua-safety-summary">
-        <ShieldCheck aria-hidden="true" />
+        <ShieldUser aria-hidden="true" />
         <div>
           <strong>{clean.length} of {skills.length} skills are team-safe</strong>
           <p className="ua-muted">We found no keys, personal details, internal addresses, hidden instructions or
@@ -2377,6 +2378,11 @@ export function UnifiedApp({
                 data-expanded={expanded}
                 data-rail={rail}
                 aria-describedby={undefined}
+                onEscapeKeyDown={(event) => {
+                  // Escape on an open shield tip closes the tip, not the whole panel.
+                  const tip = document.querySelector<HTMLElement>('.ua-detail .ua-scan-tip[data-open="true"]');
+                  if (tip) { event.preventDefault(); tip.blur(); }
+                }}
                 onCloseAutoFocus={(event) => {
                   event.preventDefault();
                   // Radix remounts content when changing between a pane and a modal.
