@@ -55,10 +55,10 @@
     <p class="intro">A skill is instructions and sometimes code that your agent follows, so it can do anything your agent can. We check skills, show what we found for the exact version you'd install, and say plainly what we haven't checked. A check is not a guarantee: read a skill before you install it.</p>
 
     <h2>What the badges mean</h2>
-    <p>Library skills show a shield beside their stars. Hover or tap it for the details.</p>
+    <p>Library skills show our review beside their stars. In the app it’s a shield you can hover or tap for the details.</p>
     <ul class="badges">
-      <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg><span><strong>No issues found.</strong> Our rule checks and an AI review checked this exact version and found nothing, or a second look cleared what they flagged.</span></li>
-      <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><circle cx="12" cy="11" r="2.5"/></svg><span><strong>Under review.</strong> Our checks flagged something in this version and a person is looking at it.</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg><span><strong>No issues found.</strong> Our rule checks and an AI review checked this exact version and found nothing hidden or out of place for what the skill says it does, or a second look cleared what they flagged. Steps that are out in the open and expected, like running a tool’s official installer, can still pass.</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 22c-3.806-1.45-7-3.966-7-9V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1v4"/><path d="M14.923 16.547 14 16.164"/><path d="m14.923 18.843-.923.383"/><path d="M16.547 14.923 16.164 14"/><path d="m16.547 20.467-.383.924"/><path d="m18.843 14.923.383-.923"/><path d="m19.225 21.391-.382-.924"/><path d="m20.467 16.547.923-.383"/><path d="m20.467 18.843.923.383"/><circle cx="17.695" cy="17.695" r="3"/></svg><span><strong>Under review.</strong> Our checks flagged something in this version and the second look didn’t clear it. Read it closely before you install it.</span></li>
       <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M9.1 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg><span><strong>Not reviewed yet.</strong> We haven't checked this version: it's outside the skills we review today, too big, has files we can't read, or changed since we last checked.</span></li>
     </ul>
     <p>A badge belongs to one version. Installs from omgskills use that same pinned version, and when a skill changes, its new version shows “Not reviewed yet” until we check it.</p>
@@ -67,24 +67,24 @@
     <ul>
       <li><strong>Rule checks</strong> look for keys and passwords, download-and-run commands, instructions hidden from the reader, invisible characters, private data being sent out, and hidden or compiled code.</li>
       <li><strong>AI review.</strong> Claude reads every text file and answers a fixed checklist: does the skill send data out, read secrets, run downloaded or hidden code, change your system or agent settings, hide what it does, try to steer the agent or a reviewer, load instructions from the web, or delete data or act on your accounts? Each answer is compared with what the skill says it's for.</li>
-      <li><strong>Second look.</strong> When the rules or the review flag a skill, a larger Claude model reads the same files. If it agrees, or declines to answer, the skill stays “Under review” until a person looks.</li>
+      <li><strong>Second look.</strong> When the rules or the review flag a skill, a larger Claude model reads the same files. If it agrees, or declines to answer, the skill stays “Under review”.</li>
     </ul>
-    <p>Skill files are only ever read as text, in a sandbox without internet access. We never run them.</p>
+    <p>We never run skill files; we only read them as text. Rule checks run in a sandbox with no internet access. For the AI review, the text of public skills is sent to Anthropic’s API.</p>
 
     <h2>Which skills we review</h2>
-    <p>Today: the skills in our collections and creator picks, about 3,700. The rest of the library (about 46,000 skills) isn't reviewed yet and says so. A skill too big to review in full, or with files we can't read such as PDFs, archives or programs, also stays "Not reviewed yet" rather than getting a partial pass.</p>
+    <p>Today: the skills in our collections and creator picks, about 3,700. The rest of the library (about 46,000 skills) isn’t reviewed yet and says so. A skill too big to review in full, or with files we can’t read such as PDFs, archives or programs, also stays “Not reviewed yet” rather than getting a partial pass.</p>
 
     <h2>How well it works</h2>
     <p>We tested on MaliciousSkillBench, a public set of known-harmful and harmless skills, using a held-out part from sources we never tuned on, measured once:</p>
     <ul>
       <li>The AI review plus second look flagged <strong>63%</strong> of harmful skills and <strong>1.5%</strong> of harmless ones. Most harmful skills it missed relied on a file that wasn't included in the test samples.</li>
-      <li>Rule checks alone caught 3&ndash;8% of harmful skills from unfamiliar sources, which is why we add the AI review.</li>
-      <li>On a sample of 99 public creator picks, 98% came out "No issues found" after the second look.</li>
+      <li>Rule-based scanners alone, ours and open-source ones we tested, caught 3&ndash;8% of harmful skills from unfamiliar sources, which is why we add the AI review.</li>
+      <li>On a sample of 99 public creator picks, 98% came out “No issues found” after the second look.</li>
     </ul>
     <p>So a badge lowers the risk; it doesn't remove it. Harmful skills can still get through.</p>
 
     <h2>Private skills</h2>
-    <p>Skills you keep in My skills are never sent to an AI. They get our rule checks on our own scanner, plus a sharing check before you share them: email addresses, paths into someone's home folder, and addresses only reachable inside your network. A private skill with none of these, and none of the risks above, shows <strong>Team-safe</strong>. That covers what we check for, nothing more; the results are visible only to you and the people you share the skill with.</p>
+    <p>Skills you keep in My skills are never sent to an AI. They get our rule checks on our own scanner, plus a sharing check that points out email addresses, paths into someone’s home folder, and addresses only reachable inside your network. A private skill with none of these, and none of the rule-check findings above, shows <strong>Team-safe</strong>. That covers what we check for, nothing more; the results are visible only to you and the people you share the skill with.</p>
 
     <h2>The Mac app</h2>
     <p>What the Mac app does and never does, and how to verify it, is on <a href="/safety/">the Mac app safety page</a>.</p>

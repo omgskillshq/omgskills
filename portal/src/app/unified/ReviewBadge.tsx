@@ -16,7 +16,7 @@ export function reviewWords(answer: ReviewAnswer): { text: string; title: string
       ? ` on ${day.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}` : "";
     return { text: "No issues found", title: `No issues found: our rules and an AI review checked this version${when}. It's a check, not a guarantee.` };
   }
-  if (answer.badge === "under_review") return { text: "Under review", title: "Under review: our checks flagged something in this version, and a person is looking at it." };
+  if (answer.badge === "under_review") return { text: "Under review", title: "Under review: our checks flagged something in this version and the second look didn't clear it. Read it closely before you install it." };
   return { text: "Not reviewed yet", title: "Not reviewed yet: we haven't checked this version." };
 }
 
