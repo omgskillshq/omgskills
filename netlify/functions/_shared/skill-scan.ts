@@ -442,7 +442,8 @@ const PLACEHOLDER_USER = /^(?:no-?reply|do-?not-?reply|you|your[._-]?(?:name|ema
 const REMOTE_LOGIN = /\b(?:ssh|scp|sftp|rsync|mosh|ssh-copy-id)\b[^\n]{0,80}$/;
 // Home folders by name; placeholders, machine accounts and common container users aren't anyone's.
 // Windows paths may be written with doubled backslashes, as in JSON.
-const HOME = /(?:\/Users\/|\/home\/|[A-Za-z]:\\{1,2}Users\\{1,2})([A-Za-z0-9._-]{1,64})(?=[\/\\"'`\s),;]|$)/gm;
+// Only at the start of a path: not inside a web address (site.com/Users/…) or a project folder (src/home/…).
+const HOME = /(?<![\w.%-])(?:\/Users\/|\/home\/|[A-Za-z]:\\{1,2}Users\\{1,2})([A-Za-z0-9._-]{1,64})(?=[\/\\"'`\s),;]|$)/gm;
 const PLACEHOLDER_HOME = /^(?:shared|you|your[._-]?name|user(?:name)?\d*|name|me|someone|runner|ubuntu|node|root|admin|example|default|public|guest|vagrant|ec2-user|linuxbrew|pi|jovyan|coder|app|dev|developer|alice|bob|john|jane|johndoe|janedoe|\.{1,3}|x+|<.*|\$.*|%.*)$/i;
 // Private IPv4 addresses and hostnames that only resolve inside one network. localhost works anywhere.
 // A network range ("10.0.0.0/16", ending in .0, or "a-b") is configuration; 172.17.0.1 is Docker's own bridge.

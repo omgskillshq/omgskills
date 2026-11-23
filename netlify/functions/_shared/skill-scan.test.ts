@@ -318,6 +318,7 @@ test("before sharing: someone's email, home folder or an inside-only address is 
   assert.deepEqual(share('"cwd": "/Users/jon"'), ["home_folder"]);
   assert.deepEqual(share('"path": "C:\\\\Users\\\\Maria\\\\AppData"'), ["home_folder"]);
   assert.deepEqual(share("cd /Users/jon"), ["home_folder"]);
+  assert.deepEqual(share("open file:///Users/jon/a.html"), ["home_folder"]);
   assert.deepEqual(share('<a href="mailto:jon@acme.io">Email</a>'), ["personal_email"]);
   assert.deepEqual(shareLines(new TextEncoder().encode("a\nb\nmail me: x.y@acme.io")), [{ label: "personal_email", line: 3 }]);
   for (const fine of [
@@ -328,6 +329,6 @@ test("before sharing: someone's email, home folder or an inside-only address is 
     "settings.local.json", "https://auth.internal.example.com",
     "ssh jon@myserver.com", "scp f deploy@prod.acme.com:/tmp", "y = x@self.weight", "a@np.linalg.inv(b)", "brew install openssl@3.lib",
     "/home/linuxbrew/.linuxbrew/bin", "/home/pi/app", "/Users/alice/x", "Edit CLAUDE.local", "README.local", "docker 172.17.0.1",
-    "v10.2.3.4", "10.0.0.0-10.255.255.255"
+    "v10.2.3.4", "10.0.0.0-10.255.255.255", "https://github.com/Users/jon", "see src/home/jon/notes.md", "app/Users/admin2/x"
   ]) assert.deepEqual(share(fine), [], fine);
 });
