@@ -164,7 +164,11 @@ export function contentIndexReader(store: ContentIndexStore, now: () => number =
     const parts = await Promise.all(names.map((name) => {
       const hit = cache.get(name);
       if (hit && now() - hit.at < cacheMs) return hit.value;
-      const value = store.get(`p/${name}.json`).then((data) => (data && typeof data === "object" ? data as ContentIndexPartition : {}));
+      const value = store.get(`p/${name}.json`).then((data) => {
+        // Not built yet: don't remember that, so the index is used as soon as it's written.
+        if (!data || typeof data !== "object") { cache.delete(name); return {}; }
+        return data as ContentIndexPartition;
+      });
       value.catch(() => cache.delete(name));
       cache.set(name, { at: now(), value });
       return value;

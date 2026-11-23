@@ -61,3 +61,12 @@ test("an exact fingerprint shared by an original and its fork never falls back t
   assert.equal(matchCopy({ skillMdSha: sha, name: "humanizer", description: "Old wording." }, entries), null);
   assert.equal(matchCopy({ skillMdSha: sha, name: "humanizer", description: "Old wording.", githubUrl: "https://github.com/blader/humanizer" }, entries), "blader/humanizer");
 });
+
+test("a part that isn't written yet isn't remembered", async () => {
+  const store = memoryStore();
+  const read = contentIndexReader(store);
+  const copy = { skillMdSha: "d".repeat(40), name: "x", description: "Does X." };
+  assert.deepEqual(await read(keysFor(copy)), {});
+  await writeContentIndex(store, "g1", buildContentIndex([{ id: "o/r:x", name: "x", description: "Does X." }], { version: 1, shaToSkillIds: {} }));
+  assert.equal(matchCopy(copy, await read(keysFor(copy))), "o/r:x");
+});
