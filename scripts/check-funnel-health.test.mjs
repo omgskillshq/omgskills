@@ -161,6 +161,22 @@ test("missing classification is unavailable, while valid zero traffic stays zero
   }, async () => assert.equal((await humblyticsMetrics(window, env)).visitors, 0));
 });
 
+test("mixed targets returned by multiple searches are counted only by their own query", async () => {
+  await withFetch(async href => {
+    if (new URL(href).pathname.endsWith("/clicks/breakdown")) return Response.json({ data: [
+      { page: "/app/library/", top_targets: [{ target: "App Search", clicks: 7 }, { target: "App Skill Open", clicks: 3 }] },
+      { page: "/library/anthropics/", target: "App Copy Install", clicks: 2 },
+    ] });
+    return Response.json(webResponse(href));
+  }, async () => {
+    const metrics = await humblyticsMetrics(window, env);
+    assert.equal(metrics.webSearches, 7);
+    assert.equal(metrics.webSkillOpens, 3);
+    assert.equal(metrics.webCopyInstalls, 2);
+    assert.equal(metrics.webSignIns, 0);
+  });
+});
+
 test("the report aligns providers, separates background signals, and filters install successes", async () => {
   const queries = [];
   await withFetch(async (href, options) => {

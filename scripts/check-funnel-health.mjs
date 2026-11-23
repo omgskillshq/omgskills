@@ -139,8 +139,11 @@ export async function humblyticsMetrics(window, env = process.env) {
     breakdownRows(`${base}/clicks/details?${params}&page=/`, headers),
     breakdownRows(`${base}/pages/breakdown?${params}`, headers),
     // A page's top_targets is capped. Filter each named event before pagination to avoid losing it.
-    Promise.all(Object.values(webAppEvents).map(target =>
-      breakdownRows(`${base}/clicks/breakdown?${params}&search=${encodeURIComponent(target)}`, headers))),
+    Promise.all(Object.values(webAppEvents).map(async target => {
+      const rows = await breakdownRows(`${base}/clicks/breakdown?${params}&search=${encodeURIComponent(target)}`, headers);
+      // Do not trust search to filter nested targets on every API version.
+      return rows.map(row => ({ ...row, top_targets: (row.top_targets ?? [row]).filter(item => item.target === target) }));
+    })),
   ]);
 
   const human = comparison?.data?.human;
