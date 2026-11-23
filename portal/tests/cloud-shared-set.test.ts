@@ -121,4 +121,12 @@ test("a private Set item carries its scan to the row; unreadable results are dro
   const clean = html({ status: "clean", scannedAt: flagged.scannedAt });
   assert.doesNotMatch(clean.replace("<strong>Team-safe</strong>", ""), /verified safe|\bsafe\b|<strong>[^<]*safe/i, "never claims a skill is safe");
   assert.match(clean, /pattern check, not a guarantee/);
+  // The owner's own email is advice for them, not a warning to the people installing.
+  const email = { rule: "personal_email", label: "personal_email", severity: "medium", path: "SKILL.md", line: 3 };
+  const advice = html({ status: "flagged", scannedAt: flagged.scannedAt, findingCount: 1, findings: [email] });
+  assert.match(advice, /No issues found/);
+  assert.doesNotMatch(advice, /Worth a look|email address/i);
+  const mixed = html({ status: "flagged", scannedAt: flagged.scannedAt, findingCount: 2, findings: [email, flagged.findings[0]] });
+  assert.match(mixed, /Worth a look before you install/);
+  assert.doesNotMatch(mixed, /email address|And \d+ more/i);
 });

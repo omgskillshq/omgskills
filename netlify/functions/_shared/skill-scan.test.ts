@@ -314,13 +314,20 @@ test("before sharing: someone's email, home folder or an inside-only address is 
   assert.deepEqual(share("ssh deploy@10.0.4.12"), ["internal_address"]);
   assert.deepEqual(share("open http://192.168.1.40:8080"), ["internal_address"]);
   assert.deepEqual(share("push to git.acme.internal"), ["internal_address"]);
-  assert.deepEqual(share("Line 1\nLine 2 printer.local"), ["internal_address"]);
+  assert.deepEqual(share("Line 1\nLine 2 http://printer.local/status"), ["internal_address"]);
+  assert.deepEqual(share('"cwd": "/Users/jon"'), ["home_folder"]);
+  assert.deepEqual(share('"path": "C:\\\\Users\\\\Maria\\\\AppData"'), ["home_folder"]);
+  assert.deepEqual(share("cd /Users/jon"), ["home_folder"]);
+  assert.deepEqual(share('<a href="mailto:jon@acme.io">Email</a>'), ["personal_email"]);
   assert.deepEqual(shareLines(new TextEncoder().encode("a\nb\nmail me: x.y@acme.io")), [{ label: "personal_email", line: 3 }]);
   for (const fine of [
     "you@example.com", "Co-Authored-By: Claude <noreply@anthropic.com>", "logo@2x.png", "git@github.com:org/repo.git",
     "mongodb+srv://user:password@cluster.mongodb.net/db", "sa@my-project.iam.gserviceaccount.com", "npm i react@18.3.1",
     "cd /Users/you/project", "/home/runner/work/x", "/Users/Shared/x", "~/Projects/x",
     "cidr = 10.0.0.0/16", "subnet 192.168.1.0", "version 10.2.3.4.5", "localhost:3000", "host.docker.internal",
-    "settings.local.json", "https://auth.internal.example.com"
+    "settings.local.json", "https://auth.internal.example.com",
+    "ssh jon@myserver.com", "scp f deploy@prod.acme.com:/tmp", "y = x@self.weight", "a@np.linalg.inv(b)", "brew install openssl@3.lib",
+    "/home/linuxbrew/.linuxbrew/bin", "/home/pi/app", "/Users/alice/x", "Edit CLAUDE.local", "README.local", "docker 172.17.0.1",
+    "v10.2.3.4", "10.0.0.0-10.255.255.255"
   ]) assert.deepEqual(share(fine), [], fine);
 });
