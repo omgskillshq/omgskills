@@ -1,7 +1,7 @@
 // What the background scan found in a private skill shared in a Set, shown before people install it.
 // The scan matches patterns, so a finding is something worth a look, never proof a skill is harmful.
 
-import { ShieldAlert, ShieldCheck, ShieldQuestion } from "lucide-react";
+import { ShieldAlert, ShieldCheck, ShieldQuestion, ShieldUser } from "lucide-react";
 import type { CloudScan } from "../../cloud-save/cloud-save";
 import { findingInfo, findingPlace, installerView } from "../../cloud-save/scan-findings";
 
@@ -16,7 +16,7 @@ export function SetItemScan({ scan }: { scan: CloudScan | null }) {
       <p className="ua-muted">We check shared skills in the background. Look again soon, or read the instructions below first.</p></div>
   </section>;
   if (scan.status === "clean") return <section className="ua-set-scan" aria-label="Safety scan">
-    <ShieldCheck aria-hidden="true" />
+    <ShieldUser aria-hidden="true" />
     <div><strong>Team-safe</strong> <span className="ua-muted">· {day(scan.scannedAt)}</span>
       <p className="ua-muted">We found no keys, personal details, internal addresses, hidden instructions or
         download-and-run commands. It's a pattern check, not a guarantee.</p></div>
