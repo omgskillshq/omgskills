@@ -227,9 +227,13 @@ export function catalogSkillForContent(
   source: { githubUrl?: string | null; gitRelativePath?: string | null } = {},
 ): string | null {
   if (!skillMdSha || !identity?.shaHistory) return null;
-  const raw: unknown = identity.shaHistory.shaToSkillIds[skillMdSha.trim().toLowerCase()];
+  const sha = skillMdSha.trim().toLowerCase();
+  const raw: unknown = identity.shaHistory.shaToSkillIds[sha];
+  // A mirror stands for its original; a mirror whose original isn't listed never counts.
+  const mirrorOriginal = (id: string) => identity.originalOf?.get(id);
   const live: string[] = [...new Set((Array.isArray(raw) ? raw : [])
-    .filter((id): id is string => typeof id === "string" && identity.liveSkillIds.has(id)))];
+    .filter((id): id is string => typeof id === "string" && identity.liveSkillIds.has(id))
+    .flatMap((id) => identity.originalOf?.has(id) ? [mirrorOriginal(id)!] : isMirror(identity, id) ? [] : [id]))];
   if (!live.length) return null;
   const repo = repoOf(source.githubUrl);
   const sameRepo = repo ? live.filter((id) => id.split(":")[0].toLowerCase() === repo) : [];
@@ -240,8 +244,15 @@ export function catalogSkillForContent(
     const samePath = sameRepo.filter((id) => id.split(":").slice(1).join(":").toLowerCase() === path);
     return samePath.length === 1 ? samePath[0] : null;
   }
-  const resolution = resolveCatalogSkillId(skillMdSha, identity);
-  return resolution.status === "resolved" ? resolution.catalogSkillId : null;
+  if (live.length === 1) return live[0];
+  const canonical = identity.shaHistory.canonicalBySha?.[sha];
+  return canonical?.confidence === "high" && canonical.reason === "same-repo" && typeof canonical.skillId === "string"
+    && live.includes(canonical.skillId) ? canonical.skillId : null;
+}
+
+/** A checked skill the catalog lists as a mirror (whether or not its original is listed). */
+function isMirror(identity: PublishedCatalogIdentity, id: string): boolean {
+  return identity.mirrorIds?.has(id) ?? false;
 }
 
 /**

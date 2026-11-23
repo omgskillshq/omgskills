@@ -155,3 +155,24 @@ test("the copy's own folder beats the catalog's canonical pick, and a forked-the
     "folder-b": "acme/skills:b", "no-folder": null, "no-repo": "acme/skills:a", moved: "new/skills:notes",
   });
 });
+
+test("a copy matching only a mirror is linked to the mirror's original, or stays personal when that isn't listed", async () => {
+  const old = "7".repeat(40), orphan = "6".repeat(40);
+  const identity: PublishedCatalogIdentity = {
+    track: "fixture",
+    liveSkillIds: new Set(["mirror/all:review", "garrytan/gstack:review", "mirror/all:gone"]),
+    shaHistory: { version: 1, shaToSkillIds: { [old]: ["mirror/all:review"], [orphan]: ["mirror/all:gone"] } },
+    originalOf: new Map([["mirror/all:review", "garrytan/gstack:review"]]),
+    mirrorIds: new Set(["mirror/all:review", "mirror/all:gone"]),
+  };
+  const rows = [
+    row({ id: "older-gstack", catalogSkillIdHint: null, skillMdSha: old }),
+    row({ id: "orphan", catalogSkillIdHint: null, skillMdSha: orphan }),
+  ];
+  const { skills } = await readSyncInventory(pool(rows), "user", 2, new Date(), async () => identity) as {
+    skills: Array<{ id: string; catalogSkillId: string | null }>
+  };
+  assert.deepEqual(Object.fromEntries(skills.map((skill) => [skill.id, skill.catalogSkillId])), {
+    "older-gstack": "garrytan/gstack:review", orphan: null,
+  });
+});

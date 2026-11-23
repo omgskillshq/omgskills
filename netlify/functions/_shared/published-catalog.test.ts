@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   createCatalogHintIdentityLoader,
   createPublishedCatalogIdentityLoader,
+  mirroredOriginalId,
   fetchPublishedCatalogIdentity,
   fetchPublishedSkills,
 } from "./published-catalog.js";
@@ -168,4 +169,11 @@ test("hint identity checks only the detail shards holding the hints, never the f
   const byContent = await load([], (history) => { seen = history.shaToSkillIds; return [live, "owner/repo:removed"]; });
   assert.deepEqual([...byContent.liveSkillIds], [live]);
   assert.deepEqual(seen, { ["a".repeat(40)]: [live] });
+});
+
+test("a mirror's original is read from where the mirror keeps it", () => {
+  assert.equal(mirroredOriginalId({ provenance_type: "mirrored", skill_md_path: "mirrors/repos/garrytan@gstack/plan-devex-review/SKILL.md" }), "garrytan/gstack:plan-devex-review");
+  assert.equal(mirroredOriginalId({ provenance_type: "mirrored", skill_md_path: "repos/blader@humanizer/SKILL.md" }), "blader/humanizer");
+  assert.equal(mirroredOriginalId({ provenance_type: "mirrored", skill_md_path: "skills/x/SKILL.md" }), null);
+  assert.equal(mirroredOriginalId({ provenance_type: "original", skill_md_path: "mirrors/repos/a@b/x/SKILL.md" }), null);
 });

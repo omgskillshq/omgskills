@@ -28,6 +28,10 @@ export type PublishedCatalogIdentity = {
   track: string;
   liveSkillIds: ReadonlySet<string>;
   shaHistory: ShaHistoryAsset | null;
+  /** For checked mirror skills: the original skill's ID, when that original is live too. */
+  originalOf?: ReadonlyMap<string, string>;
+  /** Checked skills the catalog lists as mirrors of another repo's skill. */
+  mirrorIds?: ReadonlySet<string>;
 };
 
 type AssetReference = {
@@ -203,8 +207,22 @@ type HintCatalog = {
   track: string;
   shaHistory: ShaHistoryAsset;
   detailShards: Record<string, string>;
-  shards: Map<string, Promise<ReadonlySet<string>>>;
+  shards: Map<string, Promise<ShardIndex>>;
 };
+
+/** A detail shard's live IDs, and for mirror skills the original skill each one copies. */
+type ShardIndex = { ids: ReadonlySet<string>; mirrors: ReadonlyMap<string, string> };
+
+/**
+ * The original of a mirror skill, from where the mirror keeps it: a `mirrors/repos/<owner>@<repo>/<folder>/SKILL.md`
+ * path names the original as `<owner>/<repo>:<folder>` (or `<owner>/<repo>` for a skill at the repo's root).
+ */
+export function mirroredOriginalId(row: { provenance_type?: unknown; skill_md_path?: unknown }): string | null {
+  if (row.provenance_type !== "mirrored" || typeof row.skill_md_path !== "string") return null;
+  const match = /(?:^|\/)repos\/([A-Za-z0-9_.-]+)@([A-Za-z0-9_.-]+)\/(?:(.+)\/)?SKILL\.md$/.exec(row.skill_md_path);
+  if (!match) return null;
+  return match[3] ? `${match[1]}/${match[2]}:${match[3]}` : `${match[1]}/${match[2]}`;
+}
 
 async function fetchHintCatalog(fetcher: typeof fetch, tracks: PublishedTrack[]): Promise<HintCatalog> {
   for (const track of tracks) {
@@ -232,12 +250,19 @@ async function fetchHintCatalog(fetcher: typeof fetch, tracks: PublishedTrack[])
   throw new Error("Published catalog hint assets unavailable");
 }
 
-function shardIds(catalog: HintCatalog, url: string, fetcher: typeof fetch): Promise<ReadonlySet<string>> {
+function shardIds(catalog: HintCatalog, url: string, fetcher: typeof fetch): Promise<ShardIndex> {
   let ids = catalog.shards.get(url);
   if (!ids) {
     ids = fetchJson(url, fetcher).then((rows) => {
       if (!Array.isArray(rows)) throw new Error("Published skill detail shard must be an array");
-      return new Set(rows.flatMap((row) => (isObject(row) && typeof row.id === "string" ? [row.id] : [])));
+      const mirrors = new Map<string, string>();
+      const live = new Set(rows.flatMap((row) => {
+        if (!isObject(row) || typeof row.id !== "string") return [];
+        const original = mirroredOriginalId(row);
+        if (original) mirrors.set(row.id, original);
+        return [row.id];
+      }));
+      return { ids: live, mirrors };
     });
     ids.catch(() => catalog.shards.delete(url));
     catalog.shards.set(url, ids);
@@ -246,7 +271,7 @@ function shardIds(catalog: HintCatalog, url: string, fetcher: typeof fetch): Pro
 }
 
 /** Most detail shards (about 370 KB each) one content match may read. */
-const MAX_CONTENT_SHARDS = 24;
+const MAX_CONTENT_SHARDS = 48;
 
 /**
  * Identity for checking catalog hints without the full skills asset: SHA history plus
@@ -277,11 +302,24 @@ export function createCatalogHintIdentityLoader(
         return true;
       });
     }
-    await Promise.all(ids.map(async (id) => {
+    const mirrors = new Map<string, string>();
+    const check = async (id: string) => {
       const url = catalog.detailShards[createHash("sha256").update(id, "utf8").digest("hex").slice(0, 2)];
-      if (url && (await shardIds(catalog, url, fetcher)).has(id)) live.add(id);
-    }));
-    return { track: catalog.track, liveSkillIds: live, shaHistory: catalog.shaHistory };
+      if (!url) return;
+      const shard = await shardIds(catalog, url, fetcher);
+      if (!shard.ids.has(id)) return;
+      live.add(id);
+      const original = shard.mirrors.get(id);
+      if (original) mirrors.set(id, original);
+    };
+    await Promise.all(ids.map(check));
+    // A content match on a mirror counts for its original, so the originals are checked too.
+    const originalOf = new Map<string, string>();
+    if (candidates && mirrors.size) {
+      await Promise.all([...new Set(mirrors.values())].slice(0, MAX_CONTENT_SHARDS).map(check));
+      for (const [mirror, original] of mirrors) if (live.has(original)) originalOf.set(mirror, original);
+    }
+    return { track: catalog.track, liveSkillIds: live, shaHistory: catalog.shaHistory, ...(candidates ? { originalOf, mirrorIds: new Set(mirrors.keys()) } : {}) };
   };
 }
 
