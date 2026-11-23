@@ -298,6 +298,18 @@ export async function portalCloudSave(
     if (error instanceof Response) {
       return secretJsonResponse(req, { error: await error.text() }, { status: error.status });
     }
+    // Unexpected: log what kind of failure it was (a database error's code and the constraint or
+    // table it names), never its message or detail, which can hold saved data.
+    const db = error as { code?: unknown; constraint?: unknown; table?: unknown; routine?: unknown };
+    console.error("cloud save request failed", {
+      method: req.method,
+      route: new URL(req.url).pathname.replace(/\/skills\/[^/]+/, "/skills/:key"),
+      name: error instanceof Error ? error.name : typeof error,
+      ...(typeof db.code === "string" ? { code: db.code } : {}),
+      ...(typeof db.constraint === "string" ? { constraint: db.constraint } : {}),
+      ...(typeof db.table === "string" ? { table: db.table } : {}),
+      ...(typeof db.routine === "string" ? { routine: db.routine } : {}),
+    });
     return secretJsonResponse(req, { error: "Cloud save request failed" }, { status: 500 });
   }
 }
