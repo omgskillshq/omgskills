@@ -28,10 +28,6 @@ export type PublishedCatalogIdentity = {
   track: string;
   liveSkillIds: ReadonlySet<string>;
   shaHistory: ShaHistoryAsset | null;
-  /** For checked mirror skills: the original skill's ID, when that original is live too. */
-  originalOf?: ReadonlyMap<string, string>;
-  /** Checked skills the catalog lists as mirrors of another repo's skill. */
-  mirrorIds?: ReadonlySet<string>;
 };
 
 type AssetReference = {
@@ -105,7 +101,7 @@ function parseSkills(value: unknown): CatalogSkill[] {
   return value.filter((skill): skill is CatalogSkill => isObject(skill));
 }
 
-function parseShaHistory(value: unknown): ShaHistoryAsset {
+export function parseShaHistory(value: unknown): ShaHistoryAsset {
   if (!isObject(value) || value.version !== 1 || !isObject(value.shaToSkillIds)) {
     throw new Error("Published SHA history has an invalid shape");
   }
@@ -207,11 +203,8 @@ type HintCatalog = {
   track: string;
   shaHistory: ShaHistoryAsset;
   detailShards: Record<string, string>;
-  shards: Map<string, Promise<ShardIndex>>;
+  shards: Map<string, Promise<ReadonlySet<string>>>;
 };
-
-/** A detail shard's live IDs, and for mirror skills the original skill each one copies. */
-type ShardIndex = { ids: ReadonlySet<string>; mirrors: ReadonlyMap<string, string> };
 
 /**
  * The original of a mirror skill, from where the mirror keeps it: a `mirrors/repos/<owner>@<repo>/<folder>/SKILL.md`
@@ -250,19 +243,12 @@ async function fetchHintCatalog(fetcher: typeof fetch, tracks: PublishedTrack[])
   throw new Error("Published catalog hint assets unavailable");
 }
 
-function shardIds(catalog: HintCatalog, url: string, fetcher: typeof fetch): Promise<ShardIndex> {
+function shardIds(catalog: HintCatalog, url: string, fetcher: typeof fetch): Promise<ReadonlySet<string>> {
   let ids = catalog.shards.get(url);
   if (!ids) {
     ids = fetchJson(url, fetcher).then((rows) => {
       if (!Array.isArray(rows)) throw new Error("Published skill detail shard must be an array");
-      const mirrors = new Map<string, string>();
-      const live = new Set(rows.flatMap((row) => {
-        if (!isObject(row) || typeof row.id !== "string") return [];
-        const original = mirroredOriginalId(row);
-        if (original) mirrors.set(row.id, original);
-        return [row.id];
-      }));
-      return { ids: live, mirrors };
+      return new Set(rows.flatMap((row) => (isObject(row) && typeof row.id === "string" ? [row.id] : [])));
     });
     ids.catch(() => catalog.shards.delete(url));
     catalog.shards.set(url, ids);
@@ -270,55 +256,27 @@ function shardIds(catalog: HintCatalog, url: string, fetcher: typeof fetch): Pro
   return ids;
 }
 
-/** Most detail shards (about 370 KB each) one content match may read. */
-const MAX_CONTENT_SHARDS = 48;
-
 /**
  * Identity for checking catalog hints without the full skills asset: SHA history plus
  * the detail shards that hold the hinted IDs, so `liveSkillIds` covers only those hints.
- * With `candidates`, the IDs to check are picked from the SHA history instead (for matching
- * copies by content), and at most MAX_CONTENT_SHARDS shards are read; IDs past that stay unchecked.
  */
 export function createCatalogHintIdentityLoader(
   options: LoaderOptions = {},
-): (hintIds: readonly string[], candidates?: (history: ShaHistoryAsset) => readonly string[]) => Promise<PublishedCatalogIdentity> {
+): (hintIds: readonly string[]) => Promise<PublishedCatalogIdentity> {
   const fetcher = options.fetcher ?? fetch;
   const loadCatalog = cachedLoader(
     () => fetchHintCatalog(fetcher, options.tracks ?? publishedCatalogTracks),
     options.now ?? Date.now,
     options.cacheMs ?? 5 * 60_000,
   );
-  return async (hintIds, candidates) => {
+  return async (hintIds) => {
     const catalog = await loadCatalog();
     const live = new Set<string>();
-    // One budget for the whole content lookup (both passes): IDs past it stay unchecked.
-    const shards = new Set<string>();
-    const withinBudget = (id: string) => {
-      const shard = createHash("sha256").update(id, "utf8").digest("hex").slice(0, 2);
-      if (!shards.has(shard) && shards.size >= MAX_CONTENT_SHARDS) return false;
-      shards.add(shard);
-      return true;
-    };
-    let ids = [...new Set(hintIds)];
-    if (candidates) ids = (catalog.shaHistory ? [...new Set(candidates(catalog.shaHistory))] : []).filter(withinBudget);
-    const mirrors = new Map<string, string>();
-    const check = async (id: string) => {
+    await Promise.all([...new Set(hintIds)].map(async (id) => {
       const url = catalog.detailShards[createHash("sha256").update(id, "utf8").digest("hex").slice(0, 2)];
-      if (!url) return;
-      const shard = await shardIds(catalog, url, fetcher);
-      if (!shard.ids.has(id)) return;
-      live.add(id);
-      const original = shard.mirrors.get(id);
-      if (original) mirrors.set(id, original);
-    };
-    await Promise.all(ids.map(check));
-    // A content match on a mirror counts for its original, so the originals are checked too.
-    const originalOf = new Map<string, string>();
-    if (candidates && mirrors.size) {
-      await Promise.all([...new Set(mirrors.values())].filter(withinBudget).map(check));
-      for (const [mirror, original] of mirrors) if (live.has(original)) originalOf.set(mirror, original);
-    }
-    return { track: catalog.track, liveSkillIds: live, shaHistory: catalog.shaHistory, ...(candidates ? { originalOf, mirrorIds: new Set(mirrors.keys()) } : {}) };
+      if (url && (await shardIds(catalog, url, fetcher)).has(id)) live.add(id);
+    }));
+    return { track: catalog.track, liveSkillIds: live, shaHistory: catalog.shaHistory };
   };
 }
 

@@ -1,4 +1,5 @@
 import { getStore } from "@netlify/blobs";
+import { ensureContentIndex } from "./_shared/catalog-content-index.js";
 import { getPgPool } from "./_shared/db.js";
 import { scanDriverConfigFromEnv } from "./_shared/scan-driver.js";
 import {
@@ -22,6 +23,17 @@ export default async (request: Request) => {
   if (!signed) {
     console.warn("public scan: unsigned request ignored");
     return;
+  }
+  try {
+    // The index My skills uses to recognize library skills installed from GitHub directly.
+    const blobs = getStore("catalog-index");
+    const rebuilt = await ensureContentIndex({
+      get: (key) => blobs.get(key, { type: "json" }),
+      set: (key, value) => blobs.setJSON(key, value).then(() => undefined),
+    });
+    if (rebuilt) console.info("catalog content index rebuilt");
+  } catch (error) {
+    console.error("catalog content index not built", { error: error instanceof Error ? error.message : String(error) });
   }
   let result;
   try {

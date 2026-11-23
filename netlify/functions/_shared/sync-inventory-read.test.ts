@@ -3,6 +3,7 @@ import test from "node:test";
 import type { Pool } from "pg";
 import type { PublishedCatalogIdentity } from "./published-catalog.js";
 import { readSyncInventory } from "./sync-inventory-read.js";
+import { buildContentIndex, partitionOf, type ContentIndexEntry } from "./catalog-content-index.js";
 
 const sha = "c".repeat(40);
 const row = (overrides: Record<string, unknown>) => ({
@@ -64,115 +65,96 @@ test("inventory reads keep a saved skill on its own key after the other same-nam
   assert.equal(skills[0].cloudKey, "last30days@codex");
 });
 
-test("a copy installed from GitHub directly is linked when its SKILL.md is exactly one library skill's", async () => {
-  const forkSha = "e".repeat(40);
-  const shared: PublishedCatalogIdentity = {
-    track: "fixture",
-    liveSkillIds: new Set(["remotion-dev/skills:remotion-render", "acme/skills:notes", "fork/skills:notes", "acme/skills:tools/notes", "acme/skills:other/notes"]),
-    shaHistory: { version: 1, shaToSkillIds: {
-      [sha]: ["remotion-dev/skills:remotion-render"],
-      [forkSha]: ["acme/skills:notes", "fork/skills:notes"],
-      ["f".repeat(40)]: ["acme/skills:tools/notes", "acme/skills:other/notes"],
-    } },
+// The content index as the background scan builds it, read in memory.
+function index(skills: Record<string, unknown>[], history: Record<string, string[]>, canonicalBySha = {}) {
+  const partitions = buildContentIndex(skills, { version: 1, shaToSkillIds: history, canonicalBySha });
+  return async (keys: string[]) => {
+    const entries: Record<string, ContentIndexEntry> = {};
+    for (const key of keys) {
+      const entry = partitions.get(partitionOf(key))?.[key];
+      if (entry) entries[key] = entry;
+    }
+    return entries;
   };
-  let picked: readonly string[] = [];
-  let hintsAsked: string[] | null = null;
-  const rows = [
-    row({ id: "cloned", catalogSkillIdHint: null, githubUrl: "https://github.com/remotion-dev/skills" }),
-    row({ id: "copied", catalogSkillIdHint: null }),
-    row({ id: "edited", catalogSkillIdHint: null, skillMdSha: "d".repeat(40) }),
-    // Two published skills share the content: the copy's own repo picks one, or it stays unlinked.
-    row({ id: "fork-picked", catalogSkillIdHint: null, skillMdSha: forkSha, githubUrl: "https://github.com/fork/skills" }),
-    row({ id: "fork-unknown", catalogSkillIdHint: null, skillMdSha: forkSha }),
-    row({ id: "same-repo-path", catalogSkillIdHint: null, skillMdSha: "f".repeat(40), githubUrl: "https://github.com/acme/skills", gitRelativePath: "tools/notes" }),
-    row({ id: "same-repo-no-path", catalogSkillIdHint: null, skillMdSha: "f".repeat(40), githubUrl: "https://github.com/acme/skills" }),
-  ];
-  const { skills } = await readSyncInventory(pool(rows), "user", 2, new Date(), async (hints, candidates) => {
-    if (candidates) picked = candidates(shared.shaHistory!);
-    else hintsAsked = hints;
-    return shared;
-  }) as { skills: Array<{ id: string; catalogSkillId: string | null; isLocalOnly: boolean }> };
-  const linked = Object.fromEntries(skills.map((skill) => [skill.id, skill.catalogSkillId]));
-  assert.deepEqual(linked, {
-    cloned: "remotion-dev/skills:remotion-render",
-    copied: "remotion-dev/skills:remotion-render",
-    edited: null,
-    "fork-picked": "fork/skills:notes",
-    "fork-unknown": null,
-    "same-repo-path": "acme/skills:tools/notes",
-    "same-repo-no-path": null,
+}
+const skill = (id: string, extra: Record<string, unknown> = {}) => ({ id, name: id.split(/[:/]/).pop(), description: `About ${id}.`, ...extra });
+async function linked(rows: unknown[], read: ReturnType<typeof index>) {
+  const { skills } = await readSyncInventory(pool(rows), "user", 2, new Date(), async () => catalog, read) as {
+    skills: Array<{ id: string; catalogSkillId: string | null; isLocalOnly: boolean }>
+  };
+  return Object.fromEntries(skills.map((s) => [s.id, s.catalogSkillId]));
+}
+
+test("a copy installed from GitHub directly is linked when its SKILL.md is exactly one library skill's", async () => {
+  const fork = "e".repeat(40), folders = "f".repeat(40);
+  const read = index(
+    ["remotion-dev/skills:remotion-render", "acme/skills:notes", "fork/skills:notes", "acme/skills:tools/notes", "acme/skills:other/notes"].map((id) => skill(id)),
+    { [sha]: ["remotion-dev/skills:remotion-render"], [fork]: ["acme/skills:notes", "fork/skills:notes"],
+      [folders]: ["acme/skills:tools/notes", "acme/skills:other/notes"] },
+  );
+  const plain = { catalogSkillIdHint: null, name: "local", description: "Not in the library." };
+  assert.deepEqual(await linked([
+    row({ id: "cloned", ...plain, githubUrl: "https://github.com/remotion-dev/skills" }),
+    row({ id: "copied", ...plain }),
+    row({ id: "edited", ...plain, skillMdSha: "d".repeat(40) }),
+    row({ id: "fork-picked", ...plain, skillMdSha: fork, githubUrl: "https://github.com/fork/skills" }),
+    row({ id: "fork-unknown", ...plain, skillMdSha: fork }),
+    row({ id: "same-repo-path", ...plain, skillMdSha: folders, githubUrl: "https://github.com/acme/skills", gitRelativePath: "tools/notes" }),
+    row({ id: "same-repo-no-path", ...plain, skillMdSha: folders, githubUrl: "https://github.com/acme/skills" }),
+  ], read), {
+    cloned: "remotion-dev/skills:remotion-render", copied: "remotion-dev/skills:remotion-render", edited: null,
+    "fork-picked": "fork/skills:notes", "fork-unknown": null, "same-repo-path": "acme/skills:tools/notes", "same-repo-no-path": null,
   });
-  assert.equal(skills.find((skill) => skill.id === "copied")?.isLocalOnly, false);
-  // No hinted copies, so no hint lookup; the content lookup checks only skills that can decide a match.
-  assert.equal(hintsAsked, null);
-  // A few skills sharing the content are all checked.
-  assert.deepEqual([...new Set(picked)].sort(), ["acme/skills:notes", "acme/skills:other/notes", "acme/skills:tools/notes", "fork/skills:notes", "remotion-dev/skills:remotion-render"]);
 });
 
-test("a hinted copy is still checked against its hint only, never re-matched by content", async () => {
+test("another version of a library skill is linked by its name and description, only when that's clear", async () => {
+  const read = index([
+    skill("inference-sh/skills:app-store-screenshots", { name: "app-store-screenshots", description: "Make App Store screenshots." }),
+    skill("exiao/skills:app-store-screenshots", { name: "app-store-screenshots", description: "Something else entirely." }),
+    skill("a/x:twin", { name: "twin", description: "Same words." }),
+    skill("b/y:twin", { name: "twin", description: "Same words." }),
+  ], {});
+  const copy = (id: string, name: string, description: string, extra = {}) =>
+    row({ id, catalogSkillIdHint: null, skillMdSha: "9".repeat(40), name, description, ...extra });
+  assert.deepEqual(await linked([
+    copy("older", "app-store-screenshots", "Make  App Store\nscreenshots."),
+    copy("renamed", "app-store-screenshots", "My own version."),
+    copy("twin-unknown", "twin", "Same words."),
+    copy("twin-picked", "twin", "Same words.", { githubUrl: "https://github.com/b/y" }),
+  ], read), { older: "inference-sh/skills:app-store-screenshots", renamed: null, "twin-unknown": null, "twin-picked": "b/y:twin" });
+});
+
+test("a mirror counts for its original when that's listed, and never on its own", async () => {
+  const old = "7".repeat(40), orphan = "6".repeat(40);
+  const read = index([
+    skill("mirror/all:review", { provenance_type: "mirrored", skill_md_path: "mirrors/repos/garrytan@gstack/review/SKILL.md" }),
+    skill("garrytan/gstack:review"),
+    skill("mirror/all:gone", { provenance_type: "mirrored", skill_md_path: "mirrors/repos/nobody@missing/gone/SKILL.md" }),
+  ], { [old]: ["mirror/all:review"], [orphan]: ["mirror/all:gone"] });
+  assert.deepEqual(await linked([
+    row({ id: "older-gstack", catalogSkillIdHint: null, skillMdSha: old, name: "x", description: "y" }),
+    row({ id: "orphan", catalogSkillIdHint: null, skillMdSha: orphan, name: "x", description: "y" }),
+  ], read), { "older-gstack": "garrytan/gstack:review", orphan: null });
+});
+
+test("the catalog's canonical pick decides only when the copy has no repo of its own among the candidates", async () => {
+  const shared = "9".repeat(40);
+  const read = index([skill("acme/skills:a"), skill("acme/skills:b")], { [shared]: ["acme/skills:a", "acme/skills:b"] },
+    { [shared]: { skillId: "acme/skills:a", confidence: "high", reason: "same-repo" } });
+  const copy = (id: string, extra = {}) => row({ id, catalogSkillIdHint: null, skillMdSha: shared, name: "n", description: "d", ...extra });
+  assert.deepEqual(await linked([
+    copy("folder-b", { githubUrl: "https://github.com/acme/skills", gitRelativePath: "b" }),
+    copy("no-folder", { githubUrl: "https://github.com/acme/skills" }),
+    copy("no-repo"),
+  ], read), { "folder-b": "acme/skills:b", "no-folder": null, "no-repo": "acme/skills:a" });
+});
+
+test("a hinted copy is still checked against its hint only, and a slow index never costs it", async () => {
   const other: PublishedCatalogIdentity = { track: "fixture", liveSkillIds: new Set(["acme/skills:notes"]),
     shaHistory: { version: 1, shaToSkillIds: { [sha]: ["acme/skills:notes"] } } };
-  const { skills } = await readSyncInventory(pool([row({})]), "user", 2, new Date(), async () => other) as {
-    skills: Array<{ catalogSkillId: string | null }>
-  };
-  assert.equal(skills[0].catalogSkillId, null);
-});
-
-test("popular content copied into many repos never checks them all, and a slow content lookup keeps hints", async () => {
-  const many = Array.from({ length: 40 }, (_, index) => `copy${index}/skills:canvas`);
-  const history = { version: 1 as const, shaToSkillIds: { [sha]: many } };
-  const copy = row({ id: "clone", catalogSkillIdHint: null, githubUrl: "https://github.com/copy7/skills" });
-  let picked: readonly string[] = [];
-  const hinted = row({ id: "hinted", skillMdSha: "a".repeat(40), catalogSkillIdHint: "remotion-dev/skills:remotion-render" });
-  const identity: PublishedCatalogIdentity = { track: "fixture", liveSkillIds: new Set(["remotion-dev/skills:remotion-render", ...many]),
-    shaHistory: { version: 1, shaToSkillIds: { ...history.shaToSkillIds, ["a".repeat(40)]: ["remotion-dev/skills:remotion-render"] } } };
-  const { skills } = await readSyncInventory(pool([copy, hinted]), "user", 2, new Date(), async (_hints, candidates) => {
-    if (candidates) { picked = candidates(identity.shaHistory!); return new Promise(() => {}); }
-    return identity;
-  }) as { skills: Array<{ id: string; catalogSkillId: string | null }> };
-  assert.deepEqual(picked, ["copy7/skills:canvas"], "only the copy's own repo is checked");
-  assert.deepEqual(skills.map((skill) => [skill.id, skill.catalogSkillId]), [["clone", null], ["hinted", "remotion-dev/skills:remotion-render"]]);
-});
-
-test("the copy's own folder beats the catalog's canonical pick, and a forked-then-removed skill still matches", async () => {
-  const shared = "9".repeat(40), moved = "8".repeat(40);
-  const identity: PublishedCatalogIdentity = {
-    track: "fixture",
-    liveSkillIds: new Set(["acme/skills:a", "acme/skills:b", "new/skills:notes"]),
-    shaHistory: { version: 1, shaToSkillIds: { [shared]: ["acme/skills:a", "acme/skills:b"], [moved]: ["old/skills:notes", "new/skills:notes"] },
-      canonicalBySha: { [shared]: { skillId: "acme/skills:a", confidence: "high", reason: "same-repo" } } },
-  };
-  const rows = [
-    row({ id: "folder-b", catalogSkillIdHint: null, skillMdSha: shared, githubUrl: "https://github.com/acme/skills", gitRelativePath: "b" }),
-    row({ id: "no-folder", catalogSkillIdHint: null, skillMdSha: shared, githubUrl: "https://github.com/acme/skills" }),
-    row({ id: "no-repo", catalogSkillIdHint: null, skillMdSha: shared }),
-    row({ id: "moved", catalogSkillIdHint: null, skillMdSha: moved }),
-  ];
-  const { skills } = await readSyncInventory(pool(rows), "user", 2, new Date(), async () => identity) as {
-    skills: Array<{ id: string; catalogSkillId: string | null }>
-  };
-  assert.deepEqual(Object.fromEntries(skills.map((skill) => [skill.id, skill.catalogSkillId])), {
-    "folder-b": "acme/skills:b", "no-folder": null, "no-repo": "acme/skills:a", moved: "new/skills:notes",
-  });
-});
-
-test("a copy matching only a mirror is linked to the mirror's original, or stays personal when that isn't listed", async () => {
-  const old = "7".repeat(40), orphan = "6".repeat(40);
-  const identity: PublishedCatalogIdentity = {
-    track: "fixture",
-    liveSkillIds: new Set(["mirror/all:review", "garrytan/gstack:review", "mirror/all:gone"]),
-    shaHistory: { version: 1, shaToSkillIds: { [old]: ["mirror/all:review"], [orphan]: ["mirror/all:gone"] } },
-    originalOf: new Map([["mirror/all:review", "garrytan/gstack:review"]]),
-    mirrorIds: new Set(["mirror/all:review", "mirror/all:gone"]),
-  };
-  const rows = [
-    row({ id: "older-gstack", catalogSkillIdHint: null, skillMdSha: old }),
-    row({ id: "orphan", catalogSkillIdHint: null, skillMdSha: orphan }),
-  ];
-  const { skills } = await readSyncInventory(pool(rows), "user", 2, new Date(), async () => identity) as {
-    skills: Array<{ id: string; catalogSkillId: string | null }>
-  };
-  assert.deepEqual(Object.fromEntries(skills.map((skill) => [skill.id, skill.catalogSkillId])), {
-    "older-gstack": "garrytan/gstack:review", orphan: null,
-  });
+  const { skills } = await readSyncInventory(pool([row({}), row({ id: "hinted-ok", skillMdSha: "a".repeat(40), catalogSkillIdHint: "acme/skills:notes" }),
+    row({ id: "unhinted", catalogSkillIdHint: null })]),
+    "user", 2, new Date(), async () => ({ ...other, shaHistory: { version: 1, shaToSkillIds: { ...other.shaHistory!.shaToSkillIds, ["a".repeat(40)]: ["acme/skills:notes"] } } }),
+    () => new Promise(() => {})) as { skills: Array<{ id: string; catalogSkillId: string | null }> };
+  assert.deepEqual(skills.map((s) => [s.id, s.catalogSkillId]), [["row", null], ["hinted-ok", "acme/skills:notes"], ["unhinted", null]]);
 });

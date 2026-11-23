@@ -1,0 +1,51 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import {
+  buildContentIndex, contentIndexReader, contentKey, ensureContentIndex, keysFor, matchCopy, namedKey, partitionOf, writeContentIndex,
+  type ContentIndexStore,
+} from "./catalog-content-index.js";
+
+function memoryStore(): ContentIndexStore & { data: Map<string, unknown>; reads: string[] } {
+  const data = new Map<string, unknown>();
+  const reads: string[] = [];
+  return { data, reads, async get(key) { reads.push(key); return data.get(key) ?? null; }, async set(key, value) { data.set(key, value); } };
+}
+
+test("the index holds only live skills, mirrors as their originals, and name+description keys", () => {
+  const sha = "a".repeat(40);
+  const parts = buildContentIndex([
+    { id: "o/r:x", name: "x", description: "Does X." },
+    { id: "m/all:x", name: "x", description: "Does X.", provenance_type: "mirrored", skill_md_path: "mirrors/repos/o@r/x/SKILL.md" },
+  ], { version: 1, shaToSkillIds: { [sha]: ["m/all:x", "gone/repo:x"] } });
+  const get = (key: string) => parts.get(partitionOf(key))?.[key];
+  assert.deepEqual(get(contentKey(sha)), { ids: ["o/r:x"] });
+  assert.deepEqual(get(namedKey("X", "does   x.")!), { ids: ["o/r:x"] });
+});
+
+test("written in 256 parts with meta last; a reader fetches only the parts it needs, once", async () => {
+  const store = memoryStore();
+  const parts = buildContentIndex([{ id: "o/r:x", name: "x", description: "Does X." }], { version: 1, shaToSkillIds: { ["b".repeat(40)]: ["o/r:x"] } });
+  await writeContentIndex(store, "2026-11-23", parts);
+  assert.equal([...store.data.keys()].filter((key) => key.startsWith("p/")).length, 256);
+  assert.equal([...store.data.keys()].at(-1), "meta.json");
+  const read = contentIndexReader(store);
+  const copy = { skillMdSha: "B".repeat(40), name: "x", description: "Does X." };
+  const entries = await read(keysFor(copy));
+  assert.equal(matchCopy(copy, entries), "o/r:x");
+  await read(keysFor(copy));
+  assert.equal(store.reads.length, new Set(keysFor(copy).map(partitionOf)).size, "parts are cached");
+});
+
+test("the background run rebuilds only for a new catalog", async () => {
+  const store = memoryStore();
+  const files: Record<string, unknown> = {
+    "https://omgskills.com/data/crawl4/manifest.json": { generatedAt: "g1", skills: { path: "skills.json" }, shaHistory: { path: "sha.json" } },
+    "https://omgskills.com/data/crawl4/skills.json": [{ id: "o/r:x", name: "x", description: "Does X." }],
+    "https://omgskills.com/data/crawl4/sha.json": { version: 1, shaToSkillIds: {} },
+  };
+  const fetcher = (async (url: string) => files[url] ? Response.json(files[url]) : new Response("", { status: 404 })) as unknown as typeof fetch;
+  assert.equal(await ensureContentIndex(store, fetcher), true);
+  assert.equal(await ensureContentIndex(store, fetcher), false);
+  (files["https://omgskills.com/data/crawl4/manifest.json"] as { generatedAt: string }).generatedAt = "g2";
+  assert.equal(await ensureContentIndex(store, fetcher), true);
+});
