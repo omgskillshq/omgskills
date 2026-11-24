@@ -1882,3 +1882,50 @@ test("a Set item shared from My skills follows the library once it's recognized 
     assert.equal((await readCloudSave(pool, owner.userId)).skills.some((skill) => skill.key === "notes"), true);
   });
 });
+
+test("the background job compares a saved copy's text with same-named library skills and records what it confirms", async () => {
+  const { computeContentMatches, readConfirmedMatches } = await import("./content-match.js");
+  const { namedKey, nameKey } = await import("./catalog-content-index.js");
+  const longNotes: File[] = [{ path: "SKILL.md", text: "---\nname: notes\ndescription: Take notes.\n---\n# Notes\nWrite down what was decided in the meeting and who owns each follow up item. Send the notes to everyone who attended within an hour, and keep a copy in the shared folder.\n" }];
+  await withMigratedSchema(async (pool) => {
+    const store = new MemoryStore();
+    const owner = await createUser(pool);
+    await updateCloudSaveSettings(pool, owner.userId, { enabled: true });
+    await uploadAll(pool, store, owner.userId, longNotes);
+    await saveCloudVersion(pool, { ...owner, skillKey: "notes", files: manifest(longNotes) });
+    const sha = gitObjectSha("blob", Buffer.from(longNotes[0].text));
+    const run = randomUUID();
+    await pool.query("INSERT INTO sync_runs(id,user_id,device_id,status,completed_at) VALUES($1,$2,$3,'completed',now())", [run, owner.userId, owner.deviceId]);
+    await pool.query(`INSERT INTO synced_skills(user_id,sync_run_id,device_id,stable_key,name,source,identity_status,is_local_only,skill_md_sha,is_current)
+      VALUES($1,$2,$3,'location:longNotes:claude:notes','notes','claude','localOnly',true,$4,true)`, [owner.userId, run, owner.deviceId, sha]);
+    const { name, description } = (await import("./content-match.js")).frontmatter(longNotes[0].text);
+    const entries = { [namedKey(name, description)!]: { ids: ["acme/skills:notes"] }, [nameKey(name)!]: { ids: ["acme/skills:notes", "other/x:notes"] } };
+    const library: Record<string, string> = { "acme/skills:notes": longNotes[0].text + "\nOne more line.\n", "other/x:notes": "Deploy the app to production with the release script, then check the logs and the dashboards for errors over the next hour." };
+    const deps = {
+      store, catalogKey: "g1",
+      readIndex: async (keys: string[]) => Object.fromEntries(keys.flatMap((key) => (entries as Record<string, { ids: string[] }>)[key] ? [[key, (entries as Record<string, { ids: string[] }>)[key]]] : [])),
+      catalogSkill: async (id: string) => ({ name, description: id === "acme/skills:notes" ? description : "Deploys things.", url: `https://raw.test/${id}` }),
+      fetchText: async (url: string) => library[url.replace("https://raw.test/", "")] ?? null,
+    };
+    assert.deepEqual(await computeContentMatches(pool, deps), { checked: 1, confirmed: 1 });
+    assert.deepEqual([...(await readConfirmedMatches(pool, [sha]))], [[sha, "acme/skills:notes"]]);
+    // Done for this catalog build: not compared again until a new one.
+    assert.deepEqual(await computeContentMatches(pool, deps), { checked: 0, confirmed: 0 });
+    // A new build recomputes; unrelated text confirms nothing.
+    library["acme/skills:notes"] = "Boil the water with plenty of salt, add the pasta, stir it often, taste it a minute before the time on the packet, then drain it and keep a cup of the water.";
+    assert.deepEqual(await computeContentMatches(pool, { ...deps, catalogKey: "g2" }), { checked: 1, confirmed: 0 });
+    assert.equal((await readConfirmedMatches(pool, [sha])).size, 0);
+    // A result nobody holds (the copy removed or changed on the Mac) goes on the next run; one for a
+    // version deleted while the run compared it is never written.
+    await pool.query("INSERT INTO content_match_results (skill_md_sha, catalog_key, catalog_skill_id, best_score) VALUES ($1, 'g2', 'acme/skills:notes', 1)", ["d".repeat(40)]);
+    await computeContentMatches(pool, { ...deps, catalogKey: "g2" });
+    assert.equal((await pool.query("SELECT 1 FROM content_match_results WHERE skill_md_sha = $1", ["d".repeat(40)])).rowCount, 0);
+    // The result stays while a copy or saved version still has that SKILL.md, and goes with the last one.
+    const { forgetContentMatches } = await import("./content-match.js");
+    await forgetContentMatches(pool, [sha]);
+    assert.equal((await pool.query("SELECT 1 FROM content_match_results WHERE skill_md_sha = $1", [sha])).rowCount, 1);
+    await pool.query("DELETE FROM synced_skills WHERE user_id = $1", [owner.userId]);
+    await deleteCloudSkills(pool, store, { userId: owner.userId, skillKey: "notes" });
+    assert.equal((await pool.query("SELECT 1 FROM content_match_results WHERE skill_md_sha = $1", [sha])).rowCount, 0);
+  });
+});

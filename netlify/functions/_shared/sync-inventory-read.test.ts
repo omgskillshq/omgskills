@@ -13,8 +13,9 @@ const row = (overrides: Record<string, unknown>) => ({
   gitRelativePath: null, catalogSkillIdHint: "remotion-dev/skills:remotion-render", ...overrides,
 });
 
-function pool(rows: unknown[]): Pool {
-  return { query: async (sql: string) => ({ rows: sql.includes("FROM synced_skills") ? rows : [] }) } as unknown as Pool;
+function pool(rows: unknown[], confirmed: { sha: string; catalogSkillId: string }[] = []): Pool {
+  return { query: async (sql: string) => ({ rows: sql.includes("FROM synced_skills") ? rows
+    : sql.includes("FROM content_match_results") ? confirmed : [] }) } as unknown as Pool;
 }
 
 const catalog: PublishedCatalogIdentity = {
@@ -78,8 +79,8 @@ function index(skills: Record<string, unknown>[], history: Record<string, string
   };
 }
 const skill = (id: string, extra: Record<string, unknown> = {}) => ({ id, name: id.split(/[:/]/).pop(), description: `About ${id}.`, ...extra });
-async function linked(rows: unknown[], read: ReturnType<typeof index>) {
-  const { skills } = await readSyncInventory(pool(rows), "user", 2, new Date(), async () => catalog, read) as {
+async function linked(rows: unknown[], read: ReturnType<typeof index>, confirmed: { sha: string; catalogSkillId: string }[] = []) {
+  const { skills } = await readSyncInventory(pool(rows, confirmed), "user", 2, new Date(), async () => catalog, read) as {
     skills: Array<{ id: string; catalogSkillId: string | null; isLocalOnly: boolean }>
   };
   return Object.fromEntries(skills.map((s) => [s.id, s.catalogSkillId]));
@@ -107,7 +108,7 @@ test("a copy installed from GitHub directly is linked when its SKILL.md is exact
   });
 });
 
-test("another version of a library skill is linked by its name and description, only when that's clear", async () => {
+test("another version is only suggested by name and description, and linked once its text is confirmed", async () => {
   const read = index([
     skill("inference-sh/skills:app-store-screenshots", { name: "app-store-screenshots", description: "Make App Store screenshots." }),
     skill("exiao/skills:app-store-screenshots", { name: "app-store-screenshots", description: "Something else entirely." }),
@@ -116,12 +117,24 @@ test("another version of a library skill is linked by its name and description, 
   ], {});
   const copy = (id: string, name: string, description: string, extra = {}) =>
     row({ id, catalogSkillIdHint: null, skillMdSha: "9".repeat(40), name, description, ...extra });
-  assert.deepEqual(await linked([
+  const rows = [
     copy("older", "app-store-screenshots", "Make  App Store\nscreenshots."),
     copy("renamed", "app-store-screenshots", "My own version."),
     copy("twin-unknown", "twin", "Same words."),
     copy("twin-picked", "twin", "Same words.", { githubUrl: "https://github.com/b/y" }),
-  ], read), { older: "inference-sh/skills:app-store-screenshots", renamed: null, "twin-unknown": null, "twin-picked": "b/y:twin" });
+  ];
+  // Name and description alone never link (they matched unrelated skills in the trial); its own repo does.
+  assert.deepEqual(await linked(rows, read), { older: null, renamed: null, "twin-unknown": null, "twin-picked": "b/y:twin" });
+  // Once the background job confirms the text, it links.
+  const confirmed = [{ sha: "9".repeat(40), catalogSkillId: "inference-sh/skills:app-store-screenshots" }];
+  assert.equal((await linked(rows.slice(0, 1), read, confirmed)).older, "inference-sh/skills:app-store-screenshots");
+  // Unconfirmed: it's offered to choose, by name and description first, then by name alone.
+  const { skills } = await readSyncInventory(pool(rows), "user", 2, new Date(), async () => catalog, read) as {
+    skills: Array<{ id: string; catalogCandidates?: string[] }>
+  };
+  const offered = Object.fromEntries(skills.map((s) => [s.id, s.catalogCandidates]));
+  assert.deepEqual(offered.older, ["inference-sh/skills:app-store-screenshots"]);
+  assert.deepEqual(offered.renamed?.sort(), ["exiao/skills:app-store-screenshots", "inference-sh/skills:app-store-screenshots"]);
 });
 
 test("a mirror counts for its original when that's listed, and never on its own", async () => {

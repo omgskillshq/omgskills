@@ -33,6 +33,15 @@ export function namedKey(name: string, description: string): string | null {
   return `nd:${createHash("sha256").update(`${n}\n${d}`, "utf8").digest("hex")}`;
 }
 
+/** The name alone (compared without case): only ever a suggestion, never a link on its own. */
+export function nameKey(name: string): string | null {
+  const n = name.replace(/\s+/g, " ").trim().toLowerCase();
+  return n ? `n:${createHash("sha256").update(n, "utf8").digest("hex")}` : null;
+}
+
+/** Most library skills kept per name: the most-starred ones. */
+export const MAX_PER_NAME = 20;
+
 export function partitionOf(key: string): string {
   return createHash("sha256").update(key, "utf8").digest("hex").slice(0, 2);
 }
@@ -68,19 +77,22 @@ export function buildContentIndex(skills: readonly IndexedSkill[], history: ShaH
     entries.set(contentKey(sha), canonical && ids.includes(canonical) ? { ids, canonical } : { ids });
   }
   for (const skill of skills) {
-    if (typeof skill.id !== "string" || typeof skill.name !== "string" || typeof skill.description !== "string") continue;
-    const key = namedKey(skill.name, skill.description);
+    if (typeof skill.id !== "string" || typeof skill.name !== "string") continue;
     const id = resolve(skill.id);
-    if (!key || !id) continue;
-    const entry = entries.get(key) ?? { ids: [] };
-    if (!entry.ids.includes(id)) entry.ids.push(id);
-    entries.set(key, entry);
+    if (!id) continue;
+    for (const key of [typeof skill.description === "string" ? namedKey(skill.name, skill.description) : null, nameKey(skill.name)]) {
+      if (!key) continue;
+      const entry = entries.get(key) ?? { ids: [] };
+      if (!entry.ids.includes(id)) entry.ids.push(id);
+      entries.set(key, entry);
+    }
   }
   const partitions = new Map<string, ContentIndexPartition>();
   for (const [key, entry] of entries) {
     const partition = partitions.get(partitionOf(key)) ?? {};
     // Most stars first: the order a person picking between forks sees them.
-    partition[key] = { ...entry, ids: [...entry.ids].sort((a, b) => (stars.get(b) ?? 0) - (stars.get(a) ?? 0) || (a < b ? -1 : a > b ? 1 : 0)) };
+    const ids = [...entry.ids].sort((a, b) => (stars.get(b) ?? 0) - (stars.get(a) ?? 0) || (a < b ? -1 : a > b ? 1 : 0));
+    partition[key] = { ...entry, ids: key.startsWith("n:") ? ids.slice(0, MAX_PER_NAME) : ids };
     partitions.set(partitionOf(key), partition);
   }
   return partitions;
@@ -113,26 +125,56 @@ export type IndexedCopy = {
   githubUrl?: string | null; gitRelativePath?: string | null;
 };
 
-/** The index keys a copy needs: its fingerprint, then its name and description. */
+/** The index keys a copy needs: its fingerprint, its name and description, and its name. */
 export function keysFor(copy: IndexedCopy): string[] {
   const keys: string[] = [];
   if (copy.skillMdSha && /^[0-9a-f]{40}$/i.test(copy.skillMdSha.trim())) keys.push(contentKey(copy.skillMdSha));
   const named = copy.name && copy.description ? namedKey(copy.name, copy.description) : null;
   if (named) keys.push(named);
+  const byName = copy.name ? nameKey(copy.name) : null;
+  if (byName) keys.push(byName);
   return keys;
 }
 
+/** The candidates' entry a copy is judged by: exact content when published, else name and description, else name. */
+function deciding(copy: IndexedCopy, entries: Readonly<Record<string, ContentIndexEntry>>): string | null {
+  const keys = [copy.skillMdSha ? contentKey(copy.skillMdSha) : null,
+    copy.name && copy.description ? namedKey(copy.name, copy.description) : null, copy.name ? nameKey(copy.name) : null];
+  return keys.find((key): key is string => !!key && !!entries[key]?.ids.length) ?? null;
+}
+
 /**
- * Exact content first (this exact version is published); then the same name and description (another
- * version of a library skill, e.g. a little older or newer than the one we recorded).
+ * Links a copy only on strong evidence, tested on the catalog's own version history (match trial,
+ * 2026-11-24): its exact content is published; or it comes from that skill's own GitHub repo (and
+ * folder); or its instructions' text was compared and confirmed (`confirmed`, from content_match_results).
+ * Name and description, or the name, alone only suggest: they linked unrelated skills.
  */
-export function matchCopy(copy: IndexedCopy, entries: Readonly<Record<string, ContentIndexEntry>>): string | null {
+export function matchCopy(
+  copy: IndexedCopy,
+  entries: Readonly<Record<string, ContentIndexEntry>>,
+  confirmed?: string | null,
+): string | null {
   const exactEntry = copy.skillMdSha ? entries[contentKey(copy.skillMdSha)] : undefined;
-  // This exact version is published: it decides alone. Falling back to name and description could
-  // pick a fork that still carries a description the original has since changed.
+  // This exact version is published: it decides alone.
   if (exactEntry?.ids.length) return pick(exactEntry, copy);
-  const named = copy.name && copy.description ? namedKey(copy.name, copy.description) : null;
-  return named ? pick(entries[named], copy) : null;
+  // The copy's own repo among any of its candidates is as good as the same content.
+  if (repoOf(copy.githubUrl)) {
+    for (const key of keysFor(copy)) {
+      const own = entries[key] ? pickOwnRepo(entries[key], copy) : null;
+      if (own) return own;
+    }
+  }
+  // Confirmed by comparing the instructions' text, while that skill is still one of the candidates.
+  return confirmed && keysFor(copy).some((key) => entries[key]?.ids.includes(confirmed)) ? confirmed : null;
+}
+
+function pickOwnRepo(entry: ContentIndexEntry, source: { githubUrl?: string | null; gitRelativePath?: string | null }): string | null {
+  const repo = repoOf(source.githubUrl);
+  const sameRepo = repo ? entry.ids.filter((id) => id.split(":")[0].toLowerCase() === repo) : [];
+  if (sameRepo.length === 1) return sameRepo[0];
+  const path = source.gitRelativePath?.replace(/^\/+|\/+$/g, "").toLowerCase() ?? "";
+  const samePath = sameRepo.filter((id) => id.split(":").slice(1).join(":").toLowerCase() === path);
+  return samePath.length === 1 ? samePath[0] : null;
 }
 
 /** Where the index lives: Netlify Blobs store "catalog-index", one file per partition plus meta.json. */
@@ -141,7 +183,7 @@ export type ContentIndexStore = {
   set(key: string, value: unknown): Promise<void>;
 };
 
-export const CONTENT_INDEX_VERSION = 2;
+export const CONTENT_INDEX_VERSION = 3;
 
 /**
  * Writes a freshly built index, each part whole, then meta.json (which says which catalog it's for).
@@ -221,29 +263,37 @@ export function resolveCopy(
   copy: IndexedCopy,
   entries: Readonly<Record<string, ContentIndexEntry>>,
   choices: ReadonlyMap<string, string | null> = new Map(),
+  confirmed?: string | null,
 ): { catalogSkillId: string } | { matchKey: string; candidates: string[] } | null {
-  const exactKey = copy.skillMdSha ? contentKey(copy.skillMdSha) : null;
-  const namedKeyValue = copy.name && copy.description ? namedKey(copy.name, copy.description) : null;
-  // The entry that decides: the exact one when it's published at all, else name and description.
-  const key = exactKey && entries[exactKey]?.ids.length ? exactKey : namedKeyValue && entries[namedKeyValue]?.ids.length ? namedKeyValue : null;
+  // The same content, or the copy's own repo among the deciding candidates, decides on its own; then
+  // the person's choice, which nothing weaker overrides ("It's my own" stays their own); then the
+  // copy's repo among its other candidates, or a confirmed text match.
+  const exactEntry = copy.skillMdSha ? entries[contentKey(copy.skillMdSha)] : undefined;
+  const exact = exactEntry?.ids.length ? pick(exactEntry, copy) : null;
+  if (exact) return { catalogSkillId: exact };
+  const key = deciding(copy, entries);
   if (!key) return null;
   const entry = entries[key];
-  // The copy's own evidence (its repo and folder, a single candidate, the catalog's pick) decides
-  // first; a person's choice only settles copies nothing else can.
-  const found = matchCopy(copy, entries);
-  if (found) return { catalogSkillId: found };
+  const own = repoOf(copy.githubUrl) ? pickOwnRepo(entry, copy) : null;
+  if (own) return { catalogSkillId: own };
   if (choices.has(key)) {
     const chosen = choices.get(key);
     // A choice of a skill that's no longer a candidate (removed, changed) is asked again.
     if (chosen === null) return null;
     if (chosen && entry.ids.includes(chosen)) return { catalogSkillId: chosen };
   }
-  return entry.ids.length > 1 ? { matchKey: key, candidates: entry.ids.slice(0, MAX_CHOICES) } : null;
+  // "It's my own" said under another key (the name alone, before a closer library skill appeared, or
+  // for another copy with that name) is neither overridden nor applied: the person is asked again.
+  const saidOwnElsewhere = keysFor(copy).some((other) => choices.has(other) && choices.get(other) === null);
+  const byText = saidOwnElsewhere ? null : matchCopy(copy, entries, confirmed);
+  if (byText) return { catalogSkillId: byText };
+  // Suggested, never linked: the person says which one it is, or that it's their own.
+  return { matchKey: key, candidates: entry.ids.slice(0, MAX_CHOICES) };
 }
 
 /** A key a person may record a choice for: an index key as keysFor makes them. */
 export function isMatchKey(value: unknown): value is string {
-  return typeof value === "string" && /^(?:sha:[0-9a-f]{40}|nd:[0-9a-f]{64})$/.test(value);
+  return typeof value === "string" && /^(?:sha:[0-9a-f]{40}|nd:[0-9a-f]{64}|n:[0-9a-f]{64})$/.test(value);
 }
 
 let blobReader: ReturnType<typeof contentIndexReader> | null = null;

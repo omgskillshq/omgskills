@@ -4,6 +4,7 @@ import { cloudSkillKeys } from "./cloud-skill-keys.js";
 import { readCloudRecordNames } from "./cloud-save.js";
 import { verifiedCatalogHint } from "./github-skill-resolution.js";
 import { keysFor, readBlobContentIndex, resolveCopy, type ContentIndexEntry } from "./catalog-content-index.js";
+import { readConfirmedMatches } from "./content-match.js";
 import { withTimeout } from "./http.js";
 import { loadCatalogHintIdentity, type PublishedCatalogIdentity } from "./published-catalog.js";
 import { installationFolderFromKey } from "./sync-skill.js";
@@ -78,8 +79,12 @@ export async function readSyncInventory(
   }
   // A person's own choices between library skills sharing a copy's content (see skill_link_choices).
   const choices = unhinted.length && Object.keys(index).length ? await readLinkChoices(pool, userId) : new Map<string, string | null>();
+  // Versions whose text the background job compared and confirmed.
+  const confirmed = unhinted.length && Object.keys(index).length
+    ? await readConfirmedMatches(pool, [...new Set(unhinted.flatMap((skill) => skill.skillMdSha ? [skill.skillMdSha as string] : []))])
+    : new Map<string, string>();
   for (const skill of unhinted) {
-    const resolved = resolveCopy(skill, index, choices);
+    const resolved = resolveCopy(skill, index, choices, skill.skillMdSha ? confirmed.get(skill.skillMdSha as string) : null);
     if (resolved && "catalogSkillId" in resolved) {
       Object.assign(skill, { catalogSkillId: resolved.catalogSkillId, identityStatus: "resolved", isLocalOnly: false });
     } else if (resolved) {

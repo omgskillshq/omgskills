@@ -68,7 +68,7 @@ test("a part that isn't written yet isn't remembered", async () => {
   const read = contentIndexReader(store);
   const copy = { skillMdSha: "d".repeat(40), name: "x", description: "Does X." };
   assert.deepEqual(await read(keysFor(copy)), {});
-  await writeContentIndex(store, "g1", buildContentIndex([{ id: "o/r:x", name: "x", description: "Does X." }], { version: 1, shaToSkillIds: {} }));
+  await writeContentIndex(store, "g1", buildContentIndex([{ id: "o/r:x", name: "x", description: "Does X." }], { version: 1, shaToSkillIds: { ["d".repeat(40)]: ["o/r:x"] } }));
   assert.equal(matchCopy(copy, await read(keysFor(copy))), "o/r:x");
 });
 
@@ -89,4 +89,27 @@ test("forks are offered most stars first; a choice decides, and 'my own' keeps i
   assert.deepEqual(resolveCopy(fromRepo, entries, new Map([[`sha:${sha}`, "big/repo:x"]])), { catalogSkillId: "small/repo:x" });
   // A choice no longer among the candidates is asked again.
   assert.deepEqual(resolveCopy(copy, entries, new Map([[`sha:${sha}`, "gone/repo:x"]])), { matchKey: `sha:${sha}`, candidates: ["big/repo:x", "small/repo:x"] });
+});
+
+test("a text match links only a current candidate, and never over the person's own choice", () => {
+  const parts = buildContentIndex([
+    { id: "a/r:notes", name: "notes", description: "Notes.", stars: 50 },
+    { id: "b/r:notes", name: "notes", description: "Notes.", stars: 5 },
+  ], { version: 1, shaToSkillIds: {} });
+  const entries = Object.fromEntries([...parts.values()].flatMap((part) => Object.entries(part)));
+  const copy = { skillMdSha: "f".repeat(40), name: "notes", description: "Notes." };
+  const suggested = resolveCopy(copy, entries);
+  assert.ok(suggested && "matchKey" in suggested);
+  assert.deepEqual(resolveCopy(copy, entries, new Map(), "a/r:notes"), { catalogSkillId: "a/r:notes" });
+  // Removed from the library (no longer a candidate): not linked.
+  assert.deepEqual(resolveCopy(copy, entries, new Map(), "gone/r:notes"), suggested);
+  // "It's my own" stays their own; a pick of the other skill stays that pick.
+  assert.equal(resolveCopy(copy, entries, new Map([[suggested.matchKey, null]]), "a/r:notes"), null);
+  assert.deepEqual(resolveCopy(copy, entries, new Map([[suggested.matchKey, "b/r:notes"]]), "a/r:notes"), { catalogSkillId: "b/r:notes" });
+  // "My own", said under the name alone (maybe for another copy with that name): asked again, not linked.
+  const byName = keysFor(copy).find((key) => key.startsWith("n:"))!;
+  assert.notEqual(byName, suggested.matchKey);
+  assert.deepEqual(resolveCopy(copy, entries, new Map([[byName, null]]), "a/r:notes"), suggested);
+  // The copy's repo among the deciding candidates links even so; it's the same skill.
+  assert.deepEqual(resolveCopy({ ...copy, githubUrl: "https://github.com/b/r" }, entries, new Map([[suggested.matchKey, null]])), { catalogSkillId: "b/r:notes" });
 });

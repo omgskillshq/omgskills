@@ -33,7 +33,7 @@ export async function handleSkillLinkChoice(req: Request, overrides: Partial<Ski
     if (catalogSkillId !== null && (typeof catalogSkillId !== "string" || catalogSkillId.length < 1 || catalogSkillId.length > 500)) {
       return errorResponse(req, 400, "Invalid catalogSkillId");
     }
-    // Only content the library has several matches for can be chosen for, "my own" included.
+    // Only for something the library suggested (one match or several), "my own" included.
     let entries: Record<string, ContentIndexEntry>;
     try {
       entries = await deps.readContentIndex([body.matchKey]);
@@ -41,7 +41,7 @@ export async function handleSkillLinkChoice(req: Request, overrides: Partial<Ski
       return errorResponse(req, 503, "Library is unavailable; try again");
     }
     const ids = entries[body.matchKey]?.ids ?? [];
-    if (ids.length < 2) return errorResponse(req, 404, "This skill has no library matches to choose from");
+    if (!ids.length) return errorResponse(req, 404, "This skill has no library matches to choose from");
     if (catalogSkillId !== null && !ids.includes(catalogSkillId)) return errorResponse(req, 404, "Not one of this skill's library matches");
     const saved = await deps.getPgPool().query(
       `INSERT INTO skill_link_choices (user_id, match_key, catalog_skill_id)

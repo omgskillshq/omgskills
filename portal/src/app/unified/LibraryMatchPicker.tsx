@@ -11,8 +11,8 @@ export type LibraryMatch = { matchKey: string; candidates: string[] };
 export function libraryMatchOf(copies: readonly { catalogMatchKey?: unknown; catalogCandidates?: unknown }[]): LibraryMatch | null {
   for (const copy of copies) {
     const key = copy.catalogMatchKey, ids = copy.catalogCandidates;
-    if (typeof key === "string" && /^(?:sha:[0-9a-f]{40}|nd:[0-9a-f]{64})$/.test(key) && Array.isArray(ids)
-      && ids.length >= 2 && ids.length <= 5 && ids.every(id => typeof id === "string" && id.length > 0 && id.length <= 500)) {
+    if (typeof key === "string" && /^(?:sha:[0-9a-f]{40}|nd:[0-9a-f]{64}|n:[0-9a-f]{64})$/.test(key) && Array.isArray(ids)
+      && ids.length >= 1 && ids.length <= 5 && ids.every(id => typeof id === "string" && id.length > 0 && id.length <= 500)) {
       return { matchKey: key, candidates: ids as string[] };
     }
   }
@@ -77,7 +77,9 @@ export function LibraryMatchPicker({ match, load, choose }: {
   return (
     <section className="ua-library-match" aria-label="Library match">
       <strong id={headingId}>Looks like a library skill</strong>
-      <p className="ua-muted">Its instructions match {match.candidates.length} library skills. Which one is it?</p>
+      <p className="ua-muted">{match.candidates.length === 1
+        ? "It may be this library skill. Is it?"
+        : `It may be one of these ${match.candidates.length} library skills. Which one is it?`}</p>
       <ul role="radiogroup" aria-labelledby={headingId}>
         {byStars(match.candidates, details).map(id => {
           const skill = details[match.candidates.indexOf(id)];
