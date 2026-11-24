@@ -21,7 +21,7 @@ export type ContentMatchDeps = {
   /** null only when the file is gone (404); any other failure throws, so the version is tried again. */
   fetchText: (url: string) => Promise<string | null>;
   now?: () => number;
-  /** Stops taking new versions after this long, so the run ends well inside its time limit. */
+  /** Stops taking new versions after this long (from the call), so the run ends inside its time limit. */
   budgetMs?: number;
   /** The catalog build the results are for; a new build recomputes them. */
   catalogKey: string;
@@ -75,6 +75,9 @@ export function confirmByText(
 }
 
 export async function computeContentMatches(pool: Pool, deps: ContentMatchDeps): Promise<{ checked: number; confirmed: number }> {
+  // Results for versions nobody holds any more (a copy removed or changed on the Mac, a Mac moved to
+  // another account) go here; deletes in the portal remove theirs right away.
+  await pool.query(`DELETE FROM content_match_results result WHERE ${NOT_HELD}`);
   // Versions of personal copies (and of shared Set copies) whose text we hold, not yet compared
   // against this catalog build. Copies installed through omgskills carry a hint and don't need this.
   const pending = await pool.query<{ sha: string; userId: string; storageKey: string | null }>(
@@ -111,7 +114,7 @@ export async function computeContentMatches(pool: Pool, deps: ContentMatchDeps):
     return value;
   };
   for (const row of pending.rows) {
-    if (now() - started > (deps.budgetMs ?? 8 * 60_000)) break;
+    if (now() - started >= (deps.budgetMs ?? 8 * 60_000)) break;
     checked += 1;
     let catalogSkillId: string | null = null;
     let best: number | null = null;
@@ -136,8 +139,10 @@ export async function computeContentMatches(pool: Pool, deps: ContentMatchDeps):
       continue;
     }
     if (catalogSkillId) confirmed += 1;
+    // Only while the version is still saved: one deleted during the run leaves nothing behind.
     await pool.query(
-      `INSERT INTO content_match_results (skill_md_sha, catalog_key, catalog_skill_id, best_score) VALUES ($1, $2, $3, $4)
+      `INSERT INTO content_match_results (skill_md_sha, catalog_key, catalog_skill_id, best_score)
+       SELECT $1, $2, $3, $4 WHERE EXISTS (SELECT 1 FROM cloud_blobs WHERE blob_sha = $1)
        ON CONFLICT (skill_md_sha) DO UPDATE SET catalog_key = EXCLUDED.catalog_key, catalog_skill_id = EXCLUDED.catalog_skill_id,
          best_score = EXCLUDED.best_score, computed_at = now()`,
       [row.sha, deps.catalogKey, catalogSkillId, best],
@@ -163,17 +168,14 @@ export async function readConfirmedMatches(pool: Pool, shas: string[]): Promise<
  */
 export async function forgetContentMatches(client: { query: Pool["query"] }, skillMdShas: string[]): Promise<void> {
   if (!skillMdShas.length) return;
-  await client.query(
-    `
-      DELETE FROM content_match_results result
-      WHERE result.skill_md_sha = ANY($1::text[])
-        AND NOT EXISTS (SELECT 1 FROM synced_skills skill WHERE skill.skill_md_sha = result.skill_md_sha)
-        AND NOT EXISTS (
-          SELECT 1 FROM skill_releases release
-          JOIN skill_sources source ON source.id = release.source_id
-          WHERE release.skill_md_sha = result.skill_md_sha AND source.tombstoned_at IS NULL
-        )
-    `,
-    [skillMdShas],
-  );
+  await client.query(`DELETE FROM content_match_results result WHERE result.skill_md_sha = ANY($1::text[]) AND ${NOT_HELD}`, [skillMdShas]);
 }
+
+/** No current copy on a Mac and no live saved or shared version has this SKILL.md. */
+const NOT_HELD = `
+  NOT EXISTS (SELECT 1 FROM synced_skills skill WHERE skill.skill_md_sha = result.skill_md_sha AND skill.is_current)
+  AND NOT EXISTS (
+    SELECT 1 FROM skill_releases release
+    JOIN skill_sources source ON source.id = release.source_id
+    WHERE release.skill_md_sha = result.skill_md_sha AND source.tombstoned_at IS NULL
+  )`;

@@ -12,6 +12,7 @@ import { SIGNATURE_HEADER, TIMESTAMP_HEADER, verifyRequest } from "../../scanner
 // Rebuilds the catalog content index (Netlify Blobs "catalog-index") when a new catalog was
 // published. Started hourly by catalog-index-queue; only accepts requests signed like it.
 export default async (request: Request) => {
+  const startedAt = Date.now();
   const scanConfig = scanDriverConfigFromEnv();
   if (!scanConfig) return;
   const signed = await verifyRequest(scanConfig.signingKey, {
@@ -45,6 +46,8 @@ export default async (request: Request) => {
         store: createCloudObjectStore(),
         readIndex: readBlobContentIndex,
         catalogKey: meta.catalogKey,
+        // Eight minutes from the start of the whole run, leaving time for the Set step after it.
+        budgetMs: Math.max(0, 8 * 60_000 - (Date.now() - startedAt)),
         async catalogSkill(id) {
           const skill = (await skillsById()).get(id) as Record<string, unknown> | undefined;
           if (!skill) return null;
@@ -55,8 +58,9 @@ export default async (request: Request) => {
         },
         async fetchText(url) {
           const response = await fetch(url, { signal: AbortSignal.timeout(15_000) });
-          // Gone: left out. Anything else (rate limit, server error): thrown, so it's tried again next run.
-          if (response.status === 404) return null;
+          // Gone or refused for good (404, 403, 451…): left out. Rate limits and server errors: thrown, so
+          // it's tried again next run.
+          if (response.status >= 400 && response.status < 500 && response.status !== 408 && response.status !== 429) return null;
           if (!response.ok) throw new Error(`library skill text ${response.status}`);
           if (Number(response.headers.get("content-length") ?? 0) > 1_000_000) return null;
           const text = await response.text();

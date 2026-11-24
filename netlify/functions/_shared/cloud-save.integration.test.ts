@@ -1914,6 +1914,11 @@ test("the background job compares a saved copy's text with same-named library sk
     library["acme/skills:notes"] = "Completely different instructions about cooking pasta.";
     assert.deepEqual(await computeContentMatches(pool, { ...deps, catalogKey: "g2" }), { checked: 1, confirmed: 0 });
     assert.equal((await readConfirmedMatches(pool, [sha])).size, 0);
+    // A result nobody holds (the copy removed or changed on the Mac) goes on the next run; one for a
+    // version deleted while the run compared it is never written.
+    await pool.query("INSERT INTO content_match_results (skill_md_sha, catalog_key, catalog_skill_id, best_score) VALUES ($1, 'g2', 'acme/skills:notes', 1)", ["d".repeat(40)]);
+    await computeContentMatches(pool, { ...deps, catalogKey: "g2" });
+    assert.equal((await pool.query("SELECT 1 FROM content_match_results WHERE skill_md_sha = $1", ["d".repeat(40)])).rowCount, 0);
     // The result stays while a copy or saved version still has that SKILL.md, and goes with the last one.
     const { forgetContentMatches } = await import("./content-match.js");
     await forgetContentMatches(pool, [sha]);

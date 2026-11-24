@@ -265,19 +265,25 @@ export function resolveCopy(
   choices: ReadonlyMap<string, string | null> = new Map(),
   confirmed?: string | null,
 ): { catalogSkillId: string } | { matchKey: string; candidates: string[] } | null {
-  // The same content or the copy's own repo decides on its own; then the person's choice, which a
-  // text comparison never overrides ("It's my own" stays their own); then a confirmed text match.
-  const found = matchCopy(copy, entries);
-  if (found) return { catalogSkillId: found };
+  // The same content, or the copy's own repo among the deciding candidates, decides on its own; then
+  // the person's choice, which nothing weaker overrides ("It's my own" stays their own); then the
+  // copy's repo among its other candidates, or a confirmed text match.
+  const exactEntry = copy.skillMdSha ? entries[contentKey(copy.skillMdSha)] : undefined;
+  const exact = exactEntry?.ids.length ? pick(exactEntry, copy) : null;
+  if (exact) return { catalogSkillId: exact };
   const key = deciding(copy, entries);
   if (!key) return null;
   const entry = entries[key];
+  const own = repoOf(copy.githubUrl) ? pickOwnRepo(entry, copy) : null;
+  if (own) return { catalogSkillId: own };
   if (choices.has(key)) {
     const chosen = choices.get(key);
     // A choice of a skill that's no longer a candidate (removed, changed) is asked again.
     if (chosen === null) return null;
     if (chosen && entry.ids.includes(chosen)) return { catalogSkillId: chosen };
   }
+  // "It's my own", said when another key decided (before a closer library skill appeared), still holds.
+  if (keysFor(copy).some((other) => choices.has(other) && choices.get(other) === null)) return null;
   const byText = matchCopy(copy, entries, confirmed);
   if (byText) return { catalogSkillId: byText };
   // Suggested, never linked: the person says which one it is, or that it's their own.
