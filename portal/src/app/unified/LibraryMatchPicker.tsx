@@ -5,17 +5,18 @@ import { useEffect, useRef, useState } from "react";
 import { Star } from "lucide-react";
 import type { CatalogSummary } from "./model";
 
-/** nameKey: where a pick of a library skill not among the candidates is saved (for the skill's name). */
-export type LibraryMatch = { matchKey: string; candidates: string[]; nameKey?: string };
+/** alsoByName: other library skills with the copy's name that may be kept instead (nameKey proves the name). */
+export type LibraryMatch = { matchKey: string; candidates: string[]; nameKey?: string; alsoByName?: string[] };
 
 /** The first copy's offer to choose, checked: a real index key and a few catalog IDs. */
-export function libraryMatchOf(copies: readonly { catalogMatchKey?: unknown; catalogCandidates?: unknown; catalogNameKey?: unknown }[]): LibraryMatch | null {
+export function libraryMatchOf(copies: readonly { catalogMatchKey?: unknown; catalogCandidates?: unknown; catalogNameKey?: unknown; catalogAlsoByName?: unknown }[]): LibraryMatch | null {
   for (const copy of copies) {
-    const key = copy.catalogMatchKey, ids = copy.catalogCandidates, byName = copy.catalogNameKey;
+    const key = copy.catalogMatchKey, ids = copy.catalogCandidates, byName = copy.catalogNameKey, also = copy.catalogAlsoByName;
     if (typeof key === "string" && /^(?:sha:[0-9a-f]{40}|nd:[0-9a-f]{64}|n:[0-9a-f]{64})$/.test(key) && Array.isArray(ids)
       && ids.length >= 1 && ids.length <= 5 && ids.every(id => typeof id === "string" && id.length > 0 && id.length <= 500)) {
       return { matchKey: key, candidates: ids as string[],
-        ...(typeof byName === "string" && /^n:[0-9a-f]{64}$/.test(byName) ? { nameKey: byName } : {}) };
+        ...(typeof byName === "string" && /^n:[0-9a-f]{64}$/.test(byName) && Array.isArray(also)
+          ? { nameKey: byName, alsoByName: also.filter((id): id is string => typeof id === "string" && id.length > 0 && id.length <= 500) } : {}) };
     }
   }
   return null;
@@ -42,7 +43,7 @@ export function LibraryMatchPicker({ match, current, load, choose }: {
   current?: { catalogId: string; author: string };
   /** Library details for the candidates (name, author, stars); a failed one shows its ID. */
   load: (ids: string[], signal: AbortSignal) => Promise<(CatalogSummary | null)[]>;
-  choose: (matchKey: string, catalogSkillId: string | null) => Promise<void>;
+  choose: (matchKey: string, catalogSkillId: string | null, nameKey?: string) => Promise<void>;
 }) {
   const [details, setDetails] = useState<(CatalogSummary | null)[]>([]);
   const [selected, setSelected] = useState(match.candidates[0]);
@@ -67,12 +68,13 @@ export function LibraryMatchPicker({ match, current, load, choose }: {
     return () => controller.abort();
   }, [match.matchKey, candidates]);
   const headingId = `library-match-${match.matchKey}`;
-  const keep = current && match.nameKey && !match.candidates.includes(current.catalogId) ? current : null;
-  const save = async (catalogSkillId: string | null, matchKey = match.matchKey) => {
+  // Only a library skill the server listed for the copy's name: saving any other would be refused.
+  const keep = current && match.nameKey && match.alsoByName?.includes(current.catalogId) ? current : null;
+  const save = async (catalogSkillId: string | null, nameKey?: string) => {
     setBusy(true);
     setError("");
     try {
-      await choose(matchKey, catalogSkillId);
+      await choose(match.matchKey, catalogSkillId, nameKey);
     } catch {
       setError("Couldn't save that. Try again.");
     } finally {

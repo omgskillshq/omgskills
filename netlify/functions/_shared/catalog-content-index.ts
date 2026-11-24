@@ -266,7 +266,7 @@ export function resolveCopy(
   confirmed?: string | null,
   /** Library skills the copy's text was compared with and shares real text with (closest first). */
   related: readonly string[] = [],
-): { catalogSkillId: string } | { matchKey: string; candidates: string[]; nameKey: string | null } | null {
+): { catalogSkillId: string } | { matchKey: string; candidates: string[]; nameKey: string | null; alsoByName: string[] } | null {
   // The same content, or the copy's own repo among the deciding candidates, decides on its own; then
   // the person's choice, which nothing weaker overrides ("It's my own" stays their own); then the
   // copy's repo among its other candidates, or a confirmed text match.
@@ -278,17 +278,16 @@ export function resolveCopy(
   const entry = entries[key];
   const own = repoOf(copy.githubUrl) ? pickOwnRepo(entry, copy) : null;
   if (own) return { catalogSkillId: own };
+  // Other library skills with the copy's name: one may be kept (the creator it's shown under), though
+  // it isn't among the closer candidates. Saved for this copy's own key, like any choice.
+  const byName = copy.name ? nameKey(copy.name) : null;
+  const nameIds = byName ? entries[byName]?.ids ?? [] : [];
   if (choices.has(key)) {
     const chosen = choices.get(key);
     // A choice of a skill that's no longer a candidate (removed, changed) is asked again.
     if (chosen === null) return null;
-    if (chosen && entry.ids.includes(chosen)) return { catalogSkillId: chosen };
+    if (chosen && (entry.ids.includes(chosen) || nameIds.includes(chosen))) return { catalogSkillId: chosen };
   }
-  // A library skill picked for the name (kept as the creator it's shown under, though it isn't among
-  // the closer candidates): linked while it's still one of the skills with that name.
-  const byName = copy.name ? nameKey(copy.name) : null;
-  const keptForName = byName && byName !== key ? choices.get(byName) : undefined;
-  if (keptForName && entries[byName!]?.ids.includes(keptForName)) return { catalogSkillId: keptForName };
   // "It's my own" said under another key (the name alone, before a closer library skill appeared, or
   // for another copy with that name) is neither overridden nor applied: the person is asked again.
   const saidOwnElsewhere = keysFor(copy).some((other) => choices.has(other) && choices.get(other) === null);
@@ -300,8 +299,9 @@ export function resolveCopy(
   if (key.startsWith("n:") && !sharing.length) return null;
   // Suggested, never linked: the person says which one it is, or that it's their own. Those sharing
   // text come first, then the rest by stars.
-  // nameKey: where "keep the creator it's shown under" is saved, for a library skill not listed here.
-  return { matchKey: key, candidates: [...new Set([...sharing, ...entry.ids])].slice(0, MAX_CHOICES), nameKey: byName };
+  const candidates = [...new Set([...sharing, ...entry.ids])].slice(0, MAX_CHOICES);
+  // alsoByName: other same-named library skills the person may keep instead (nameKey proves the name).
+  return { matchKey: key, candidates, nameKey: nameIds.length ? byName : null, alsoByName: nameIds.filter((id) => !candidates.includes(id)) };
 }
 
 /** A key a person may record a choice for: an index key as keysFor makes them. */

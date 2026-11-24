@@ -22,6 +22,7 @@ export type SyncedSkill = {
   catalogMatchKey?: string | null;
   catalogCandidates?: string[] | null;
   catalogNameKey?: string | null;
+  catalogAlsoByName?: string[] | null;
   id: string;
   name: string;
   description: string | null;

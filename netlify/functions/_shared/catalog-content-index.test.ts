@@ -80,7 +80,7 @@ test("forks are offered most stars first; a choice decides, and 'my own' keeps i
   ], { version: 1, shaToSkillIds: { [sha]: ["small/repo:x", "big/repo:x"] } });
   const entries = Object.fromEntries([...parts.values()].flatMap((part) => Object.entries(part)));
   const copy = { skillMdSha: sha, name: "x", description: "X." };
-  assert.deepEqual(resolveCopy(copy, entries), { matchKey: `sha:${sha}`, candidates: ["big/repo:x", "small/repo:x"], nameKey: nameKey("x") });
+  assert.deepEqual(resolveCopy(copy, entries), { matchKey: `sha:${sha}`, candidates: ["big/repo:x", "small/repo:x"], nameKey: nameKey("x"), alsoByName: [] });
   assert.deepEqual(resolveCopy(copy, entries, new Map([[`sha:${sha}`, "small/repo:x"]])), { catalogSkillId: "small/repo:x" });
   assert.equal(resolveCopy(copy, entries, new Map([[`sha:${sha}`, null]])), null);
   // A choice never overrides a copy's own evidence: one from a candidate's repo keeps that repo's skill.
@@ -88,7 +88,7 @@ test("forks are offered most stars first; a choice decides, and 'my own' keeps i
   assert.deepEqual(resolveCopy(fromRepo, entries, new Map([[`sha:${sha}`, null]])), { catalogSkillId: "small/repo:x" });
   assert.deepEqual(resolveCopy(fromRepo, entries, new Map([[`sha:${sha}`, "big/repo:x"]])), { catalogSkillId: "small/repo:x" });
   // A choice no longer among the candidates is asked again.
-  assert.deepEqual(resolveCopy(copy, entries, new Map([[`sha:${sha}`, "gone/repo:x"]])), { matchKey: `sha:${sha}`, candidates: ["big/repo:x", "small/repo:x"], nameKey: nameKey("x") });
+  assert.deepEqual(resolveCopy(copy, entries, new Map([[`sha:${sha}`, "gone/repo:x"]])), { matchKey: `sha:${sha}`, candidates: ["big/repo:x", "small/repo:x"], nameKey: nameKey("x"), alsoByName: [] });
 });
 
 test("a text match links only a current candidate, and never over the person's own choice", () => {
@@ -135,7 +135,7 @@ test("the name alone never suggests: a second sign is needed (shared text, the s
   assert.deepEqual(sameDescription && "candidates" in sameDescription ? sameDescription.candidates : null, ["athola/market:curate"]);
 });
 
-test("keeping the creator a copy is shown under links it, though another skill is the closer suggestion", () => {
+test("keeping the creator a copy is shown under: saved for that copy's own key, never for the name", () => {
   const parts = buildContentIndex([
     { id: "garrytan/gstack:pair-agent", name: "pair-agent", description: "Pair a remote AI agent with your browser.", stars: 130526 },
     { id: "howdeploy/NekoFree:pair-agent", name: "pair-agent", description: "Pair a remote AI agent with your browser. One command.", stars: 15 },
@@ -144,12 +144,12 @@ test("keeping the creator a copy is shown under links it, though another skill i
   const copy = { skillMdSha: "b".repeat(40), name: "pair-agent", description: "Pair a remote AI agent with your browser." };
   const offered = resolveCopy(copy, entries);
   assert.ok(offered && "matchKey" in offered);
-  assert.deepEqual(offered.candidates, ["garrytan/gstack:pair-agent"]);
   const byName = keysFor(copy).find((key) => key.startsWith("n:"))!;
-  assert.equal(offered.nameKey, byName);
-  assert.deepEqual(resolveCopy(copy, entries, new Map([[byName, "howdeploy/NekoFree:pair-agent"]])), { catalogSkillId: "howdeploy/NekoFree:pair-agent" });
-  // A pick for the closer key still wins; a kept skill no longer listed under the name is asked again.
-  assert.deepEqual(resolveCopy(copy, entries, new Map([[offered.matchKey, "garrytan/gstack:pair-agent"], [byName, "howdeploy/NekoFree:pair-agent"]])),
-    { catalogSkillId: "garrytan/gstack:pair-agent" });
-  assert.deepEqual(resolveCopy(copy, entries, new Map([[byName, "gone/repo:pair-agent"]])), offered);
+  assert.deepEqual(offered, { matchKey: offered.matchKey, candidates: ["garrytan/gstack:pair-agent"], nameKey: byName, alsoByName: ["howdeploy/NekoFree:pair-agent"] });
+  // Kept: linked, for this copy's key.
+  assert.deepEqual(resolveCopy(copy, entries, new Map([[offered.matchKey, "howdeploy/NekoFree:pair-agent"]])), { catalogSkillId: "howdeploy/NekoFree:pair-agent" });
+  // A pick under the name never decides a copy with a closer key (its own content or description).
+  assert.deepEqual(resolveCopy(copy, entries, new Map([[byName, "howdeploy/NekoFree:pair-agent"]])), offered);
+  // Kept skill no longer listed under the name: asked again.
+  assert.deepEqual(resolveCopy(copy, entries, new Map([[offered.matchKey, "gone/repo:pair-agent"]])), offered);
 });
