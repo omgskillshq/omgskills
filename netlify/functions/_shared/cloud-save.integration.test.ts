@@ -1914,5 +1914,12 @@ test("the background job compares a saved copy's text with same-named library sk
     library["acme/skills:notes"] = "Completely different instructions about cooking pasta.";
     assert.deepEqual(await computeContentMatches(pool, { ...deps, catalogKey: "g2" }), { checked: 1, confirmed: 0 });
     assert.equal((await readConfirmedMatches(pool, [sha])).size, 0);
+    // The result stays while a copy or saved version still has that SKILL.md, and goes with the last one.
+    const { forgetContentMatches } = await import("./content-match.js");
+    await forgetContentMatches(pool, [sha]);
+    assert.equal((await pool.query("SELECT 1 FROM content_match_results WHERE skill_md_sha = $1", [sha])).rowCount, 1);
+    await pool.query("DELETE FROM synced_skills WHERE user_id = $1", [owner.userId]);
+    await deleteCloudSkills(pool, store, { userId: owner.userId, skillKey: "notes" });
+    assert.equal((await pool.query("SELECT 1 FROM content_match_results WHERE skill_md_sha = $1", [sha])).rowCount, 0);
   });
 });

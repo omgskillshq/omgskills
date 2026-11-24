@@ -90,3 +90,20 @@ test("forks are offered most stars first; a choice decides, and 'my own' keeps i
   // A choice no longer among the candidates is asked again.
   assert.deepEqual(resolveCopy(copy, entries, new Map([[`sha:${sha}`, "gone/repo:x"]])), { matchKey: `sha:${sha}`, candidates: ["big/repo:x", "small/repo:x"] });
 });
+
+test("a text match links only a current candidate, and never over the person's own choice", () => {
+  const parts = buildContentIndex([
+    { id: "a/r:notes", name: "notes", description: "Notes.", stars: 50 },
+    { id: "b/r:notes", name: "notes", description: "Notes.", stars: 5 },
+  ], { version: 1, shaToSkillIds: {} });
+  const entries = Object.fromEntries([...parts.values()].flatMap((part) => Object.entries(part)));
+  const copy = { skillMdSha: "f".repeat(40), name: "notes", description: "Notes." };
+  const suggested = resolveCopy(copy, entries);
+  assert.ok(suggested && "matchKey" in suggested);
+  assert.deepEqual(resolveCopy(copy, entries, new Map(), "a/r:notes"), { catalogSkillId: "a/r:notes" });
+  // Removed from the library (no longer a candidate): not linked.
+  assert.deepEqual(resolveCopy(copy, entries, new Map(), "gone/r:notes"), suggested);
+  // "It's my own" stays their own; a pick of the other skill stays that pick.
+  assert.equal(resolveCopy(copy, entries, new Map([[suggested.matchKey, null]]), "a/r:notes"), null);
+  assert.deepEqual(resolveCopy(copy, entries, new Map([[suggested.matchKey, "b/r:notes"]]), "a/r:notes"), { catalogSkillId: "b/r:notes" });
+});

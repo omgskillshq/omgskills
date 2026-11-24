@@ -1,5 +1,6 @@
 import type { Pool } from "pg";
 import { deleteCloudSkills } from "./cloud-save.js";
+import { forgetContentMatches } from "./content-match.js";
 import type { CloudObjectStore } from "./cloud-store.js";
 
 export class AccountDeleteError extends Error {
@@ -183,6 +184,15 @@ async function deleteRecords(pool: Pool, userId: string): Promise<{ deletedSets:
       [sourceIds]
     );
 
+    // Text-match results for this person's SKILL.md versions, unless someone else still holds one.
+    const matchShas = await client.query<{ sha: string }>(
+      `
+        SELECT skill_md_sha AS sha FROM synced_skills WHERE user_id = $1 AND skill_md_sha IS NOT NULL
+        UNION
+        SELECT skill_md_sha FROM skill_releases WHERE source_id = ANY($2::uuid[]) AND skill_md_sha IS NOT NULL
+      `,
+      [userId, sourceIds]
+    );
     // Synced skills and runs point at Macs without cascading, so they go first.
     await client.query("DELETE FROM synced_skills WHERE user_id = $1", [userId]);
     await client.query("DELETE FROM sync_runs WHERE user_id = $1", [userId]);
@@ -194,6 +204,7 @@ async function deleteRecords(pool: Pool, userId: string): Promise<{ deletedSets:
     }
     await client.query("UPDATE analytics_events SET actor_user_id = NULL WHERE actor_user_id = $1", [userId]);
     await client.query("UPDATE analytics_events SET profile_user_id = NULL WHERE profile_user_id = $1", [userId]);
+    await forgetContentMatches(client, matchShas.rows.map((row) => row.sha));
     await client.query(`${emptyRecord} WHERE id = $1`, [userId]);
     await client.query("COMMIT");
   } catch (error) {

@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { type Pool, type PoolClient, type QueryResult, type QueryResultRow } from "pg";
 import { appendSkillRelease } from "./group-storage.js";
 import { cloudBlobKey, type CloudObjectStore } from "./cloud-store.js";
+import { forgetContentMatches } from "./content-match.js";
 import { skillMdBody } from "./skill-readme.js";
 import { cloudNameKey, type CloudRecordName } from "./cloud-skill-keys.js";
 import { installationFolderFromKey } from "./sync-skill.js";
@@ -1152,8 +1153,8 @@ export async function deleteCloudSkills(
       [sourceIds]
     );
     await client.query("DELETE FROM cloud_releases WHERE source_id = ANY($1::uuid[])", [sourceIds]);
-    const deletedTrees = await client.query<{ tree_sha: string }>(
-      "DELETE FROM skill_releases WHERE source_id = ANY($1::uuid[]) RETURNING tree_sha",
+    const deletedTrees = await client.query<{ tree_sha: string; skill_md_sha: string | null }>(
+      "DELETE FROM skill_releases WHERE source_id = ANY($1::uuid[]) RETURNING tree_sha, skill_md_sha",
       [sourceIds]
     );
     // Scan results go with the last live version that has the same content.
@@ -1172,6 +1173,8 @@ export async function deleteCloudSkills(
       [deletedTrees.rows.map((row) => row.tree_sha)]
     );
     await client.query("DELETE FROM skill_sources WHERE id = ANY($1::uuid[])", [sourceIds]);
+    // Text-match results go with the last copy or version that has the same SKILL.md.
+    await forgetContentMatches(client, deletedTrees.rows.flatMap((row) => row.skill_md_sha ? [row.skill_md_sha] : []));
     await client.query(
       "DELETE FROM cloud_skill_reviews WHERE user_id = $1 AND ($2::text IS NULL OR skill_key = $2::text)",
       [input.userId, skillKey]

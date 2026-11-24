@@ -157,14 +157,15 @@ export function matchCopy(
   const exactEntry = copy.skillMdSha ? entries[contentKey(copy.skillMdSha)] : undefined;
   // This exact version is published: it decides alone.
   if (exactEntry?.ids.length) return pick(exactEntry, copy);
-  const key = deciding(copy, entries);
-  // The copy's own repo among the candidates is as good as the same content.
-  if (key && repoOf(copy.githubUrl)) {
-    const own = pickOwnRepo(entries[key], copy);
-    if (own) return own;
+  // The copy's own repo among any of its candidates is as good as the same content.
+  if (repoOf(copy.githubUrl)) {
+    for (const key of keysFor(copy)) {
+      const own = entries[key] ? pickOwnRepo(entries[key], copy) : null;
+      if (own) return own;
+    }
   }
-  // Confirmed by comparing the instructions' text (recomputed whenever the catalog changes).
-  return confirmed ?? null;
+  // Confirmed by comparing the instructions' text, while that skill is still one of the candidates.
+  return confirmed && keysFor(copy).some((key) => entries[key]?.ids.includes(confirmed)) ? confirmed : null;
 }
 
 function pickOwnRepo(entry: ContentIndexEntry, source: { githubUrl?: string | null; gitRelativePath?: string | null }): string | null {
@@ -264,8 +265,9 @@ export function resolveCopy(
   choices: ReadonlyMap<string, string | null> = new Map(),
   confirmed?: string | null,
 ): { catalogSkillId: string } | { matchKey: string; candidates: string[] } | null {
-  // Strong evidence links on its own; a person's choice only settles copies nothing else can.
-  const found = matchCopy(copy, entries, confirmed);
+  // The same content or the copy's own repo decides on its own; then the person's choice, which a
+  // text comparison never overrides ("It's my own" stays their own); then a confirmed text match.
+  const found = matchCopy(copy, entries);
   if (found) return { catalogSkillId: found };
   const key = deciding(copy, entries);
   if (!key) return null;
@@ -276,6 +278,8 @@ export function resolveCopy(
     if (chosen === null) return null;
     if (chosen && entry.ids.includes(chosen)) return { catalogSkillId: chosen };
   }
+  const byText = matchCopy(copy, entries, confirmed);
+  if (byText) return { catalogSkillId: byText };
   // Suggested, never linked: the person says which one it is, or that it's their own.
   return { matchKey: key, candidates: entry.ids.slice(0, MAX_CHOICES) };
 }

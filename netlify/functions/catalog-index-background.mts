@@ -38,13 +38,15 @@ export default async (request: Request) => {
     const blobs = getStore("catalog-index");
     const meta = await blobs.get("meta.json", { type: "json" }) as { catalogKey?: unknown } | null;
     if (typeof meta?.catalogKey === "string") {
-      const skills = new Map((await loadPublishedSkills()).map((skill) => [skill.id, skill]));
+      // The full catalog (about 88 MB) is read only once a version actually needs comparing.
+      let skills: Map<string, unknown> | null = null;
+      const skillsById = async () => skills ??= new Map<string, unknown>((await loadPublishedSkills()).flatMap((skill) => typeof skill.id === "string" ? [[skill.id, skill] as [string, unknown]] : []));
       const matched = await computeContentMatches(getPgPool(), {
         store: createCloudObjectStore(),
         readIndex: readBlobContentIndex,
         catalogKey: meta.catalogKey,
         async catalogSkill(id) {
-          const skill = skills.get(id) as Record<string, unknown> | undefined;
+          const skill = (await skillsById()).get(id) as Record<string, unknown> | undefined;
           if (!skill) return null;
           const repo = typeof skill.repo_slug === "string" ? skill.repo_slug : id.split(":")[0];
           const url = typeof skill.repo_commit_sha === "string" && typeof skill.skill_md_path === "string"
@@ -53,7 +55,10 @@ export default async (request: Request) => {
         },
         async fetchText(url) {
           const response = await fetch(url, { signal: AbortSignal.timeout(15_000) });
-          if (!response.ok) return null;
+          // Gone: left out. Anything else (rate limit, server error): thrown, so it's tried again next run.
+          if (response.status === 404) return null;
+          if (!response.ok) throw new Error(`library skill text ${response.status}`);
+          if (Number(response.headers.get("content-length") ?? 0) > 1_000_000) return null;
           const text = await response.text();
           return text.length > 1_000_000 ? null : text;
         },

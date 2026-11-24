@@ -18,7 +18,11 @@ export type ContentMatchDeps = {
   readIndex: (keys: string[]) => Promise<Record<string, ContentIndexEntry>>;
   /** A library skill's name, description and where its SKILL.md is (raw URL at the pinned commit). */
   catalogSkill: (catalogSkillId: string) => Promise<CatalogText | null>;
+  /** null only when the file is gone (404); any other failure throws, so the version is tried again. */
   fetchText: (url: string) => Promise<string | null>;
+  now?: () => number;
+  /** Stops taking new versions after this long, so the run ends well inside its time limit. */
+  budgetMs?: number;
   /** The catalog build the results are for; a new build recomputes them. */
   catalogKey: string;
 };
@@ -92,16 +96,23 @@ export async function computeContentMatches(pool: Pool, deps: ContentMatchDeps):
     [deps.catalogKey, BATCH],
   );
   let confirmed = 0;
+  let checked = 0;
+  const now = deps.now ?? Date.now;
+  const started = now();
   const texts = new Map<string, Promise<CatalogText & { text: string | null } | null>>();
   const candidateText = (id: string) => {
     let value = texts.get(id);
     if (!value) {
       value = deps.catalogSkill(id).then(async (skill) => skill && { ...skill, text: skill.url ? await deps.fetchText(skill.url) : null });
+      // A failure isn't remembered: the next version that needs this skill asks again.
+      value.catch(() => texts.delete(id));
       texts.set(id, value);
     }
     return value;
   };
   for (const row of pending.rows) {
+    if (now() - started > (deps.budgetMs ?? 8 * 60_000)) break;
+    checked += 1;
     let catalogSkillId: string | null = null;
     let best: number | null = null;
     try {
@@ -112,6 +123,8 @@ export async function computeContentMatches(pool: Pool, deps: ContentMatchDeps):
       // Most stars first across the same name (the name's list is in star order), then any others.
       const ordered = [...keys].sort((a, b) => Number(b.startsWith("n:")) - Number(a.startsWith("n:")));
       const ids = [...new Set(ordered.flatMap((key) => entries[key]?.ids ?? []))].slice(0, MAX_CANDIDATES);
+      // A candidate that couldn't be read now throws (below): leaving out the original could make a
+      // fork look like the only related skill. Only a file that's gone (null) is left out.
       const scored = (await Promise.all(ids.map(async (id) => {
         const skill = await candidateText(id);
         return skill?.text ? { id, score: textSimilarity(text, skill.text), name: skill.name, description: norm(skill.description) } : null;
@@ -130,7 +143,7 @@ export async function computeContentMatches(pool: Pool, deps: ContentMatchDeps):
       [row.sha, deps.catalogKey, catalogSkillId, best],
     );
   }
-  return { checked: pending.rows.length, confirmed };
+  return { checked, confirmed };
 }
 
 /** Confirmed library skills for these SKILL.md versions (any catalog build; a new one recomputes them). */
@@ -142,4 +155,25 @@ export async function readConfirmedMatches(pool: Pool, shas: string[]): Promise<
     [shas],
   );
   return new Map(result.rows.map((row) => [row.sha, row.catalogSkillId]));
+}
+
+/**
+ * Drops results for SKILL.md versions nobody holds any more (their last copy or saved version was
+ * deleted), as scan results are: a deleted private skill leaves nothing behind.
+ */
+export async function forgetContentMatches(client: { query: Pool["query"] }, skillMdShas: string[]): Promise<void> {
+  if (!skillMdShas.length) return;
+  await client.query(
+    `
+      DELETE FROM content_match_results result
+      WHERE result.skill_md_sha = ANY($1::text[])
+        AND NOT EXISTS (SELECT 1 FROM synced_skills skill WHERE skill.skill_md_sha = result.skill_md_sha)
+        AND NOT EXISTS (
+          SELECT 1 FROM skill_releases release
+          JOIN skill_sources source ON source.id = release.source_id
+          WHERE release.skill_md_sha = result.skill_md_sha AND source.tombstoned_at IS NULL
+        )
+    `,
+    [skillMdShas],
+  );
 }
