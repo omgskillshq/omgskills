@@ -1815,3 +1815,70 @@ test("a skill added from GitHub saves like a Mac's, with no device, and a Mac ca
     assert.deepEqual(files.package.entries.map((entry) => [entry.path, entry.mode]).sort(), [["SKILL.md", "100644"], ["run.sh", "100755"]]);
   });
 });
+
+test("a Set item shared from My skills follows the library once it's recognized as a library skill", async () => {
+  const { linkSetItemsToLibrary } = await import("./set-library-links.js");
+  const { contentKey } = await import("./catalog-content-index.js");
+  await withMigratedSchema(async (pool) => {
+    const store = new MemoryStore();
+    const owner = await createUser(pool);
+    const addShared = async (groupId: string, skillKey: string, note?: string) => {
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const added = await addGroupItemWithClient(client, groupId, { kind: "synced", name: skillKey, ...(note ? { note } : {}) },
+          { kind: "cloud", ownerUserId: owner.userId, skillKey, fallback: "synced_local_only" });
+        await client.query("COMMIT");
+        return added.itemId;
+      } finally {
+        client.release();
+      }
+    };
+    await updateCloudSaveSettings(pool, owner.userId, { enabled: true });
+    await uploadAll(pool, store, owner.userId, v1);
+    const saved = await saveCloudVersion(pool, { ...owner, skillKey: "notes", files: manifest(v1) });
+    assert.ok(saved.status === "saved");
+    const newGroup = async (slug: string) => (await pool.query<{ id: string }>(
+      "INSERT INTO skill_groups (owner_user_id, name, slug, visibility) VALUES ($1, $2, $2, 'public') RETURNING id",
+      [owner.userId, slug])).rows[0].id;
+    const group = await newGroup("team"), both = await newGroup("both");
+    const itemId = await addShared(group, "notes", "internal: uses our VPN host");
+    const twinId = await addShared(both, "notes");
+    await pool.query("INSERT INTO skill_group_items (group_id, kind, catalog_skill_id, position) VALUES ($1, 'catalog', 'acme/skills:notes', 5)", [both]);
+    const sha = (await pool.query<{ sha: string }>("SELECT skill_md_sha AS sha FROM skill_releases WHERE id = $1", [saved.skill.currentVersion.id])).rows[0].sha;
+    const revision = async (id: string) => (await pool.query<{ revision: number }>("SELECT revision FROM skill_groups WHERE id = $1", [id])).rows[0].revision;
+    const before = await revision(group);
+    const release = {
+      source: { kind: "catalog" as const, normalizedRoot: "skills/notes", catalogSkillId: "acme/skills:notes" },
+      coordinates: { commitSha: "1".repeat(40), treeSha: "2".repeat(40), skillMdSha: sha }, createdBy: "catalog:acme/skills:notes",
+    };
+    const run = (index: Record<string, { ids: string[] }>, resolve = async () => release, cursor: string | null = null) =>
+      linkSetItemsToLibrary(pool, { readIndex: async () => index, resolveRelease: resolve, cursor });
+
+    // Not in the library: nothing changes.
+    assert.deepEqual(await run({}), { checked: 2, linked: 0, skipped: 0, cursor: null });
+    // The library release can't be resolved: left as it is.
+    const index = { [contentKey(sha)]: { ids: ["acme/skills:notes"] } };
+    assert.equal((await run(index, async () => { throw new Error("catalog down"); })).linked, 0);
+    // Recognized: the item becomes the library skill, pinned to its release (installable), its private note cleared,
+    // and the Set's revision moves so members see it.
+    assert.deepEqual(await run(index), { checked: 2, linked: 1, skipped: 0, cursor: null });
+    const item = (await pool.query(
+      `SELECT item.kind, item.catalog_skill_id, item.note, source.kind AS source_kind, release.skill_md_sha
+       FROM skill_group_items item JOIN skill_sources source ON source.id = item.source_id
+       JOIN skill_releases release ON release.id = item.release_id WHERE item.id = $1`, [itemId])).rows[0];
+    assert.deepEqual(item, { kind: "catalog", catalog_skill_id: "acme/skills:notes", note: null, source_kind: "catalog", skill_md_sha: sha });
+    assert.equal(await revision(group), before + 1);
+    // A Set that already lists that library skill keeps the shared copy rather than listing it twice.
+    assert.equal((await pool.query("SELECT source_id FROM skill_group_items WHERE id = $1", [twinId])).rows[0].source_id !== null, true);
+    // An item that can't switch (its library source moved folders) is counted and skipped; the run goes on.
+    await pool.query("UPDATE skill_group_items SET kind = 'synced', catalog_skill_id = NULL, source_id = $2, release_id = $3 WHERE id = $1",
+      [itemId, saved.skill.currentVersion.sourceId ?? (await pool.query("SELECT source_id FROM skill_releases WHERE id = $1", [saved.skill.currentVersion.id])).rows[0].source_id, saved.skill.currentVersion.id]);
+    const moved = { ...release, source: { ...release.source, normalizedRoot: "old/notes" } };
+    const blocked = await run(index, async () => moved);
+    assert.equal(blocked.linked, 0);
+    assert.equal(blocked.skipped, 1);
+    // The saved copy itself stays in My skills.
+    assert.equal((await readCloudSave(pool, owner.userId)).skills.some((skill) => skill.key === "notes"), true);
+  });
+});
