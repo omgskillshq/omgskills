@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
-import { byStars, LibraryMatchPicker, libraryMatchOf } from "../src/app/unified/LibraryMatchPicker";
+import { byStars, LibraryMatchPicker, libraryMatchOf, potentialMatch } from "../src/app/unified/LibraryMatchPicker";
 
 const key = `sha:${"a".repeat(40)}`;
 
@@ -32,4 +32,12 @@ test("choices show most stars first, whatever order they arrive in", () => {
   const skill = (stars?: number) => (stars === undefined ? null : { stars } as never);
   assert.deepEqual(byStars(["a/x", "b/x", "c/x"], [skill(6), skill(138000), skill(84)]), ["b/x", "c/x", "a/x"]);
   assert.deepEqual(byStars(["a/x", "b/x"], []), ["a/x", "b/x"]);
+});
+
+test("a skill is a potential match while one of its copies is unlinked with several library matches", () => {
+  const offer = { catalogMatchKey: key, catalogCandidates: ["big/repo:x", "fork/repo:x"] };
+  assert.equal(potentialMatch({ installed: { sourceSkills: [offer] } }), true);
+  assert.equal(potentialMatch({ installed: { sourceSkills: [{ ...offer, catalogSkillId: "big/repo:x" }] } }), false);
+  assert.equal(potentialMatch({ installed: { sourceSkills: [{}] } }), false);
+  assert.equal(potentialMatch({}), false);
 });

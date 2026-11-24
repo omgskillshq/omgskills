@@ -25,6 +25,11 @@ export function byStars(ids: readonly string[], details: readonly (CatalogSummar
     .sort((a, b) => b.stars - a.stars || a.index - b.index).map(item => item.id);
 }
 
+/** A skill with a copy still unlinked that several library skills match: tagged "Potential match". */
+export function potentialMatch(skill: { installed?: { sourceSkills: readonly { catalogSkillId?: string | null; catalogMatchKey?: unknown; catalogCandidates?: unknown }[] } }): boolean {
+  return !!skill.installed && !!libraryMatchOf(skill.installed.sourceSkills.filter(copy => !copy.catalogSkillId?.trim()));
+}
+
 function starCount(stars?: number) {
   return stars === undefined ? "" : stars >= 1000 ? `${(stars / 1000).toFixed(stars >= 10_000 ? 0 : 1)}K` : String(stars);
 }
