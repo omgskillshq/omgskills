@@ -49,8 +49,10 @@ export function frontmatter(text: string): { name: string; description: string }
  * Words in any script; Chinese and Japanese characters count one each (they aren't spaced into words),
  * so instructions in those languages are compared on their own text, not only the English around them.
  */
+const UNSPACED = String.raw`\p{scx=Han}\p{scx=Hiragana}\p{scx=Katakana}\p{scx=Thai}`;
+const WORD = new RegExp(String.raw`[${UNSPACED}]|(?:(?![${UNSPACED}])[\p{L}\p{N}\p{M}])+`, "gu");
 function words(text: string): string[] {
-  return text.toLowerCase().match(/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]|[\p{L}\p{N}\p{M}]+/gu) ?? [];
+  return text.toLowerCase().match(WORD) ?? [];
 }
 
 /** Too little instruction text (beyond name and description) to tell two skills apart. */
@@ -64,9 +66,12 @@ function shingles(text: string, size = 5): Set<string> {
   return out;
 }
 
-/** Shared five-word runs over all of them (0 to 1): how much of the instructions' text two versions share. */
+/**
+ * Shared five-word runs over all of them (0 to 1): how much of the instructions' text two versions
+ * share. Name and description (the frontmatter) aren't counted: confirmByText weighs those apart.
+ */
 export function textSimilarity(a: string, b: string): number {
-  const left = shingles(a), right = shingles(b);
+  const left = shingles(bodyOf(a)), right = shingles(bodyOf(b));
   let shared = 0;
   for (const item of left) if (right.has(item)) shared += 1;
   return shared / Math.max(1, left.size + right.size - shared);

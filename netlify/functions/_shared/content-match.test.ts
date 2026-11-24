@@ -85,3 +85,14 @@ test("never confirmed when some candidates weren't compared", async () => {
   assert.deepEqual(await capped.run(), { checked: 1, confirmed: 0 });
   assert.equal(capped.stored[0][2], null);
 });
+
+test("mixed scripts: Latin next to Chinese or Japanese doesn't swallow the characters", () => {
+  const a = "---\nname: x\ndescription: X.\n---\n使用GitHub部署应用到生产环境然后检查日志和监控面板确认没有错误ユーザーに通知する";
+  const b = "---\nname: x\ndescription: X.\n---\n使用GitLab部署应用到生产环境然后检查日志和监控面板确认没有错误ユーザーに通知する";
+  assert.ok(textSimilarity(a, b) > 0.6, String(textSimilarity(a, b)));
+});
+
+test("the same name and description add nothing to the text score", () => {
+  const meta = "---\nname: notes\ndescription: A long shared description of what this skill does for meetings and notes.\n---\n";
+  assert.ok(textSimilarity(meta + "Deploy the app with the release script and check the logs.", meta + "Boil water, add the pasta, stir it, then drain it and serve.") < 0.05);
+});
