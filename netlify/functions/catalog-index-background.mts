@@ -1,5 +1,7 @@
 import { getStore } from "@netlify/blobs";
-import { ensureContentIndex } from "./_shared/catalog-content-index.js";
+import { ensureContentIndex, readBlobContentIndex } from "./_shared/catalog-content-index.js";
+import { getPgPool } from "./_shared/db.js";
+import { linkSetItemsToLibrary } from "./_shared/set-library-links.js";
 import { scanDriverConfigFromEnv } from "./_shared/scan-driver.js";
 import { SIGNATURE_HEADER, TIMESTAMP_HEADER, verifyRequest } from "../../scanner/src/signature.js";
 
@@ -26,5 +28,12 @@ export default async (request: Request) => {
     console.info(rebuilt ? "catalog index rebuilt" : "catalog index current");
   } catch (error) {
     console.error("catalog index not built", { error: error instanceof Error ? error.message : String(error) });
+  }
+  try {
+    // Set items shared from My skills that turn out to be library skills follow the library.
+    const linked = await linkSetItemsToLibrary(getPgPool(), readBlobContentIndex);
+    if (linked.linked || linked.skipped) console.info("set items linked to the library", linked);
+  } catch (error) {
+    console.error("set items not linked", { error: error instanceof Error ? error.message : String(error) });
   }
 };
