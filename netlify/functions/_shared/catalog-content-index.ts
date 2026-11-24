@@ -281,7 +281,9 @@ export function resolveCopy(
   // Other library skills with the copy's name: one may be kept (the creator it's shown under), though
   // it isn't among the closer candidates. Saved for this copy's own key, like any choice.
   const byName = copy.name ? nameKey(copy.name) : null;
-  const nameIds = byName ? entries[byName]?.ids ?? [] : [];
+  const listed = byName ? entries[byName]?.ids ?? [] : [];
+  // Only when the name's list shares a candidate (the same name), as the choice endpoint requires.
+  const nameIds = listed.some((id) => entry.ids.includes(id)) ? listed : [];
   if (choices.has(key)) {
     const chosen = choices.get(key);
     // A choice of a skill that's no longer a candidate (removed, changed) is asked again.

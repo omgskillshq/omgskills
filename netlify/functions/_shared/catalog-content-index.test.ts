@@ -153,3 +153,16 @@ test("keeping the creator a copy is shown under: saved for that copy's own key, 
   // Kept skill no longer listed under the name: asked again.
   assert.deepEqual(resolveCopy(copy, entries, new Map([[offered.matchKey, "gone/repo:pair-agent"]])), offered);
 });
+
+test("no Keep offered when the name's list shares no candidate (the endpoint would refuse it)", () => {
+  const sha = "d".repeat(40);
+  const parts = buildContentIndex([
+    { id: "a/r:alpha", name: "alpha", description: "A." }, { id: "b/r:alpha", name: "alpha", description: "A." },
+    { id: "c/r:beta", name: "beta", description: "B." },
+  ], { version: 1, shaToSkillIds: { [sha]: ["a/r:alpha", "b/r:alpha"] } });
+  const entries = Object.fromEntries([...parts.values()].flatMap((part) => Object.entries(part)));
+  const offered = resolveCopy({ skillMdSha: sha, name: "beta", description: "Renamed." }, entries);
+  assert.ok(offered && "matchKey" in offered);
+  assert.equal(offered.nameKey, null);
+  assert.deepEqual(offered.alsoByName, []);
+});
