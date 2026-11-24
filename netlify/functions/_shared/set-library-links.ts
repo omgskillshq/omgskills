@@ -68,26 +68,39 @@ export async function linkSetItemsToLibrary(pool: Pool, deps: SetLinkDeps): Prom
     choicesBy.set(row.userId, map);
   }
   for (const row of rows) {
-    if (result.linked + result.skipped >= MAX_SWITCHES) break;
+    if (result.linked + result.skipped >= MAX_SWITCHES) {
+      // Stopped early: the next run carries on from the last item handled, not the end of the batch.
+      result.cursor = rows[rows.indexOf(row) - 1]?.itemId ?? deps.cursor;
+      break;
+    }
     const resolved = resolveCopy(copyOf(row), index, choicesBy.get(row.ownerUserId));
     if (!resolved || !("catalogSkillId" in resolved)) continue;
-    let release: PreparedPublicRelease;
+    // Cheap first: a Set that already lists the skill keeps its copy, without asking for the release.
+    if (await alreadyListed(pool, row, resolved.catalogSkillId)) continue;
     try {
-      release = await deps.resolveRelease(resolved.catalogSkillId);
+      const release = await deps.resolveRelease(resolved.catalogSkillId);
+      if (await switchToLibrary(pool, row, resolved.catalogSkillId, release)) result.linked += 1;
+      else result.skipped += 1;
     } catch {
+      // One item that can't switch (release unavailable, its library source moved) never stops the rest.
       result.skipped += 1;
-      continue;
     }
-    if (await switchToLibrary(pool, row, resolved.catalogSkillId, release)) result.linked += 1;
-    else result.skipped += 1;
   }
   return result;
+}
+
+async function alreadyListed(pool: Pool, row: Candidate, catalogSkillId: string): Promise<boolean> {
+  const found = await pool.query(
+    "SELECT 1 FROM skill_group_items WHERE group_id = $1 AND kind = 'catalog' AND catalog_skill_id = $2 AND id <> $3 LIMIT 1",
+    [row.groupId, catalogSkillId, row.itemId],
+  );
+  return Boolean(found.rowCount);
 }
 
 /**
  * Turns one shared copy into the library skill, pinned to its release, unless the Set already lists
  * that skill or the item changed since it was read. Its note and description were written while the
- * public couldn't see them, so they're cleared; the library's own description shows instead.
+ * public couldn't see them, so they're cleared.
  */
 async function switchToLibrary(pool: Pool, row: Candidate, catalogSkillId: string, release: PreparedPublicRelease): Promise<boolean> {
   const client = await pool.connect();

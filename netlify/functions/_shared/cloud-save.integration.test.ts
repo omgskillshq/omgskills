@@ -1862,7 +1862,7 @@ test("a Set item shared from My skills follows the library once it's recognized 
     assert.equal((await run(index, async () => { throw new Error("catalog down"); })).linked, 0);
     // Recognized: the item becomes the library skill, pinned to its release (installable), its private note cleared,
     // and the Set's revision moves so members see it.
-    assert.deepEqual(await run(index), { checked: 2, linked: 1, skipped: 1, cursor: null });
+    assert.deepEqual(await run(index), { checked: 2, linked: 1, skipped: 0, cursor: null });
     const item = (await pool.query(
       `SELECT item.kind, item.catalog_skill_id, item.note, source.kind AS source_kind, release.skill_md_sha
        FROM skill_group_items item JOIN skill_sources source ON source.id = item.source_id
@@ -1871,6 +1871,13 @@ test("a Set item shared from My skills follows the library once it's recognized 
     assert.equal(await revision(group), before + 1);
     // A Set that already lists that library skill keeps the shared copy rather than listing it twice.
     assert.equal((await pool.query("SELECT source_id FROM skill_group_items WHERE id = $1", [twinId])).rows[0].source_id !== null, true);
+    // An item that can't switch (its library source moved folders) is counted and skipped; the run goes on.
+    await pool.query("UPDATE skill_group_items SET kind = 'synced', catalog_skill_id = NULL, source_id = $2, release_id = $3 WHERE id = $1",
+      [itemId, saved.skill.currentVersion.sourceId ?? (await pool.query("SELECT source_id FROM skill_releases WHERE id = $1", [saved.skill.currentVersion.id])).rows[0].source_id, saved.skill.currentVersion.id]);
+    const moved = { ...release, source: { ...release.source, normalizedRoot: "old/notes" } };
+    const blocked = await run(index, async () => moved);
+    assert.equal(blocked.linked, 0);
+    assert.equal(blocked.skipped, 1);
     // The saved copy itself stays in My skills.
     assert.equal((await readCloudSave(pool, owner.userId)).skills.some((skill) => skill.key === "notes"), true);
   });

@@ -34,6 +34,7 @@ export default async (request: Request) => {
     // Set items shared from My skills that turn out to be library skills follow the library.
     const blobs = getStore("catalog-index");
     const saved = await blobs.get("set-link-cursor.json", { type: "json" }) as { cursor?: unknown } | null;
+    // Per-item failures are counted, not thrown, so the cursor is always saved and the job moves on.
     const linked = await linkSetItemsToLibrary(getPgPool(), {
       readIndex: readBlobContentIndex,
       resolveRelease: (catalogSkillId) => resolveCatalogPublicRelease(catalogSkillId),
