@@ -1886,20 +1886,21 @@ test("a Set item shared from My skills follows the library once it's recognized 
 test("the background job compares a saved copy's text with same-named library skills and records what it confirms", async () => {
   const { computeContentMatches, readConfirmedMatches } = await import("./content-match.js");
   const { namedKey, nameKey } = await import("./catalog-content-index.js");
+  const longNotes: File[] = [{ path: "SKILL.md", text: "---\nname: notes\ndescription: Take notes.\n---\n# Notes\nWrite down what was decided in the meeting and who owns each follow up item. Send the notes to everyone who attended within an hour, and keep a copy in the shared folder.\n" }];
   await withMigratedSchema(async (pool) => {
     const store = new MemoryStore();
     const owner = await createUser(pool);
     await updateCloudSaveSettings(pool, owner.userId, { enabled: true });
-    await uploadAll(pool, store, owner.userId, v1);
-    await saveCloudVersion(pool, { ...owner, skillKey: "notes", files: manifest(v1) });
-    const sha = gitObjectSha("blob", Buffer.from(v1[0].text));
+    await uploadAll(pool, store, owner.userId, longNotes);
+    await saveCloudVersion(pool, { ...owner, skillKey: "notes", files: manifest(longNotes) });
+    const sha = gitObjectSha("blob", Buffer.from(longNotes[0].text));
     const run = randomUUID();
     await pool.query("INSERT INTO sync_runs(id,user_id,device_id,status,completed_at) VALUES($1,$2,$3,'completed',now())", [run, owner.userId, owner.deviceId]);
     await pool.query(`INSERT INTO synced_skills(user_id,sync_run_id,device_id,stable_key,name,source,identity_status,is_local_only,skill_md_sha,is_current)
-      VALUES($1,$2,$3,'location:v1:claude:notes','notes','claude','localOnly',true,$4,true)`, [owner.userId, run, owner.deviceId, sha]);
-    const { name, description } = (await import("./content-match.js")).frontmatter(v1[0].text);
+      VALUES($1,$2,$3,'location:longNotes:claude:notes','notes','claude','localOnly',true,$4,true)`, [owner.userId, run, owner.deviceId, sha]);
+    const { name, description } = (await import("./content-match.js")).frontmatter(longNotes[0].text);
     const entries = { [namedKey(name, description)!]: { ids: ["acme/skills:notes"] }, [nameKey(name)!]: { ids: ["acme/skills:notes", "other/x:notes"] } };
-    const library: Record<string, string> = { "acme/skills:notes": v1[0].text + "\nOne more line.\n", "other/x:notes": "Something unrelated entirely about deploys." };
+    const library: Record<string, string> = { "acme/skills:notes": longNotes[0].text + "\nOne more line.\n", "other/x:notes": "Deploy the app to production with the release script, then check the logs and the dashboards for errors over the next hour." };
     const deps = {
       store, catalogKey: "g1",
       readIndex: async (keys: string[]) => Object.fromEntries(keys.flatMap((key) => (entries as Record<string, { ids: string[] }>)[key] ? [[key, (entries as Record<string, { ids: string[] }>)[key]]] : [])),
@@ -1911,7 +1912,7 @@ test("the background job compares a saved copy's text with same-named library sk
     // Done for this catalog build: not compared again until a new one.
     assert.deepEqual(await computeContentMatches(pool, deps), { checked: 0, confirmed: 0 });
     // A new build recomputes; unrelated text confirms nothing.
-    library["acme/skills:notes"] = "Completely different instructions about cooking pasta.";
+    library["acme/skills:notes"] = "Boil the water with plenty of salt, add the pasta, stir it often, taste it a minute before the time on the packet, then drain it and keep a cup of the water.";
     assert.deepEqual(await computeContentMatches(pool, { ...deps, catalogKey: "g2" }), { checked: 1, confirmed: 0 });
     assert.equal((await readConfirmedMatches(pool, [sha])).size, 0);
     // A result nobody holds (the copy removed or changed on the Mac) goes on the next run; one for a

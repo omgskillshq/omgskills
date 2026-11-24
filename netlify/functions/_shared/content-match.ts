@@ -1,5 +1,5 @@
 import type { Pool } from "pg";
-import { keysFor, type ContentIndexEntry } from "./catalog-content-index.js";
+import { keysFor, MAX_PER_NAME, type ContentIndexEntry } from "./catalog-content-index.js";
 import { cloudBlobKey, type CloudObjectStore } from "./cloud-store.js";
 
 /*
@@ -27,9 +27,13 @@ export type ContentMatchDeps = {
   catalogKey: string;
 };
 
-/** Versions compared per run, and library skills compared per version. */
+/**
+ * Versions compared per run, and library skills compared per version. A version with more candidates
+ * than that (or a name the index cut off at its limit) is never confirmed: the original could be one
+ * that wasn't compared, so it stays a suggestion.
+ */
 const BATCH = 100;
-const MAX_CANDIDATES = 8;
+const MAX_CANDIDATES = MAX_PER_NAME;
 
 const norm = (value: string) => value.replace(/\s+/g, " ").trim().toLowerCase();
 
@@ -41,10 +45,22 @@ export function frontmatter(text: string): { name: string; description: string }
   return { name, description: norm(description.replace(/^["']|["']$/g, "")) };
 }
 
+/**
+ * Words in any script; Chinese and Japanese characters count one each (they aren't spaced into words),
+ * so instructions in those languages are compared on their own text, not only the English around them.
+ */
+function words(text: string): string[] {
+  return text.toLowerCase().match(/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]|[\p{L}\p{N}\p{M}]+/gu) ?? [];
+}
+
+/** Too little instruction text (beyond name and description) to tell two skills apart. */
+const MIN_BODY_WORDS = 20;
+const bodyOf = (text: string) => text.replace(/^---[ \t]*\r?\n[\s\S]*?\r?\n---[^\n]*\n?/, "");
+
 function shingles(text: string, size = 5): Set<string> {
-  const words = text.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+  const words_ = words(text);
   const out = new Set<string>();
-  for (let i = 0; i + size <= Math.max(size, words.length); i += 1) out.add(words.slice(i, i + size).join(" "));
+  for (let i = 0; i + size <= Math.max(size, words_.length); i += 1) out.add(words_.slice(i, i + size).join(" "));
   return out;
 }
 
@@ -125,15 +141,22 @@ export async function computeContentMatches(pool: Pool, deps: ContentMatchDeps):
       const entries = await deps.readIndex(keys);
       // Most stars first across the same name (the name's list is in star order), then any others.
       const ordered = [...keys].sort((a, b) => Number(b.startsWith("n:")) - Number(a.startsWith("n:")));
-      const ids = [...new Set(ordered.flatMap((key) => entries[key]?.ids ?? []))].slice(0, MAX_CANDIDATES);
-      // A candidate that couldn't be read now throws (below): leaving out the original could make a
-      // fork look like the only related skill. Only a file that's gone (null) is left out.
+      const all = [...new Set(ordered.flatMap((key) => entries[key]?.ids ?? []))];
+      const ids = all.slice(0, MAX_CANDIDATES);
+      // Every candidate compared, the name's list not cut off, the copy's own instructions long enough.
+      let complete = all.length <= MAX_CANDIDATES
+        && !keys.some((key) => key.startsWith("n:") && (entries[key]?.ids.length ?? 0) >= MAX_PER_NAME)
+        && words(bodyOf(text)).length >= MIN_BODY_WORDS;
+      // A candidate that couldn't be read now throws (below), so it's tried again; one that's gone
+      // leaves the comparison incomplete. Either way a fork never looks like the only related skill.
       const scored = (await Promise.all(ids.map(async (id) => {
         const skill = await candidateText(id);
-        return skill?.text ? { id, score: textSimilarity(text, skill.text), name: skill.name, description: norm(skill.description) } : null;
+        // A candidate whose text is gone or too short to compare could be the original: nothing is confirmed.
+        if (!skill?.text || words(bodyOf(skill.text)).length < MIN_BODY_WORDS) { complete = false; return null; }
+        return { id, score: textSimilarity(text, skill.text), name: skill.name, description: norm(skill.description) };
       }))).filter((item): item is NonNullable<typeof item> => !!item);
       best = scored.length ? Math.max(...scored.map((item) => item.score)) : null;
-      catalogSkillId = confirmByText(copy, scored);
+      catalogSkillId = complete ? confirmByText(copy, scored) : null;
     } catch {
       // Unreadable now (store or GitHub down): tried again next run, nothing stored.
       continue;

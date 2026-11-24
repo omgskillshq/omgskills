@@ -40,7 +40,7 @@ export function nameKey(name: string): string | null {
 }
 
 /** Most library skills kept per name: the most-starred ones. */
-const MAX_PER_NAME = 20;
+export const MAX_PER_NAME = 20;
 
 export function partitionOf(key: string): string {
   return createHash("sha256").update(key, "utf8").digest("hex").slice(0, 2);

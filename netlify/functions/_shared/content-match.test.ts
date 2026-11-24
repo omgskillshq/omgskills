@@ -4,7 +4,7 @@ import type { Pool } from "pg";
 import { keysFor } from "./catalog-content-index.js";
 import { computeContentMatches, confirmByText, frontmatter, textSimilarity, type ContentMatchDeps } from "./content-match.js";
 
-const body = (extra = "") => `---\nname: notes\ndescription: Take notes.\n---\n# Notes\nWrite down what was decided in the meeting and who owns each follow up item.${extra}\n`;
+const body = (extra = "") => `---\nname: notes\ndescription: Take notes.\n---\n# Notes\nWrite down what was decided in the meeting and who owns each follow up item. Send the notes to everyone who attended within an hour, and keep a copy in the shared folder.${extra}\n`;
 
 test("text similarity: the same instructions score 1, a small edit stays high, unrelated text near 0", () => {
   assert.equal(textSimilarity(body(), body()), 1);
@@ -55,7 +55,7 @@ test("the background compare stores a confirmed match, and nothing when the libr
   const down = fakeRun(["s1"], async () => { throw new Error("library skill text 503"); });
   await down.run();
   assert.equal(down.stored.length, 0);
-  // Gone (404): compared without it, stored as no match.
+  // Gone (404): the original could be the one missing, so stored as no match.
   const gone = fakeRun(["s1"], async () => null);
   await gone.run();
   assert.deepEqual(gone.stored[0].slice(0, 3), ["s1", "k1", null]);
@@ -66,4 +66,22 @@ test("the background compare stops taking versions once its time is up", async (
   const store = { async get() { clock += 60_000; return Buffer.from(body()); } } as unknown as ContentMatchDeps["store"];
   const slow = fakeRun(["s1", "s2", "s3"], async () => body(), { store, now: () => clock, budgetMs: 90_000 });
   assert.deepEqual(await slow.run(), { checked: 2, confirmed: 2 });
+});
+
+test("instructions in Chinese are compared on their own text, not the English name and description", () => {
+  const meta = "---\nname: writer\ndescription: Writes marketing copy for product launches.\n---\n";
+  const a = meta + "你是一名资深的营销文案撰写人。根据产品的功能和目标用户，撰写简洁有力的发布文案，突出核心卖点，并提供三个不同风格的标题供选择。";
+  const b = meta + "这个技能用于整理会议记录。请列出每项决定、负责人和截止日期，然后把记录发送给所有参会人员，并在共享文件夹中保存一份副本。";
+  assert.ok(textSimilarity(a, b) < 0.3, String(textSimilarity(a, b)));
+  assert.equal(textSimilarity(a, a), 1);
+});
+
+test("never confirmed when some candidates weren't compared", async () => {
+  const key = keysFor({ name: "notes", description: "Take notes." }).find((k) => k.startsWith("n:"))!;
+  const many = Array.from({ length: 20 }, (_, i) => `r${i}/x:notes`);
+  const capped = fakeRun(["s1"], async () => body(), { readIndex: async () => ({ [key]: { ids: many } }),
+    catalogSkill: async (id) => ({ name: "notes", description: id === "r0/x:notes" ? "Take notes." : "Other.", url: `https://raw/${id}` }),
+    fetchText: async (url) => url.endsWith("r0/x:notes") ? body() : "Deploy the app to production with the release script, then check the logs and the dashboards for errors over the next hour." });
+  assert.deepEqual(await capped.run(), { checked: 1, confirmed: 0 });
+  assert.equal(capped.stored[0][2], null);
 });
