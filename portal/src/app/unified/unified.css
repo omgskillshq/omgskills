@@ -892,6 +892,22 @@
   background: rgba(48, 209, 88, 0.18);
   color: #30d158;
 }
+/* A personal skill several library skills match: light purple, like the green My skills tag. */
+.ua-match-tag {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(175, 82, 222, 0.14); /* macOS system purple */
+  color: #8944ab;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 14px;
+  white-space: nowrap;
+}
+.ua-theme[data-theme="dark"] .ua-match-tag {
+  background: rgba(191, 90, 242, 0.2);
+  color: #da8fff;
+}
 .ua-row-heading:has(.ua-row-author) .ua-row-name {
   flex-shrink: 0;
   max-width: 70%;

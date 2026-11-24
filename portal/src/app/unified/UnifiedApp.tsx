@@ -151,7 +151,7 @@ import { PullToRefresh } from "./PullToRefresh";
 import { AlphaRail, railLetter, railLettersOf as railLetters } from "./AlphaRail";
 import { CloudStatusBadge, CloudStatusSection, type CloudInfo } from "./CloudStatus";
 import { SetItemScan } from "./SetItemScan";
-import { LibraryMatchPicker, libraryMatchOf } from "./LibraryMatchPicker";
+import { LibraryMatchPicker, libraryMatchOf, potentialMatch } from "./LibraryMatchPicker";
 import type { CatalogSummary } from "./model";
 import { ReviewBadge } from "./ReviewBadge";
 import { looksLikeGithubLink, type MySkillAdditions } from "../my-skills-additions";
@@ -1345,6 +1345,7 @@ export function UnifiedApp({
               </span>}
               {/* Before the phone-only stars, so it stays by the name. */}
               {discovery && signedIn && inMine(skill) && <span className="ua-mine-tag">My skills</span>}
+              {!discovery && potentialMatch(skill) && <span className="ua-match-tag" title="Matches several library skills: open it to say which one">Potential match</span>}
               {skill.stars !== undefined && (
                 <span className="ua-row-stars ua-row-stars-mobile" aria-label={`${starCount(skill.stars)} stars`}>
                   <Star aria-hidden="true" />{starCount(skill.stars)}
@@ -2468,6 +2469,7 @@ export function UnifiedApp({
                             </a>
                           )}
                           {discovery && signedIn && inMine(detail) && <span className="ua-mine-tag">My skills</span>}
+                          {!discovery && potentialMatch(detail) && <span className="ua-match-tag">Potential match</span>}
                         </div>
                       </div>
                     </div>
