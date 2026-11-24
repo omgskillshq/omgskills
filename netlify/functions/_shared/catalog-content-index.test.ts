@@ -113,3 +113,21 @@ test("a text match links only a current candidate, and never over the person's o
   // The copy's repo among the deciding candidates links even so; it's the same skill.
   assert.deepEqual(resolveCopy({ ...copy, githubUrl: "https://github.com/b/r" }, entries, new Map([[suggested.matchKey, null]])), { catalogSkillId: "b/r:notes" });
 });
+
+test("the name alone never suggests: a second sign is needed (shared text, the same description or content)", () => {
+  const parts = buildContentIndex([
+    { id: "athola/market:curate", name: "curate", description: "Add knowledge annotations.", stars: 273 },
+    { id: "rweekly/site:curate", name: "curate", description: "Prepare the weekly issue.", stars: 823 },
+  ], { version: 1, shaToSkillIds: {} });
+  const entries = Object.fromEntries([...parts.values()].flatMap((part) => Object.entries(part)));
+  const mine = { skillMdSha: "a".repeat(40), name: "curate", description: "Add creators to the omgskills catalog." };
+  // Same name, other description, text not compared or sharing nothing: their own skill.
+  assert.equal(resolveCopy(mine, entries), null);
+  assert.equal(resolveCopy(mine, entries, new Map(), null, false), null);
+  // Its text shares real text with one of them: offered to choose.
+  const offered = resolveCopy(mine, entries, new Map(), null, true);
+  assert.ok(offered && "matchKey" in offered && offered.matchKey.startsWith("n:"));
+  // The same description is a second sign on its own.
+  const sameDescription = resolveCopy({ ...mine, description: "Add knowledge annotations." }, entries);
+  assert.deepEqual(sameDescription && "candidates" in sameDescription ? sameDescription.candidates : null, ["athola/market:curate"]);
+});

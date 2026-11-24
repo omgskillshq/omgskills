@@ -1,6 +1,6 @@
 import type { Pool } from "pg";
 import { keysFor, resolveCopy, type ContentIndexEntry } from "./catalog-content-index.js";
-import { readConfirmedMatches } from "./content-match.js";
+import { readTextMatches } from "./content-match.js";
 import { appendSkillRelease, incrementGroupRevision, lockGroupForMutation, upsertPublicSkillSource } from "./group-storage.js";
 import type { PreparedPublicRelease } from "./public-releases.js";
 
@@ -68,14 +68,14 @@ export async function linkSetItemsToLibrary(pool: Pool, deps: SetLinkDeps): Prom
     map.set(row.matchKey, row.catalogSkillId);
     choicesBy.set(row.userId, map);
   }
-  const confirmed = await readConfirmedMatches(pool, [...new Set(rows.map((row) => row.itemSha))]);
+  const byText = await readTextMatches(pool, [...new Set(rows.map((row) => row.itemSha))]);
   for (const row of rows) {
     if (result.linked + result.skipped >= MAX_SWITCHES) {
       // Stopped early: the next run carries on from the last item handled, not the end of the batch.
       result.cursor = rows[rows.indexOf(row) - 1]?.itemId ?? deps.cursor;
       break;
     }
-    const resolved = resolveCopy(copyOf(row), index, choicesBy.get(row.ownerUserId), confirmed.get(row.itemSha));
+    const resolved = resolveCopy(copyOf(row), index, choicesBy.get(row.ownerUserId), byText.get(row.itemSha)?.confirmed);
     if (!resolved || !("catalogSkillId" in resolved)) continue;
     // Cheap first: a Set that already lists the skill keeps its copy, without asking for the release.
     if (await alreadyListed(pool, row, resolved.catalogSkillId)) continue;

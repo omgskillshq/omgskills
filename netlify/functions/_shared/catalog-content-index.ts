@@ -264,6 +264,8 @@ export function resolveCopy(
   entries: Readonly<Record<string, ContentIndexEntry>>,
   choices: ReadonlyMap<string, string | null> = new Map(),
   confirmed?: string | null,
+  /** The copy's text was compared and shares real text with a same-named library skill. */
+  sharesText = false,
 ): { catalogSkillId: string } | { matchKey: string; candidates: string[] } | null {
   // The same content, or the copy's own repo among the deciding candidates, decides on its own; then
   // the person's choice, which nothing weaker overrides ("It's my own" stays their own); then the
@@ -287,6 +289,9 @@ export function resolveCopy(
   const saidOwnElsewhere = keysFor(copy).some((other) => choices.has(other) && choices.get(other) === null);
   const byText = saidOwnElsewhere ? null : matchCopy(copy, entries, confirmed);
   if (byText) return { catalogSkillId: byText };
+  // The name alone is no sign: suggested only with a second one (the same content, the same
+  // description, or shared instruction text). Otherwise it's treated as the person's own.
+  if (key.startsWith("n:") && !sharesText) return null;
   // Suggested, never linked: the person says which one it is, or that it's their own.
   return { matchKey: key, candidates: entry.ids.slice(0, MAX_CHOICES) };
 }

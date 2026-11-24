@@ -13,7 +13,7 @@ const row = (overrides: Record<string, unknown>) => ({
   gitRelativePath: null, catalogSkillIdHint: "remotion-dev/skills:remotion-render", ...overrides,
 });
 
-function pool(rows: unknown[], confirmed: { sha: string; catalogSkillId: string }[] = []): Pool {
+function pool(rows: unknown[], confirmed: { sha: string; catalogSkillId: string | null; bestScore?: number }[] = []): Pool {
   return { query: async (sql: string) => ({ rows: sql.includes("FROM synced_skills") ? rows
     : sql.includes("FROM content_match_results") ? confirmed : [] }) } as unknown as Pool;
 }
@@ -79,7 +79,7 @@ function index(skills: Record<string, unknown>[], history: Record<string, string
   };
 }
 const skill = (id: string, extra: Record<string, unknown> = {}) => ({ id, name: id.split(/[:/]/).pop(), description: `About ${id}.`, ...extra });
-async function linked(rows: unknown[], read: ReturnType<typeof index>, confirmed: { sha: string; catalogSkillId: string }[] = []) {
+async function linked(rows: unknown[], read: ReturnType<typeof index>, confirmed: { sha: string; catalogSkillId: string | null; bestScore?: number }[] = []) {
   const { skills } = await readSyncInventory(pool(rows, confirmed), "user", 2, new Date(), async () => catalog, read) as {
     skills: Array<{ id: string; catalogSkillId: string | null; isLocalOnly: boolean }>
   };
@@ -108,7 +108,7 @@ test("a copy installed from GitHub directly is linked when its SKILL.md is exact
   });
 });
 
-test("another version is only suggested by name and description, and linked once its text is confirmed", async () => {
+test("another version is suggested by name and description, by name only with shared text, and linked once its text is confirmed", async () => {
   const read = index([
     skill("inference-sh/skills:app-store-screenshots", { name: "app-store-screenshots", description: "Make App Store screenshots." }),
     skill("exiao/skills:app-store-screenshots", { name: "app-store-screenshots", description: "Something else entirely." }),
@@ -128,13 +128,20 @@ test("another version is only suggested by name and description, and linked once
   // Once the background job confirms the text, it links.
   const confirmed = [{ sha: "9".repeat(40), catalogSkillId: "inference-sh/skills:app-store-screenshots" }];
   assert.equal((await linked(rows.slice(0, 1), read, confirmed)).older, "inference-sh/skills:app-store-screenshots");
-  // Unconfirmed: it's offered to choose, by name and description first, then by name alone.
-  const { skills } = await readSyncInventory(pool(rows), "user", 2, new Date(), async () => catalog, read) as {
-    skills: Array<{ id: string; catalogCandidates?: string[] }>
+  // Unconfirmed: the same name and description is offered to choose; the name alone isn't (it's
+  // no sign by itself), until its text shares real text with one of them.
+  const offeredWith = async (results: { sha: string; catalogSkillId: string | null; bestScore?: number }[]) => {
+    const { skills } = await readSyncInventory(pool(rows, results), "user", 2, new Date(), async () => catalog, read) as {
+      skills: Array<{ id: string; catalogCandidates?: string[] }>
+    };
+    return Object.fromEntries(skills.map((s) => [s.id, s.catalogCandidates]));
   };
-  const offered = Object.fromEntries(skills.map((s) => [s.id, s.catalogCandidates]));
+  const offered = await offeredWith([]);
   assert.deepEqual(offered.older, ["inference-sh/skills:app-store-screenshots"]);
-  assert.deepEqual(offered.renamed?.sort(), ["exiao/skills:app-store-screenshots", "inference-sh/skills:app-store-screenshots"]);
+  assert.equal(offered.renamed, undefined);
+  assert.equal((await offeredWith([{ sha: "9".repeat(40), catalogSkillId: null, bestScore: 0.1 }])).renamed, undefined);
+  assert.deepEqual((await offeredWith([{ sha: "9".repeat(40), catalogSkillId: null, bestScore: 0.4 }])).renamed?.sort(),
+    ["exiao/skills:app-store-screenshots", "inference-sh/skills:app-store-screenshots"]);
 });
 
 test("a mirror counts for its original when that's listed, and never on its own", async () => {

@@ -77,6 +77,9 @@ export function textSimilarity(a: string, b: string): number {
   return shared / Math.max(1, left.size + right.size - shared);
 }
 
+/** Shares real text: 30% or more of the instructions' five-word runs. */
+export const RELATED_SCORE = 0.3;
+
 /**
  * Which candidate the text confirms, or none. Linked only when exactly one same-named library skill
  * shares real text with the copy (30% or more): with an original and its forks both sharing text, a
@@ -88,7 +91,7 @@ export function confirmByText(
   copy: { name: string; description: string },
   scored: { id: string; score: number; name: string; description: string }[],
 ): string | null {
-  const related = scored.filter((c) => c.score >= 0.3);
+  const related = scored.filter((c) => c.score >= RELATED_SCORE);
   if (related.length !== 1) return null;
   const only = related[0];
   const sameNameAndDescription = norm(only.name) === norm(copy.name) && norm(only.description) === norm(copy.description);
@@ -179,15 +182,21 @@ export async function computeContentMatches(pool: Pool, deps: ContentMatchDeps):
   return { checked, confirmed };
 }
 
-/** Confirmed library skills for these SKILL.md versions (any catalog build; a new one recomputes them). */
-export async function readConfirmedMatches(pool: Pool, shas: string[]): Promise<Map<string, string>> {
+/** What comparing a version's text found: the library skill it confirms, and whether it shares real text with any. */
+export type TextMatch = { confirmed: string | null; sharesText: boolean };
+
+/** Text results for these SKILL.md versions (any catalog build; a new one recomputes them). */
+export async function readTextMatches(pool: Pool, shas: string[]): Promise<Map<string, TextMatch>> {
   if (!shas.length) return new Map();
-  const result = await pool.query<{ sha: string; catalogSkillId: string }>(
-    `SELECT skill_md_sha AS sha, catalog_skill_id AS "catalogSkillId" FROM content_match_results
-     WHERE skill_md_sha = ANY($1::text[]) AND catalog_skill_id IS NOT NULL`,
+  const result = await pool.query<{ sha: string; catalogSkillId: string | null; bestScore: number | null }>(
+    `SELECT skill_md_sha AS sha, catalog_skill_id AS "catalogSkillId", best_score AS "bestScore" FROM content_match_results
+     WHERE skill_md_sha = ANY($1::text[])`,
     [shas],
   );
-  return new Map(result.rows.map((row) => [row.sha, row.catalogSkillId]));
+  return new Map(result.rows.map((row) => [row.sha, {
+    confirmed: row.catalogSkillId,
+    sharesText: row.catalogSkillId !== null || (row.bestScore !== null && Number(row.bestScore) >= RELATED_SCORE),
+  }]));
 }
 
 /**
