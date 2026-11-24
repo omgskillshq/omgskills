@@ -2,6 +2,7 @@ import { getStore } from "@netlify/blobs";
 import { ensureContentIndex, readBlobContentIndex } from "./_shared/catalog-content-index.js";
 import { getPgPool } from "./_shared/db.js";
 import { linkSetItemsToLibrary } from "./_shared/set-library-links.js";
+import { resolveCatalogPublicRelease } from "./_shared/public-releases.js";
 import { scanDriverConfigFromEnv } from "./_shared/scan-driver.js";
 import { SIGNATURE_HEADER, TIMESTAMP_HEADER, verifyRequest } from "../../scanner/src/signature.js";
 
@@ -31,8 +32,15 @@ export default async (request: Request) => {
   }
   try {
     // Set items shared from My skills that turn out to be library skills follow the library.
-    const linked = await linkSetItemsToLibrary(getPgPool(), readBlobContentIndex);
-    if (linked.linked || linked.skipped) console.info("set items linked to the library", linked);
+    const blobs = getStore("catalog-index");
+    const saved = await blobs.get("set-link-cursor.json", { type: "json" }) as { cursor?: unknown } | null;
+    const linked = await linkSetItemsToLibrary(getPgPool(), {
+      readIndex: readBlobContentIndex,
+      resolveRelease: (catalogSkillId) => resolveCatalogPublicRelease(catalogSkillId),
+      cursor: typeof saved?.cursor === "string" ? saved.cursor : null,
+    });
+    await blobs.setJSON("set-link-cursor.json", { cursor: linked.cursor });
+    if (linked.linked || linked.skipped) console.info("set items linked to the library", { ...linked, cursor: undefined });
   } catch (error) {
     console.error("set items not linked", { error: error instanceof Error ? error.message : String(error) });
   }
