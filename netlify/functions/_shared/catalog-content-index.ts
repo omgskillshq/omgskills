@@ -266,7 +266,7 @@ export function resolveCopy(
   confirmed?: string | null,
   /** Library skills the copy's text was compared with and shares real text with (closest first). */
   related: readonly string[] = [],
-): { catalogSkillId: string } | { matchKey: string; candidates: string[] } | null {
+): { catalogSkillId: string } | { matchKey: string; candidates: string[]; nameKey: string | null; alsoByName: string[] } | null {
   // The same content, or the copy's own repo among the deciding candidates, decides on its own; then
   // the person's choice, which nothing weaker overrides ("It's my own" stays their own); then the
   // copy's repo among its other candidates, or a confirmed text match.
@@ -278,11 +278,17 @@ export function resolveCopy(
   const entry = entries[key];
   const own = repoOf(copy.githubUrl) ? pickOwnRepo(entry, copy) : null;
   if (own) return { catalogSkillId: own };
+  // Other library skills with the copy's name: one may be kept (the creator it's shown under), though
+  // it isn't among the closer candidates. Saved for this copy's own key, like any choice.
+  const byName = copy.name ? nameKey(copy.name) : null;
+  const listed = byName ? entries[byName]?.ids ?? [] : [];
+  // Only when the name's list shares a candidate (the same name), as the choice endpoint requires.
+  const nameIds = listed.some((id) => entry.ids.includes(id)) ? listed : [];
   if (choices.has(key)) {
     const chosen = choices.get(key);
     // A choice of a skill that's no longer a candidate (removed, changed) is asked again.
     if (chosen === null) return null;
-    if (chosen && entry.ids.includes(chosen)) return { catalogSkillId: chosen };
+    if (chosen && (entry.ids.includes(chosen) || nameIds.includes(chosen))) return { catalogSkillId: chosen };
   }
   // "It's my own" said under another key (the name alone, before a closer library skill appeared, or
   // for another copy with that name) is neither overridden nor applied: the person is asked again.
@@ -295,7 +301,9 @@ export function resolveCopy(
   if (key.startsWith("n:") && !sharing.length) return null;
   // Suggested, never linked: the person says which one it is, or that it's their own. Those sharing
   // text come first, then the rest by stars.
-  return { matchKey: key, candidates: [...new Set([...sharing, ...entry.ids])].slice(0, MAX_CHOICES) };
+  const candidates = [...new Set([...sharing, ...entry.ids])].slice(0, MAX_CHOICES);
+  // alsoByName: other same-named library skills the person may keep instead (nameKey proves the name).
+  return { matchKey: key, candidates, nameKey: nameIds.length ? byName : null, alsoByName: nameIds.filter((id) => !candidates.includes(id)) };
 }
 
 /** A key a person may record a choice for: an index key as keysFor makes them. */

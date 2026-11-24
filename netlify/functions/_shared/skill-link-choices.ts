@@ -17,9 +17,10 @@ const defaults = {
 export type SkillLinkDependencies = typeof defaults;
 
 /**
- * POST { matchKey, catalogSkillId }: which library skill the person's copies with this content are,
- * when several library skills share it; catalogSkillId null means "my own skill". The skill must be
- * one of the candidates the index lists for that content. Applies to every copy with that content.
+ * POST { matchKey, catalogSkillId, nameKey? }: which library skill the person's copies with this content
+ * are, when several library skills share it; catalogSkillId null means "my own skill". The skill must be
+ * one of the candidates the index lists for that content, or (with nameKey, the copies' name) another
+ * library skill with that name, kept as the creator it's shown under. Applies to every copy with that content.
  */
 export async function handleSkillLinkChoice(req: Request, overrides: Partial<SkillLinkDependencies> = {}): Promise<Response> {
   if (req.method === "OPTIONS") return optionsResponse(req);
@@ -36,13 +37,17 @@ export async function handleSkillLinkChoice(req: Request, overrides: Partial<Ski
     // Only for something the library suggested (one match or several), "my own" included.
     let entries: Record<string, ContentIndexEntry>;
     try {
-      entries = await deps.readContentIndex([body.matchKey]);
+      entries = await deps.readContentIndex(typeof body.nameKey === "string" && /^n:[0-9a-f]{64}$/.test(body.nameKey)
+        ? [body.matchKey, body.nameKey] : [body.matchKey]);
     } catch {
       return errorResponse(req, 503, "Library is unavailable; try again");
     }
     const ids = entries[body.matchKey]?.ids ?? [];
     if (!ids.length) return errorResponse(req, 404, "This skill has no library matches to choose from");
-    if (catalogSkillId !== null && !ids.includes(catalogSkillId)) return errorResponse(req, 404, "Not one of this skill's library matches");
+    // Another skill with the copies' name: the name's list must hold it and share a candidate (same name).
+    const named = typeof body.nameKey === "string" ? entries[body.nameKey]?.ids ?? [] : [];
+    const keptByName = typeof catalogSkillId === "string" && named.includes(catalogSkillId) && ids.some((id) => named.includes(id));
+    if (catalogSkillId !== null && !ids.includes(catalogSkillId) && !keptByName) return errorResponse(req, 404, "Not one of this skill's library matches");
     const saved = await deps.getPgPool().query(
       `INSERT INTO skill_link_choices (user_id, match_key, catalog_skill_id)
        SELECT $1, $2, $3

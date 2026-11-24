@@ -5,15 +5,18 @@ import { useEffect, useRef, useState } from "react";
 import { Star } from "lucide-react";
 import type { CatalogSummary } from "./model";
 
-export type LibraryMatch = { matchKey: string; candidates: string[] };
+/** alsoByName: other library skills with the copy's name that may be kept instead (nameKey proves the name). */
+export type LibraryMatch = { matchKey: string; candidates: string[]; nameKey?: string; alsoByName?: string[] };
 
 /** The first copy's offer to choose, checked: a real index key and a few catalog IDs. */
-export function libraryMatchOf(copies: readonly { catalogMatchKey?: unknown; catalogCandidates?: unknown }[]): LibraryMatch | null {
+export function libraryMatchOf(copies: readonly { catalogMatchKey?: unknown; catalogCandidates?: unknown; catalogNameKey?: unknown; catalogAlsoByName?: unknown }[]): LibraryMatch | null {
   for (const copy of copies) {
-    const key = copy.catalogMatchKey, ids = copy.catalogCandidates;
+    const key = copy.catalogMatchKey, ids = copy.catalogCandidates, byName = copy.catalogNameKey, also = copy.catalogAlsoByName;
     if (typeof key === "string" && /^(?:sha:[0-9a-f]{40}|nd:[0-9a-f]{64}|n:[0-9a-f]{64})$/.test(key) && Array.isArray(ids)
       && ids.length >= 1 && ids.length <= 5 && ids.every(id => typeof id === "string" && id.length > 0 && id.length <= 500)) {
-      return { matchKey: key, candidates: ids as string[] };
+      return { matchKey: key, candidates: ids as string[],
+        ...(typeof byName === "string" && /^n:[0-9a-f]{64}$/.test(byName) && Array.isArray(also)
+          ? { nameKey: byName, alsoByName: also.filter((id): id is string => typeof id === "string" && id.length > 0 && id.length <= 500) } : {}) };
     }
   }
   return null;
@@ -34,11 +37,13 @@ function starCount(stars?: number) {
   return stars === undefined ? "" : stars >= 1000 ? `${(stars / 1000).toFixed(stars >= 10_000 ? 0 : 1)}K` : String(stars);
 }
 
-export function LibraryMatchPicker({ match, load, choose }: {
+export function LibraryMatchPicker({ match, current, load, choose }: {
   match: LibraryMatch;
+  /** The library skill this is shown under, when it isn't one of the candidates: offered to keep. */
+  current?: { catalogId: string; author: string };
   /** Library details for the candidates (name, author, stars); a failed one shows its ID. */
   load: (ids: string[], signal: AbortSignal) => Promise<(CatalogSummary | null)[]>;
-  choose: (matchKey: string, catalogSkillId: string | null) => Promise<void>;
+  choose: (matchKey: string, catalogSkillId: string | null, nameKey?: string) => Promise<void>;
 }) {
   const [details, setDetails] = useState<(CatalogSummary | null)[]>([]);
   const [selected, setSelected] = useState(match.candidates[0]);
@@ -63,11 +68,13 @@ export function LibraryMatchPicker({ match, load, choose }: {
     return () => controller.abort();
   }, [match.matchKey, candidates]);
   const headingId = `library-match-${match.matchKey}`;
-  const save = async (catalogSkillId: string | null) => {
+  // Only a library skill the server listed for the copy's name: saving any other would be refused.
+  const keep = current && match.nameKey && match.alsoByName?.includes(current.catalogId) ? current : null;
+  const save = async (catalogSkillId: string | null, nameKey?: string) => {
     setBusy(true);
     setError("");
     try {
-      await choose(match.matchKey, catalogSkillId);
+      await choose(match.matchKey, catalogSkillId, nameKey);
     } catch {
       setError("Couldn't save that. Try again.");
     } finally {
@@ -98,6 +105,8 @@ export function LibraryMatchPicker({ match, load, choose }: {
       </ul>
       <div className="ua-library-match-actions">
         <button type="button" className="ua-pill ua-primary" disabled={busy} onClick={() => void save(selected)}>This one</button>
+        {keep && <button type="button" className="ua-pill" disabled={busy}
+          onClick={() => void save(keep.catalogId, match.nameKey)}>Keep {keep.author ? `@${keep.author}` : "this one"}</button>}
         <button type="button" className="ua-pill" disabled={busy} onClick={() => void save(null)}>It's my own</button>
       </div>
       {error && <p role="alert" className="ua-muted">{error}</p>}

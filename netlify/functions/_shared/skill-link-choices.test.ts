@@ -34,3 +34,16 @@ test("only a listed candidate can be chosen, for a real key, and an unavailable 
   assert.equal((await call({ matchKey: byName, catalogSkillId: "only/one:x" }, { entries: { [byName]: { ids: ["only/one:x"] } } })).status, 200);
   assert.equal((await call({ matchKey: key, catalogSkillId: null }, { full: true })).status, 409);
 });
+
+test("keeping another library skill with the copies' name: saved for their own key, only when the name's list holds it", async () => {
+  const byName = `n:${"c".repeat(64)}`;
+  const entries = { [key]: { ids: ["big/repo:x", "fork/repo:x"] }, [byName]: { ids: ["big/repo:x", "fork/repo:x", "kept/repo:x"] } };
+  const queries: unknown[][] = [];
+  assert.equal((await call({ matchKey: key, catalogSkillId: "kept/repo:x", nameKey: byName }, { entries, queries })).status, 200);
+  assert.deepEqual(queries.map((params) => params.slice(0, 3)), [["user-1", key, "kept/repo:x"]]);
+  // Not under that name, no name given, or a name list that shares no candidate (another name): refused.
+  assert.equal((await call({ matchKey: key, catalogSkillId: "other/repo:x", nameKey: byName }, { entries })).status, 404);
+  assert.equal((await call({ matchKey: key, catalogSkillId: "kept/repo:x" }, { entries })).status, 404);
+  assert.equal((await call({ matchKey: key, catalogSkillId: "kept/repo:x", nameKey: byName },
+    { entries: { ...entries, [byName]: { ids: ["kept/repo:x"] } } })).status, 404);
+});

@@ -210,7 +210,8 @@ type Props = {
   /** Library skills added to My skills; absent where the account can't keep them. */
   additions?: MySkillAdditions;
   /** Saves which library skill a personal skill is, when several share its content (null: it's the person's own). */
-  chooseLibraryMatch?: (matchKey: string, catalogSkillId: string | null) => Promise<void>;
+  /** nameKey: when keeping another library skill with the copy's name (see LibraryMatchPicker). */
+  chooseLibraryMatch?: (matchKey: string, catalogSkillId: string | null, nameKey?: string) => Promise<void>;
   /** Library details for those choices. */
   libraryMatchDetails?: (ids: string[], signal: AbortSignal) => Promise<(CatalogSummary | null)[]>;
   /** My skills is still waiting on its cloud and added skills, so its count would jump. */
@@ -2664,7 +2665,9 @@ export function UnifiedApp({
                 {detail.installed && chooseLibraryMatch && libraryMatchDetails && (() => {
                   // Any copy still unlinked with several library matches, even when another copy is linked.
                   const match = libraryMatchOf(detail.installed.sourceSkills.filter(copy => !copy.catalogSkillId?.trim()));
-                  return match ? <LibraryMatchPicker key={match.matchKey} match={match} load={libraryMatchDetails} choose={chooseLibraryMatch} /> : null;
+                  return match ? <LibraryMatchPicker key={match.matchKey} match={match}
+                    current={detail.catalogId ? { catalogId: detail.catalogId, author: detail.author } : undefined}
+                    load={libraryMatchDetails} choose={chooseLibraryMatch} /> : null;
                 })()}
                 <SkillReadme skill={detail} />
                 {detail.setItemReleaseId && sharedSkillMd
