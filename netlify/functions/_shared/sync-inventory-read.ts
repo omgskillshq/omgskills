@@ -90,7 +90,7 @@ export async function readSyncInventory(
       Object.assign(skill, { catalogSkillId: resolved.catalogSkillId, identityStatus: "resolved", isLocalOnly: false });
     } else if (resolved) {
       // Several library skills have this content: the person picks (most stars first).
-      Object.assign(skill, { catalogMatchKey: resolved.matchKey, catalogCandidates: resolved.candidates });
+      Object.assign(skill, { catalogMatchKey: resolved.matchKey, catalogCandidates: resolved.candidates, catalogNameKey: resolved.nameKey });
     }
   }
   const devices = await listUserDevices(pool, userId, now);

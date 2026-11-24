@@ -2664,7 +2664,9 @@ export function UnifiedApp({
                 {detail.installed && chooseLibraryMatch && libraryMatchDetails && (() => {
                   // Any copy still unlinked with several library matches, even when another copy is linked.
                   const match = libraryMatchOf(detail.installed.sourceSkills.filter(copy => !copy.catalogSkillId?.trim()));
-                  return match ? <LibraryMatchPicker key={match.matchKey} match={match} load={libraryMatchDetails} choose={chooseLibraryMatch} /> : null;
+                  return match ? <LibraryMatchPicker key={match.matchKey} match={match}
+                    current={detail.catalogId ? { catalogId: detail.catalogId, author: detail.author } : undefined}
+                    load={libraryMatchDetails} choose={chooseLibraryMatch} /> : null;
                 })()}
                 <SkillReadme skill={detail} />
                 {detail.setItemReleaseId && sharedSkillMd

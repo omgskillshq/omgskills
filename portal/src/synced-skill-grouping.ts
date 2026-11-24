@@ -21,6 +21,7 @@ export type SyncedSkill = {
   /** Several library skills share this copy's content: the index key and candidates (most stars first) to choose from. */
   catalogMatchKey?: string | null;
   catalogCandidates?: string[] | null;
+  catalogNameKey?: string | null;
   id: string;
   name: string;
   description: string | null;

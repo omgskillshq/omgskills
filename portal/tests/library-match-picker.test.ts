@@ -42,3 +42,19 @@ test("a skill is a potential match while one of its copies is unlinked with seve
   assert.equal(potentialMatch({ installed: { sourceSkills: [{}] } }), false);
   assert.equal(potentialMatch({}), false);
 });
+
+test("shown under a library skill that isn't a candidate: offered to keep that creator, saved for the name", async () => {
+  const nameKey = `n:${"c".repeat(64)}`;
+  assert.deepEqual(libraryMatchOf([{ catalogMatchKey: key, catalogCandidates: ["garrytan/gstack:pair-agent"], catalogNameKey: nameKey }]),
+    { matchKey: key, candidates: ["garrytan/gstack:pair-agent"], nameKey });
+  assert.equal(libraryMatchOf([{ catalogMatchKey: key, catalogCandidates: ["a/b"], catalogNameKey: "nope" }])?.nameKey, undefined);
+  const render = (current?: { catalogId: string; author: string }, withName = true) => renderToStaticMarkup(createElement(LibraryMatchPicker, {
+    match: { matchKey: key, candidates: ["garrytan/gstack:pair-agent"], ...(withName ? { nameKey } : {}) },
+    current, load: async () => [], choose: async () => {},
+  }));
+  assert.match(render({ catalogId: "howdeploy/NekoFree:pair-agent", author: "howdeploy" }), /Keep @howdeploy/);
+  // Already a candidate ("This one" covers it), not shown under a library skill, or nowhere to save it: no third option.
+  assert.doesNotMatch(render({ catalogId: "garrytan/gstack:pair-agent", author: "garrytan" }), /Keep/);
+  assert.doesNotMatch(render(), /Keep/);
+  assert.doesNotMatch(render({ catalogId: "howdeploy/NekoFree:pair-agent", author: "howdeploy" }, false), /Keep/);
+});
