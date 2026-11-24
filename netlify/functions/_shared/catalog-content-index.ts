@@ -282,9 +282,10 @@ export function resolveCopy(
     if (chosen === null) return null;
     if (chosen && entry.ids.includes(chosen)) return { catalogSkillId: chosen };
   }
-  // "It's my own", said when another key decided (before a closer library skill appeared), still holds.
-  if (keysFor(copy).some((other) => choices.has(other) && choices.get(other) === null)) return null;
-  const byText = matchCopy(copy, entries, confirmed);
+  // "It's my own" said under another key (the name alone, before a closer library skill appeared, or
+  // for another copy with that name) is neither overridden nor applied: the person is asked again.
+  const saidOwnElsewhere = keysFor(copy).some((other) => choices.has(other) && choices.get(other) === null);
+  const byText = saidOwnElsewhere ? null : matchCopy(copy, entries, confirmed);
   if (byText) return { catalogSkillId: byText };
   // Suggested, never linked: the person says which one it is, or that it's their own.
   return { matchKey: key, candidates: entry.ids.slice(0, MAX_CHOICES) };

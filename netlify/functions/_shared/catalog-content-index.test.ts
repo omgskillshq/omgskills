@@ -106,10 +106,10 @@ test("a text match links only a current candidate, and never over the person's o
   // "It's my own" stays their own; a pick of the other skill stays that pick.
   assert.equal(resolveCopy(copy, entries, new Map([[suggested.matchKey, null]]), "a/r:notes"), null);
   assert.deepEqual(resolveCopy(copy, entries, new Map([[suggested.matchKey, "b/r:notes"]]), "a/r:notes"), { catalogSkillId: "b/r:notes" });
-  // "My own", said under the name alone before a closer library skill appeared, still holds.
+  // "My own", said under the name alone (maybe for another copy with that name): asked again, not linked.
   const byName = keysFor(copy).find((key) => key.startsWith("n:"))!;
   assert.notEqual(byName, suggested.matchKey);
-  assert.equal(resolveCopy(copy, entries, new Map([[byName, null]]), "a/r:notes"), null);
+  assert.deepEqual(resolveCopy(copy, entries, new Map([[byName, null]]), "a/r:notes"), suggested);
   // The copy's repo among the deciding candidates links even so; it's the same skill.
   assert.deepEqual(resolveCopy({ ...copy, githubUrl: "https://github.com/b/r" }, entries, new Map([[suggested.matchKey, null]])), { catalogSkillId: "b/r:notes" });
 });
