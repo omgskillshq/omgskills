@@ -1908,13 +1908,13 @@ test("the background job compares a saved copy's text with same-named library sk
       fetchText: async (url: string) => library[url.replace("https://raw.test/", "")] ?? null,
     };
     assert.deepEqual(await computeContentMatches(pool, deps), { checked: 1, confirmed: 1 });
-    assert.deepEqual([...(await readTextMatches(pool, [sha]))], [[sha, { confirmed: "acme/skills:notes", sharesText: true }]]);
+    assert.deepEqual([...(await readTextMatches(pool, [sha]))], [[sha, { confirmed: "acme/skills:notes", related: ["acme/skills:notes"] }]]);
     // Done for this catalog build: not compared again until a new one.
     assert.deepEqual(await computeContentMatches(pool, deps), { checked: 0, confirmed: 0 });
     // A new build recomputes; unrelated text confirms nothing.
     library["acme/skills:notes"] = "Boil the water with plenty of salt, add the pasta, stir it often, taste it a minute before the time on the packet, then drain it and keep a cup of the water.";
     assert.deepEqual(await computeContentMatches(pool, { ...deps, catalogKey: "g2" }), { checked: 1, confirmed: 0 });
-    assert.deepEqual([...(await readTextMatches(pool, [sha]))], [[sha, { confirmed: null, sharesText: false }]]);
+    assert.deepEqual([...(await readTextMatches(pool, [sha]))], [[sha, { confirmed: null, related: [] }]]);
     // A result nobody holds (the copy removed or changed on the Mac) goes on the next run; one for a
     // version deleted while the run compared it is never written.
     await pool.query("INSERT INTO content_match_results (skill_md_sha, catalog_key, catalog_skill_id, best_score) VALUES ($1, 'g2', 'acme/skills:notes', 1)", ["d".repeat(40)]);

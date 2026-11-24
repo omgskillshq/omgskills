@@ -85,7 +85,7 @@ export async function readSyncInventory(
     : new Map<string, TextMatch>();
   for (const skill of unhinted) {
     const text = skill.skillMdSha ? byText.get(skill.skillMdSha as string) : undefined;
-    const resolved = resolveCopy(skill, index, choices, text?.confirmed, text?.sharesText);
+    const resolved = resolveCopy(skill, index, choices, text?.confirmed, text?.related);
     if (resolved && "catalogSkillId" in resolved) {
       Object.assign(skill, { catalogSkillId: resolved.catalogSkillId, identityStatus: "resolved", isLocalOnly: false });
     } else if (resolved) {

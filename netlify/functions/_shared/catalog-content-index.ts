@@ -264,8 +264,8 @@ export function resolveCopy(
   entries: Readonly<Record<string, ContentIndexEntry>>,
   choices: ReadonlyMap<string, string | null> = new Map(),
   confirmed?: string | null,
-  /** The copy's text was compared and shares real text with a same-named library skill. */
-  sharesText = false,
+  /** Library skills the copy's text was compared with and shares real text with (closest first). */
+  related: readonly string[] = [],
 ): { catalogSkillId: string } | { matchKey: string; candidates: string[] } | null {
   // The same content, or the copy's own repo among the deciding candidates, decides on its own; then
   // the person's choice, which nothing weaker overrides ("It's my own" stays their own); then the
@@ -290,10 +290,12 @@ export function resolveCopy(
   const byText = saidOwnElsewhere ? null : matchCopy(copy, entries, confirmed);
   if (byText) return { catalogSkillId: byText };
   // The name alone is no sign: suggested only with a second one (the same content, the same
-  // description, or shared instruction text). Otherwise it's treated as the person's own.
-  if (key.startsWith("n:") && !sharesText) return null;
-  // Suggested, never linked: the person says which one it is, or that it's their own.
-  return { matchKey: key, candidates: entry.ids.slice(0, MAX_CHOICES) };
+  // description, or shared instruction text with a current candidate). Otherwise it's their own.
+  const sharing = related.filter((id) => entry.ids.includes(id));
+  if (key.startsWith("n:") && !sharing.length) return null;
+  // Suggested, never linked: the person says which one it is, or that it's their own. Those sharing
+  // text come first, then the rest by stars.
+  return { matchKey: key, candidates: [...new Set([...sharing, ...entry.ids])].slice(0, MAX_CHOICES) };
 }
 
 /** A key a person may record a choice for: an index key as keysFor makes them. */
