@@ -639,6 +639,7 @@ export const contentMatchResults = pgTable(
     catalogKey: text("catalog_key").notNull(),
     catalogSkillId: text("catalog_skill_id"),
     bestScore: real("best_score"),
+    relatedIds: text("related_ids").array().notNull().default(sql`ARRAY[]::text[]`),
     computedAt: timestamp("computed_at", { withTimezone: true }).notNull().defaultNow()
   },
   (table) => [

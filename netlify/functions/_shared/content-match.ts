@@ -77,6 +77,9 @@ export function textSimilarity(a: string, b: string): number {
   return shared / Math.max(1, left.size + right.size - shared);
 }
 
+/** Shares real text: 30% or more of the instructions' five-word runs. */
+export const RELATED_SCORE = 0.3;
+
 /**
  * Which candidate the text confirms, or none. Linked only when exactly one same-named library skill
  * shares real text with the copy (30% or more): with an original and its forks both sharing text, a
@@ -88,7 +91,7 @@ export function confirmByText(
   copy: { name: string; description: string },
   scored: { id: string; score: number; name: string; description: string }[],
 ): string | null {
-  const related = scored.filter((c) => c.score >= 0.3);
+  const related = scored.filter((c) => c.score >= RELATED_SCORE);
   if (related.length !== 1) return null;
   const only = related[0];
   const sameNameAndDescription = norm(only.name) === norm(copy.name) && norm(only.description) === norm(copy.description);
@@ -139,6 +142,7 @@ export async function computeContentMatches(pool: Pool, deps: ContentMatchDeps):
     checked += 1;
     let catalogSkillId: string | null = null;
     let best: number | null = null;
+    let related: string[] = [];
     try {
       const text = (await deps.store.get(row.storageKey ?? cloudBlobKey(row.userId, row.sha))).toString("utf8");
       const copy = frontmatter(text);
@@ -161,6 +165,7 @@ export async function computeContentMatches(pool: Pool, deps: ContentMatchDeps):
         return { id, score: textSimilarity(text, skill.text), name: skill.name, description: norm(skill.description) };
       }))).filter((item): item is NonNullable<typeof item> => !!item);
       best = scored.length ? Math.max(...scored.map((item) => item.score)) : null;
+      related = scored.filter((item) => item.score >= RELATED_SCORE).sort((a, b) => b.score - a.score).map((item) => item.id);
       catalogSkillId = complete ? confirmByText(copy, scored) : null;
     } catch {
       // Unreadable now (store or GitHub down): tried again next run, nothing stored.
@@ -169,25 +174,28 @@ export async function computeContentMatches(pool: Pool, deps: ContentMatchDeps):
     if (catalogSkillId) confirmed += 1;
     // Only while the version is still saved: one deleted during the run leaves nothing behind.
     await pool.query(
-      `INSERT INTO content_match_results (skill_md_sha, catalog_key, catalog_skill_id, best_score)
-       SELECT $1, $2, $3, $4 WHERE EXISTS (SELECT 1 FROM cloud_blobs WHERE blob_sha = $1)
+      `INSERT INTO content_match_results (skill_md_sha, catalog_key, catalog_skill_id, best_score, related_ids)
+       SELECT $1, $2, $3, $4, $5::text[] WHERE EXISTS (SELECT 1 FROM cloud_blobs WHERE blob_sha = $1)
        ON CONFLICT (skill_md_sha) DO UPDATE SET catalog_key = EXCLUDED.catalog_key, catalog_skill_id = EXCLUDED.catalog_skill_id,
-         best_score = EXCLUDED.best_score, computed_at = now()`,
-      [row.sha, deps.catalogKey, catalogSkillId, best],
+         best_score = EXCLUDED.best_score, related_ids = EXCLUDED.related_ids, computed_at = now()`,
+      [row.sha, deps.catalogKey, catalogSkillId, best, related],
     );
   }
   return { checked, confirmed };
 }
 
-/** Confirmed library skills for these SKILL.md versions (any catalog build; a new one recomputes them). */
-export async function readConfirmedMatches(pool: Pool, shas: string[]): Promise<Map<string, string>> {
+/** What comparing a version's text found: the library skill it confirms, and those it shares real text with (closest first). */
+export type TextMatch = { confirmed: string | null; related: string[] };
+
+/** Text results for these SKILL.md versions (any catalog build; a new one recomputes them). */
+export async function readTextMatches(pool: Pool, shas: string[]): Promise<Map<string, TextMatch>> {
   if (!shas.length) return new Map();
-  const result = await pool.query<{ sha: string; catalogSkillId: string }>(
-    `SELECT skill_md_sha AS sha, catalog_skill_id AS "catalogSkillId" FROM content_match_results
-     WHERE skill_md_sha = ANY($1::text[]) AND catalog_skill_id IS NOT NULL`,
+  const result = await pool.query<{ sha: string; catalogSkillId: string | null; relatedIds: string[] | null }>(
+    `SELECT skill_md_sha AS sha, catalog_skill_id AS "catalogSkillId", related_ids AS "relatedIds" FROM content_match_results
+     WHERE skill_md_sha = ANY($1::text[])`,
     [shas],
   );
-  return new Map(result.rows.map((row) => [row.sha, row.catalogSkillId]));
+  return new Map(result.rows.map((row) => [row.sha, { confirmed: row.catalogSkillId, related: row.relatedIds ?? [] }]));
 }
 
 /**
