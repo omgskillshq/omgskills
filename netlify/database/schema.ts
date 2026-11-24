@@ -1,4 +1,5 @@
 import {
+  real,
   boolean,
   check,
   foreignKey,
@@ -622,9 +623,28 @@ export const skillLinkChoices = pgTable(
   },
   (table) => [
     primaryKey({ columns: [table.userId, table.matchKey] }),
-    check("skill_link_choices_match_key_check", sql`${table.matchKey} ~ '^(sha:[0-9a-f]{40}|nd:[0-9a-f]{64})$'`),
+    check("skill_link_choices_match_key_check", sql`${table.matchKey} ~ '^(sha:[0-9a-f]{40}|nd:[0-9a-f]{64}|n:[0-9a-f]{64})$'`),
     check(
       "skill_link_choices_catalog_skill_id_check",
+      sql`${table.catalogSkillId} IS NULL OR char_length(${table.catalogSkillId}) BETWEEN 1 AND 500`
+    )
+  ]
+);
+
+/** Which library skill a SKILL.md version is, by comparing its text (background); null = none confirmed. */
+export const contentMatchResults = pgTable(
+  "content_match_results",
+  {
+    skillMdSha: text("skill_md_sha").primaryKey(),
+    catalogKey: text("catalog_key").notNull(),
+    catalogSkillId: text("catalog_skill_id"),
+    bestScore: real("best_score"),
+    computedAt: timestamp("computed_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [
+    check("content_match_results_sha_check", sql`${table.skillMdSha} ~ '^[0-9a-f]{40}$'`),
+    check(
+      "content_match_results_catalog_skill_id_check",
       sql`${table.catalogSkillId} IS NULL OR char_length(${table.catalogSkillId}) BETWEEN 1 AND 500`
     )
   ]

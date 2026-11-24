@@ -1882,3 +1882,37 @@ test("a Set item shared from My skills follows the library once it's recognized 
     assert.equal((await readCloudSave(pool, owner.userId)).skills.some((skill) => skill.key === "notes"), true);
   });
 });
+
+test("the background job compares a saved copy's text with same-named library skills and records what it confirms", async () => {
+  const { computeContentMatches, readConfirmedMatches } = await import("./content-match.js");
+  const { namedKey, nameKey } = await import("./catalog-content-index.js");
+  await withMigratedSchema(async (pool) => {
+    const store = new MemoryStore();
+    const owner = await createUser(pool);
+    await updateCloudSaveSettings(pool, owner.userId, { enabled: true });
+    await uploadAll(pool, store, owner.userId, v1);
+    await saveCloudVersion(pool, { ...owner, skillKey: "notes", files: manifest(v1) });
+    const sha = gitObjectSha("blob", Buffer.from(v1[0].text));
+    const run = randomUUID();
+    await pool.query("INSERT INTO sync_runs(id,user_id,device_id,status,completed_at) VALUES($1,$2,$3,'completed',now())", [run, owner.userId, owner.deviceId]);
+    await pool.query(`INSERT INTO synced_skills(user_id,sync_run_id,device_id,stable_key,name,source,identity_status,is_local_only,skill_md_sha,is_current)
+      VALUES($1,$2,$3,'location:v1:claude:notes','notes','claude','localOnly',true,$4,true)`, [owner.userId, run, owner.deviceId, sha]);
+    const { name, description } = (await import("./content-match.js")).frontmatter(v1[0].text);
+    const entries = { [namedKey(name, description)!]: { ids: ["acme/skills:notes"] }, [nameKey(name)!]: { ids: ["acme/skills:notes", "other/x:notes"] } };
+    const library: Record<string, string> = { "acme/skills:notes": v1[0].text + "\nOne more line.\n", "other/x:notes": "Something unrelated entirely about deploys." };
+    const deps = {
+      store, catalogKey: "g1",
+      readIndex: async (keys: string[]) => Object.fromEntries(keys.flatMap((key) => (entries as Record<string, { ids: string[] }>)[key] ? [[key, (entries as Record<string, { ids: string[] }>)[key]]] : [])),
+      catalogSkill: async (id: string) => ({ name, description: id === "acme/skills:notes" ? description : "Deploys things.", url: `https://raw.test/${id}` }),
+      fetchText: async (url: string) => library[url.replace("https://raw.test/", "")] ?? null,
+    };
+    assert.deepEqual(await computeContentMatches(pool, deps), { checked: 1, confirmed: 1 });
+    assert.deepEqual([...(await readConfirmedMatches(pool, [sha]))], [[sha, "acme/skills:notes"]]);
+    // Done for this catalog build: not compared again until a new one.
+    assert.deepEqual(await computeContentMatches(pool, deps), { checked: 0, confirmed: 0 });
+    // A new build recomputes; unrelated text confirms nothing.
+    library["acme/skills:notes"] = "Completely different instructions about cooking pasta.";
+    assert.deepEqual(await computeContentMatches(pool, { ...deps, catalogKey: "g2" }), { checked: 1, confirmed: 0 });
+    assert.equal((await readConfirmedMatches(pool, [sha])).size, 0);
+  });
+});

@@ -68,7 +68,7 @@ test("a part that isn't written yet isn't remembered", async () => {
   const read = contentIndexReader(store);
   const copy = { skillMdSha: "d".repeat(40), name: "x", description: "Does X." };
   assert.deepEqual(await read(keysFor(copy)), {});
-  await writeContentIndex(store, "g1", buildContentIndex([{ id: "o/r:x", name: "x", description: "Does X." }], { version: 1, shaToSkillIds: {} }));
+  await writeContentIndex(store, "g1", buildContentIndex([{ id: "o/r:x", name: "x", description: "Does X." }], { version: 1, shaToSkillIds: { ["d".repeat(40)]: ["o/r:x"] } }));
   assert.equal(matchCopy(copy, await read(keysFor(copy))), "o/r:x");
 });
 

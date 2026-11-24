@@ -2,6 +2,9 @@ import { getStore } from "@netlify/blobs";
 import { ensureContentIndex, readBlobContentIndex } from "./_shared/catalog-content-index.js";
 import { getPgPool } from "./_shared/db.js";
 import { linkSetItemsToLibrary } from "./_shared/set-library-links.js";
+import { computeContentMatches } from "./_shared/content-match.js";
+import { createCloudObjectStore } from "./_shared/cloud-store.js";
+import { loadPublishedSkills } from "./_shared/published-catalog.js";
 import { resolveCatalogPublicRelease } from "./_shared/public-releases.js";
 import { scanDriverConfigFromEnv } from "./_shared/scan-driver.js";
 import { SIGNATURE_HEADER, TIMESTAMP_HEADER, verifyRequest } from "../../scanner/src/signature.js";
@@ -29,6 +32,36 @@ export default async (request: Request) => {
     console.info(rebuilt ? "catalog index rebuilt" : "catalog index current");
   } catch (error) {
     console.error("catalog index not built", { error: error instanceof Error ? error.message : String(error) });
+  }
+  try {
+    // Compare the text of personal copies with same-named library skills (results confirm links).
+    const blobs = getStore("catalog-index");
+    const meta = await blobs.get("meta.json", { type: "json" }) as { catalogKey?: unknown } | null;
+    if (typeof meta?.catalogKey === "string") {
+      const skills = new Map((await loadPublishedSkills()).map((skill) => [skill.id, skill]));
+      const matched = await computeContentMatches(getPgPool(), {
+        store: createCloudObjectStore(),
+        readIndex: readBlobContentIndex,
+        catalogKey: meta.catalogKey,
+        async catalogSkill(id) {
+          const skill = skills.get(id) as Record<string, unknown> | undefined;
+          if (!skill) return null;
+          const repo = typeof skill.repo_slug === "string" ? skill.repo_slug : id.split(":")[0];
+          const url = typeof skill.repo_commit_sha === "string" && typeof skill.skill_md_path === "string"
+            ? `https://raw.githubusercontent.com/${repo}/${skill.repo_commit_sha}/${skill.skill_md_path.split("/").map(encodeURIComponent).join("/")}` : null;
+          return { name: String(skill.name ?? ""), description: String(skill.description ?? ""), url };
+        },
+        async fetchText(url) {
+          const response = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+          if (!response.ok) return null;
+          const text = await response.text();
+          return text.length > 1_000_000 ? null : text;
+        },
+      });
+      if (matched.checked) console.info("content matches compared", matched);
+    }
+  } catch (error) {
+    console.error("content matches not compared", { error: error instanceof Error ? error.message : String(error) });
   }
   try {
     // Set items shared from My skills that turn out to be library skills follow the library.
