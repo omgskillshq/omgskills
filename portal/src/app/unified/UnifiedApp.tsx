@@ -763,6 +763,8 @@ export function UnifiedApp({
   // Forget removed keys once the list no longer has them, so a skill added again shows.
   useEffect(() => { setRemoved(old => old.length && old.some(key => !allMine.some(skill => skill.key === key))
     ? old.filter(key => allMine.some(skill => skill.key === key)) : old); }, [allMine]);
+  // The "Potential match" tag only where the picker can be used to answer it.
+  const canChooseLibraryMatch = !!chooseLibraryMatch && !!libraryMatchDetails;
   const inMySkills = (catalogId: string | undefined) => !!catalogId && !!additions?.skills.some(skill => skill.catalogId === catalogId);
   const changeMySkills = (catalogId: string, add: boolean) => {
     if (!additions || additions.pending.includes(catalogId)) return;
@@ -1345,7 +1347,7 @@ export function UnifiedApp({
               </span>}
               {/* Before the phone-only stars, so it stays by the name. */}
               {discovery && signedIn && inMine(skill) && <span className="ua-mine-tag">My skills</span>}
-              {!discovery && potentialMatch(skill) && <span className="ua-match-tag" title="Matches several library skills: open it to say which one">Potential match</span>}
+              {!discovery && canChooseLibraryMatch && potentialMatch(skill) && <span className="ua-match-tag" title="Matches several library skills: open it to say which one">Potential match</span>}
               {skill.stars !== undefined && (
                 <span className="ua-row-stars ua-row-stars-mobile" aria-label={`${starCount(skill.stars)} stars`}>
                   <Star aria-hidden="true" />{starCount(skill.stars)}
@@ -2469,7 +2471,7 @@ export function UnifiedApp({
                             </a>
                           )}
                           {discovery && signedIn && inMine(detail) && <span className="ua-mine-tag">My skills</span>}
-                          {!discovery && potentialMatch(detail) && <span className="ua-match-tag">Potential match</span>}
+                          {!discovery && canChooseLibraryMatch && potentialMatch(detail) && <span className="ua-match-tag">Potential match</span>}
                         </div>
                       </div>
                     </div>
