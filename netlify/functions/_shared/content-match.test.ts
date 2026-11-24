@@ -15,15 +15,16 @@ test("frontmatter reads name and description, folded descriptions included", () 
   assert.deepEqual(frontmatter("---\nname: x\ndescription: >\n  Two\n  lines\n---\n"), { name: "x", description: "two lines" });
 });
 
-test("the trial's rule: same name and description needs some shared text; otherwise one clear, very similar winner", () => {
+test("linked only when exactly one same-named library skill shares real text", () => {
   const copy = { name: "notes", description: "take notes." };
   const c = (id: string, score: number, description = "take notes.") => ({ id, score, name: "notes", description });
   assert.equal(confirmByText(copy, [c("a/r:notes", 0.35)]), "a/r:notes");
   // Same words on the outside, different instructions inside: not linked.
   assert.equal(confirmByText(copy, [c("a/r:notes", 0.05)]), null);
-  // Several share the name and description: only a clear text winner links.
-  assert.equal(confirmByText(copy, [c("a/r:notes", 0.9), c("b/r:notes", 0.5)]), "a/r:notes");
-  assert.equal(confirmByText(copy, [c("a/r:notes", 0.9), c("b/r:notes", 0.75)]), null);
-  assert.equal(confirmByText(copy, [c("a/r:notes", 0.82, "other"), c("b/r:notes", 0.2, "other")]), "a/r:notes");
+  // Other description: needs 80% the same text.
+  assert.equal(confirmByText(copy, [c("a/r:notes", 0.82, "other"), c("b/r:notes", 0.1, "other")]), "a/r:notes");
   assert.equal(confirmByText(copy, [c("a/r:notes", 0.6, "other")]), null);
+  // An original and a fork both share text: the person chooses, however close one reads.
+  assert.equal(confirmByText(copy, [c("blader/notes", 0.5, "other"), c("fork/notes", 0.99)]), null);
+  assert.equal(confirmByText(copy, [c("a/r:notes", 0.9), c("b/r:notes", 0.31)]), null);
 });

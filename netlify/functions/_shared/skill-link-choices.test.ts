@@ -28,7 +28,9 @@ test("only a listed candidate can be chosen, for a real key, and an unavailable 
   assert.equal(queries.length, 0);
   // "My own" too only for content the library has several matches for, and within the cap.
   assert.equal((await call({ matchKey: `sha:${"b".repeat(40)}`, catalogSkillId: null }, { queries })).status, 404);
-  assert.equal((await call({ matchKey: key, catalogSkillId: null }, { entries: { [key]: { ids: ["only/one:x"] } }, queries })).status, 404);
   assert.equal(queries.length, 0);
+  // A single suggestion (by name) can be confirmed or declined too.
+  const byName = `n:${"c".repeat(64)}`;
+  assert.equal((await call({ matchKey: byName, catalogSkillId: "only/one:x" }, { entries: { [byName]: { ids: ["only/one:x"] } } })).status, 200);
   assert.equal((await call({ matchKey: key, catalogSkillId: null }, { full: true })).status, 409);
 });

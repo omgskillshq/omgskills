@@ -6,12 +6,13 @@ import { byStars, LibraryMatchPicker, libraryMatchOf, potentialMatch } from "../
 
 const key = `sha:${"a".repeat(40)}`;
 
-test("only a well-formed offer to choose is shown", () => {
+test("only a well-formed offer to choose is shown; one suggestion is enough", () => {
+  assert.deepEqual(libraryMatchOf([{ catalogMatchKey: `n:${"b".repeat(64)}`, catalogCandidates: ["only/one"] }]),
+    { matchKey: `n:${"b".repeat(64)}`, candidates: ["only/one"] });
   assert.deepEqual(libraryMatchOf([{}, { catalogMatchKey: key, catalogCandidates: ["big/repo:x", "fork/repo:x"] }]),
     { matchKey: key, candidates: ["big/repo:x", "fork/repo:x"] });
   for (const bad of [
     { catalogMatchKey: "sha:nope", catalogCandidates: ["a/b", "c/d"] },
-    { catalogMatchKey: key, catalogCandidates: ["only/one"] },
     { catalogMatchKey: key, catalogCandidates: "a/b" },
   ]) assert.equal(libraryMatchOf([bad]), null);
 });

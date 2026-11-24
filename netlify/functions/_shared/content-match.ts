@@ -6,10 +6,8 @@ import { cloudBlobKey, type CloudObjectStore } from "./cloud-store.js";
  * Confirms which library skill a personal skill is by comparing its SKILL.md text with same-named
  * library skills, in the background, so page loads only read the result (content_match_results).
  * Rules from the match trial (~/Projects/match-trial-20261124, 2026-11-24, 243 known older versions
- * and 147 skills not in the library): link when the same name and description belong to exactly one
- * library skill AND at least 30% of the text is shared, or when one candidate is at least 80% the same
- * text and 30 points ahead of the next. That linked 101 correctly, 2 to a near-identical fork, and 1 of
- * 147 unrelated (against 9 for name and description alone). Everything else stays a suggestion.
+ * and 147 skills not in the library), then checked on real skills: see confirmByText. Everything else
+ * stays a suggestion.
  * Only copies whose text we hold (saved to the owner's cloud, or shared in a Set) are compared.
  */
 
@@ -54,16 +52,22 @@ export function textSimilarity(a: string, b: string): number {
   return shared / Math.max(1, left.size + right.size - shared);
 }
 
-/** The trial's rule: which candidate the text confirms, or none. */
+/**
+ * Which candidate the text confirms, or none. Linked only when exactly one same-named library skill
+ * shares real text with the copy (30% or more): with an original and its forks both sharing text, a
+ * fork that kept an older version can read closest, so those are left for the person to choose. That
+ * one is linked when it also has the same name and description, or when 80% or more of the text is
+ * the same. On the trial set: 99 right, 1 wrong, 1 unrelated of 147 (name and description alone: 9).
+ */
 export function confirmByText(
   copy: { name: string; description: string },
   scored: { id: string; score: number; name: string; description: string }[],
 ): string | null {
-  const sameNameAndDescription = scored.filter((c) => norm(c.name) === norm(copy.name) && norm(c.description) === norm(copy.description));
-  if (sameNameAndDescription.length === 1 && sameNameAndDescription[0].score >= 0.3) return sameNameAndDescription[0].id;
-  const ranked = [...scored].sort((a, b) => b.score - a.score);
-  if (ranked[0] && ranked[0].score >= 0.8 && (ranked.length < 2 || ranked[0].score - ranked[1].score >= 0.3)) return ranked[0].id;
-  return null;
+  const related = scored.filter((c) => c.score >= 0.3);
+  if (related.length !== 1) return null;
+  const only = related[0];
+  const sameNameAndDescription = norm(only.name) === norm(copy.name) && norm(only.description) === norm(copy.description);
+  return sameNameAndDescription || only.score >= 0.8 ? only.id : null;
 }
 
 export async function computeContentMatches(pool: Pool, deps: ContentMatchDeps): Promise<{ checked: number; confirmed: number }> {
@@ -105,7 +109,9 @@ export async function computeContentMatches(pool: Pool, deps: ContentMatchDeps):
       const copy = frontmatter(text);
       const keys = keysFor({ skillMdSha: row.sha, ...copy }).filter((key) => !key.startsWith("sha:"));
       const entries = await deps.readIndex(keys);
-      const ids = [...new Set(keys.flatMap((key) => entries[key]?.ids ?? []))].slice(0, MAX_CANDIDATES);
+      // Most stars first across the same name (the name's list is in star order), then any others.
+      const ordered = [...keys].sort((a, b) => Number(b.startsWith("n:")) - Number(a.startsWith("n:")));
+      const ids = [...new Set(ordered.flatMap((key) => entries[key]?.ids ?? []))].slice(0, MAX_CANDIDATES);
       const scored = (await Promise.all(ids.map(async (id) => {
         const skill = await candidateText(id);
         return skill?.text ? { id, score: textSimilarity(text, skill.text), name: skill.name, description: norm(skill.description) } : null;

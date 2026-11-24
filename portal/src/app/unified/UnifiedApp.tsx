@@ -1347,7 +1347,7 @@ export function UnifiedApp({
               </span>}
               {/* Before the phone-only stars, so it stays by the name. */}
               {discovery && signedIn && inMine(skill) && <span className="ua-mine-tag">My skills</span>}
-              {!discovery && canChooseLibraryMatch && potentialMatch(skill) && <span className="ua-match-tag" title="Matches several library skills: open it to say which one">Potential match</span>}
+              {!discovery && canChooseLibraryMatch && potentialMatch(skill) && <span className="ua-match-tag" title="May be a library skill: open it to say which one, or that it's your own">Potential match</span>}
               {skill.stars !== undefined && (
                 <span className="ua-row-stars ua-row-stars-mobile" aria-label={`${starCount(skill.stars)} stars`}>
                   <Star aria-hidden="true" />{starCount(skill.stars)}
