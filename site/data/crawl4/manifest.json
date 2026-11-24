@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-24T17:38:40.824Z",
+  "generatedAt": "2026-11-24T22:22:46.519Z",
   "skills": {
-    "path": "skills-96b735d01d42.json",
-    "sha256": "96b735d01d42ff594c24be800bf98e96df24700fa0baa8beafbd6b37b7dca23a",
-    "bytes": 88443840
+    "path": "skills-5b034e75670c.json",
+    "sha256": "5b034e75670ce7751d3409b3e34054bc459064a6afd291e35d9b70561595e346",
+    "bytes": 88452917
   },
   "trending": {
-    "path": "trending-15fc05e5c130.json",
-    "sha256": "15fc05e5c130f94e078224978864492e8ae7be417546d9035b9180204e2f6fc0",
-    "bytes": 51275
+    "path": "trending-ba774ef04544.json",
+    "sha256": "ba774ef0454439ea9eb0a6166e79714ba179ac8ca3caf5f53cc683f69cb139b3",
+    "bytes": 53439
   },
   "xTrending": {
     "path": "x-trending-c2ec558d316a.json",
@@ -32,13 +32,13 @@
     "bytes": 18837
   },
   "searchCatalog": {
-    "path": "search-catalog-69179dde31ed.json",
-    "sha256": "69179dde31ed7276042f25f505e5242e13df702b86666d50b9ab8d1f6b1165e5",
+    "path": "search-catalog-cf78925555a1.json",
+    "sha256": "cf78925555a1cecf56dfd3b8bc8bbb871e6f3708895e2e0dc852c6cbd2831aff",
     "bytes": 813
   },
   "sourceTrending": {
-    "path": "source-trending-8de0c0c489ed.json",
-    "sha256": "8de0c0c489ed925c8fe2ed5910bd95be2e38278a941a1c8f6a35c48afecd0579",
-    "bytes": 134971
+    "path": "source-trending-3ab6526babb6.json",
+    "sha256": "3ab6526babb6e66a74330a706c33b8b959e82c4d046779e49810cfa7956e8499",
+    "bytes": 134372
   }
 }
