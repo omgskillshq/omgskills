@@ -313,16 +313,19 @@ export function resolveCopy(
   const key = deciding(copy, entries);
   if (!key) return null;
   const entry = entries[key];
+  // "None of these": the library skills listed for it when the person said so.
+  const saved = choices.get(key);
+  const turnedDown: readonly string[] = saved && typeof saved === "object" ? saved.noneOf : [];
+  // Never linked to a skill turned down, nor (by its text) to the fork whose exact file it is.
+  const ruledOut = frozenFork && exact ? [...turnedDown, exact] : turnedDown;
   const own = repoOf(copy.githubUrl) ? pickOwnRepo(entry, copy) : null;
-  if (own) return { catalogSkillId: own };
+  if (own && !turnedDown.includes(own)) return { catalogSkillId: own };
   // Other library skills with the copy's name: one may be kept (the creator it's shown under), though
   // it isn't among the closer candidates. Saved for this copy's own key, like any choice.
   const byName = copy.name ? nameKey(copy.name) : null;
   const listed = byName ? entries[byName]?.ids ?? [] : [];
   // Only when the name's list shares a candidate (the same name), as the choice endpoint requires.
   const nameIds = listed.some((id) => entry.ids.includes(id)) ? listed : [];
-  // "None of these": the library skills listed for it when the person said so.
-  let turnedDown: readonly string[] = [];
   if (choices.has(key)) {
     const chosen = choices.get(key);
     // A choice of a skill that's no longer a candidate (removed, changed) is asked again.
@@ -330,15 +333,13 @@ export function resolveCopy(
     // Left unlinked, and not asked again until a library skill not listed then turns up.
     if (typeof chosen === "object" && chosen) {
       if (entry.ids.every((id) => chosen.noneOf.includes(id))) return null;
-      turnedDown = chosen.noneOf;
     } else if (chosen && (entry.ids.includes(chosen) || nameIds.includes(chosen))) return { catalogSkillId: chosen };
   }
   // "It's my own" said under another key (the name alone, before a closer library skill appeared, or
   // for another copy with that name) is neither overridden nor applied: the person is asked again.
   const saidOwnElsewhere = keysFor(copy).some((other) => choices.has(other) && choices.get(other) === null);
-  // A text match never links a skill the person turned down.
-  const byText = saidOwnElsewhere ? null : matchCopy(copy, entries, confirmed && !turnedDown.includes(confirmed) ? confirmed : null);
-  if (byText && !turnedDown.includes(byText)) return { catalogSkillId: byText };
+  const byText = saidOwnElsewhere ? null : matchCopy(copy, entries, confirmed && !ruledOut.includes(confirmed) ? confirmed : null);
+  if (byText && !ruledOut.includes(byText)) return { catalogSkillId: byText };
   // The name alone is no sign: suggested only with a second one (the same content, the same
   // description, or shared instruction text with a current candidate). Otherwise it's their own.
   const sharing = related.filter((id) => entry.ids.includes(id));

@@ -233,3 +233,17 @@ test("an exact copy of a fork that froze an older version is offered with the or
   assert.deepEqual(resolveCopy(copy, { ...entries, [key]: { ids: ["fork/r:qa", "small/r:qa"] } }), { catalogSkillId: "fork/r:qa" });
   assert.deepEqual(resolveCopy({ ...copy, githubUrl: "https://github.com/fork/r" }, entries), { catalogSkillId: "fork/r:qa" });
 });
+
+test("the fork's exact file confirmed by text doesn't link it back; a turned-down repo isn't linked as the copy's own", () => {
+  const sha = "e".repeat(40);
+  const copy = { skillMdSha: sha, name: "qa", description: "Old." };
+  const key = namedKey("qa", "Old.")!;
+  const entries = { [`sha:${sha}`]: { ids: ["fork/r:qa"] }, [key]: { ids: ["garrytan/gstack:qa", "fork/r:qa"] } };
+  const offered = resolveCopy(copy, entries, new Map(), "fork/r:qa");
+  assert.ok(offered && "candidates" in offered);
+  const mine = { name: "x", description: "Does x.", githubUrl: "https://github.com/big/repo" };
+  const xKey = namedKey("x", "Does x.")!;
+  const xEntries = { [xKey]: { ids: ["big/repo:x", "fork/repo:x", "new/repo:x"] } };
+  const turned = resolveCopy(mine, xEntries, new Map([[xKey, { noneOf: ["big/repo:x", "fork/repo:x"] }]]));
+  assert.ok(turned && "candidates" in turned && turned.candidates[0] === "new/repo:x");
+});
