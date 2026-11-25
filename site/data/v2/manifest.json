@@ -1,25 +1,25 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-24T22:22:44.947Z",
+  "generatedAt": "2026-11-25T02:43:21Z",
   "skills": {
-    "path": "skills-a70e1e234d03.json",
-    "sha256": "a70e1e234d03140d2b0722ca53daffd315d74a436a53bb17a3f19e00ac1dfea2",
+    "path": "skills-cb94483b5ac9.json",
+    "sha256": "cb94483b5ac96a6002238cdefde144dc4988bf98d205b945803c82dee04ec737",
     "bytes": 87128009
   },
   "trending": {
-    "path": "trending-ba774ef04544.json",
-    "sha256": "ba774ef0454439ea9eb0a6166e79714ba179ac8ca3caf5f53cc683f69cb139b3",
-    "bytes": 53439
+    "path": "trending-0018d3837a35.json",
+    "sha256": "0018d3837a352e23e0e73a82bac92c93f47ffb55ceb996b65632d4763edd4c66",
+    "bytes": 55102
   },
   "trendingLeaderboard": {
-    "path": "trending-leaderboard-3f5add5e5c5b.json",
-    "sha256": "3f5add5e5c5bb9aecf8fb9720822ffbb81f627d5f7934be8a0e4e4e0217d5619",
-    "bytes": 187225
+    "path": "trending-leaderboard-92211d512083.json",
+    "sha256": "92211d512083d6aec6ada830117b2d837d3fcaf64040e544b0cdae2884c68fe5",
+    "bytes": 194107
   },
   "leaderboardViewData": {
-    "path": "leaderboard-view-data-0ddac05000bb.json",
-    "sha256": "0ddac05000bb91c7f2d1b9fa346ee5a3160a8d536e061da6f7d8b1d4effacdf6",
-    "bytes": 43150
+    "path": "leaderboard-view-data-da05691fe012.json",
+    "sha256": "da05691fe012ac1190b3d79186b5224cf0c9f54406abc395f2f1239c41d18186",
+    "bytes": 43501
   },
   "xTrending": {
     "path": "x-trending-c2ec558d316a.json",
@@ -27,19 +27,19 @@
     "bytes": 82126
   },
   "skillSignals": {
-    "path": "skill-signals-73f7a7863c70.json",
-    "sha256": "73f7a7863c70115758bf1a63cf6ffe3ac94b8dc32e84109dd6527bc21201bcf0",
-    "bytes": 7225773
+    "path": "skill-signals-b2da4f16a8aa.json",
+    "sha256": "b2da4f16a8aaf83b9ae480253a26dfb01f0e105b9f7f86cd02f8776414ec91bd",
+    "bytes": 7225965
   },
   "authorSignals": {
-    "path": "author-signals-93e617f68c18.json",
-    "sha256": "93e617f68c18a872a517c3370f802651948da8ffb8faab95bd04efaf82127246",
+    "path": "author-signals-8cb300a5220d.json",
+    "sha256": "8cb300a5220db81020594702225548b0389a3b33a86be98e9287499550d18143",
     "bytes": 2916845
   },
   "authorLeaderboards": {
-    "path": "author-leaderboards-ffe72b7ed585.json",
-    "sha256": "ffe72b7ed5859c6a3e541628b4cda89bb4d5979f2a042faf643ca59d8f0a1dd4",
-    "bytes": 6606417
+    "path": "author-leaderboards-da4c37b60980.json",
+    "sha256": "da4c37b6098008d3af4458663aba2e990b48361fda4106b46f63f961b43fce02",
+    "bytes": 6606425
   },
   "collections": {
     "path": "collections-04091f15c788.json",
@@ -47,9 +47,9 @@
     "bytes": 393175
   },
   "shaHistory": {
-    "path": "sha-history-f5c0bd112d94.json",
-    "sha256": "f5c0bd112d94bb590792d3d4ff378f115e4dc6119df4f47759ba73894a4a8d7e",
-    "bytes": 9549419
+    "path": "sha-history-55bad20cb5ec.json",
+    "sha256": "55bad20cb5ecfa9d5cb18e43623fd41f4e4a3cc5e2139f4400515ed01fe4389d",
+    "bytes": 9550422
   },
   "skillEquivalence": {
     "path": "skill-equivalence-82d96da53728.json",
@@ -57,8 +57,8 @@
     "bytes": 18837
   },
   "sourceTrending": {
-    "path": "source-trending-3ab6526babb6.json",
-    "sha256": "3ab6526babb6e66a74330a706c33b8b959e82c4d046779e49810cfa7956e8499",
-    "bytes": 134372
+    "path": "source-trending-1c5232f222d6.json",
+    "sha256": "1c5232f222d6326690911344fa8d5e4837d4244f1a4d73249b4f5ac8160e2f57",
+    "bytes": 134961
   }
 }
