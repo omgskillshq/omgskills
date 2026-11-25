@@ -39,8 +39,26 @@
       "reason": "catalog-identity-or-path"
     },
     {
+      "sourceId": "bankai-skills/superpowers:ai-avatar-video",
+      "checkedAt": "2026-11-25T21:38:14.722Z",
+      "outcome": "blocked",
+      "reason": "non-original-provenance"
+    },
+    {
       "sourceId": "bankai-skills/superpowers:ai-image-generation",
       "checkedAt": "2026-11-24T22:21:49.950Z",
+      "outcome": "blocked",
+      "reason": "non-original-provenance"
+    },
+    {
+      "sourceId": "bankai-skills/superpowers:ai-video-generation",
+      "checkedAt": "2026-11-25T21:38:14.722Z",
+      "outcome": "blocked",
+      "reason": "non-original-provenance"
+    },
+    {
+      "sourceId": "bankai-skills/superpowers:twitter-automation",
+      "checkedAt": "2026-11-25T21:38:14.722Z",
       "outcome": "blocked",
       "reason": "non-original-provenance"
     },
@@ -165,6 +183,24 @@
       "reason": "confirmed-upstream-copy"
     },
     {
+      "sourceId": "cloudflare/security-audit-skill:security-audit",
+      "checkedAt": "2026-11-25T21:38:14.722Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "cloudflare/skills:artifacts",
+      "checkedAt": "2026-11-25T21:38:14.722Z",
+      "outcome": "added",
+      "reason": "verified-trending"
+    },
+    {
+      "sourceId": "cloudflare/skills:flagship",
+      "checkedAt": "2026-11-25T21:38:14.722Z",
+      "outcome": "added",
+      "reason": "verified-trending"
+    },
+    {
       "sourceId": "designed-by-ai/skills:design-mobile-apps",
       "checkedAt": "2026-11-22T19:31:05.026Z",
       "outcome": "blocked",
@@ -231,10 +267,58 @@
       "reason": "verified-trending"
     },
     {
+      "sourceId": "its-a-skill-issue/superpowers:ai-avatar-video",
+      "checkedAt": "2026-11-25T21:38:14.722Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
+      "sourceId": "its-a-skill-issue/superpowers:ai-image-generation",
+      "checkedAt": "2026-11-25T21:38:14.722Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
+      "sourceId": "its-a-skill-issue/superpowers:ai-video-generation",
+      "checkedAt": "2026-11-25T21:38:14.722Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
+      "sourceId": "its-a-skill-issue/superpowers:twitter-automation",
+      "checkedAt": "2026-11-25T21:38:14.722Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
       "sourceId": "leonxlnx/taste-skill:design-taste-frontend",
       "checkedAt": "2026-11-23T23:49:20.889Z",
       "outcome": "existing",
       "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "magentosh/superpowers:ai-avatar-video",
+      "checkedAt": "2026-11-25T21:38:14.722Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
+      "sourceId": "magentosh/superpowers:ai-image-generation",
+      "checkedAt": "2026-11-25T21:38:14.722Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
+      "sourceId": "magentosh/superpowers:ai-video-generation",
+      "checkedAt": "2026-11-25T21:38:14.722Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
+      "sourceId": "magentosh/superpowers:twitter-automation",
+      "checkedAt": "2026-11-25T21:38:14.722Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
     },
     {
       "sourceId": "mattpocock/skills:ask-matt",
@@ -381,6 +465,12 @@
       "reason": "catalog-identity-or-path"
     },
     {
+      "sourceId": "nextlevelbuilder/ui-ux-pro-max-skill:ui-ux-pro-max",
+      "checkedAt": "2026-11-25T21:38:14.722Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
       "sourceId": "nexu-io/openmotion:openmotion",
       "checkedAt": "2026-11-22T19:31:05.026Z",
       "outcome": "added",
@@ -423,6 +513,30 @@
       "reason": "verified-trending"
     },
     {
+      "sourceId": "skills-shell/superpowers:ai-avatar-video",
+      "checkedAt": "2026-11-25T21:38:14.722Z",
+      "outcome": "blocked",
+      "reason": "non-original-provenance"
+    },
+    {
+      "sourceId": "skills-shell/superpowers:ai-image-generation",
+      "checkedAt": "2026-11-25T21:38:14.722Z",
+      "outcome": "blocked",
+      "reason": "non-original-provenance"
+    },
+    {
+      "sourceId": "skills-shell/superpowers:ai-video-generation",
+      "checkedAt": "2026-11-25T21:38:14.722Z",
+      "outcome": "blocked",
+      "reason": "non-original-provenance"
+    },
+    {
+      "sourceId": "skills-shell/superpowers:twitter-automation",
+      "checkedAt": "2026-11-25T21:38:14.722Z",
+      "outcome": "blocked",
+      "reason": "non-original-provenance"
+    },
+    {
       "sourceId": "stripe/link-cli:link-balance",
       "checkedAt": "2026-11-22T19:31:05.026Z",
       "outcome": "added",
@@ -439,6 +553,12 @@
       "checkedAt": "2026-11-24T22:21:49.950Z",
       "outcome": "added",
       "reason": "verified-trending"
+    },
+    {
+      "sourceId": "vercel-labs/agent-skills:vercel-composition-patterns",
+      "checkedAt": "2026-11-25T21:38:14.722Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
     },
     {
       "sourceId": "vercel-labs/agent-skills:vercel-react-best-practices",
