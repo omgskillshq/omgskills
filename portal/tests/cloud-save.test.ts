@@ -164,6 +164,17 @@ test("Show splits my skills into personal (own) and public (library), each by na
   assert.equal(parseNavigation("?view=discover&show=public").show, undefined, "Only my own lists");
 });
 
+test("By creator groups library skills under each creator A to Z, personal ones last, and survives the address", async () => {
+  const { skillsByCreator, parseNavigation, navigationSearch, initialNavigation } = await import("../src/app/unified/model");
+  const skill = (name: string, catalogId?: string, author = "") => ({ key: name, name, catalogId, author }) as never;
+  const groups = skillsByCreator([skill("zeta", "zed/r:zeta", "zed"), skill("mine"), skill("beta", "Anna/r:beta", "Anna"),
+    skill("alpha", "anna/x:alpha", "anna"), skill("gamma", "owner/r:gamma")]);
+  assert.deepEqual(groups.map((g: { creator: string | null; skills: { name: string }[] }) => [g.creator, g.skills.map(s => s.name)]),
+    [["Anna", ["alpha", "beta"]], ["owner", ["gamma"]], ["zed", ["zeta"]], [null, ["mine"]]]);
+  assert.deepEqual(skillsByCreator([skill("only", "a/b:only", "a")]).map((g: { creator: string | null }) => g.creator), ["a"], "No empty Personal group");
+  assert.equal(parseNavigation(navigationSearch({ ...initialNavigation, show: "creator" })).show, "creator");
+});
+
 test("the letter index files names by first letter and lands on the next letter that has skills", async () => {
   const { railLetter, railTarget } = await import("../src/app/unified/AlphaRail");
   assert.deepEqual(["api", "Élan", "  zod", "3d", "_x"].map(railLetter), ["A", "E", "Z", "#", "#"]);
