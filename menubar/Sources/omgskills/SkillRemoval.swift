@@ -80,9 +80,7 @@ enum SkillRemoval {
 
     /// What Delete everywhere does, said before it happens.
     static func everywhereWarning(count: Int, sets: Int?) -> String {
-        let them = count == 1 ? "it" : "them"
-        var text = "Takes \(them) out of My skills and your account; synced versions are deleted for good. "
-            + "Copies here move to the Trash; copies on other Macs stay there but stop syncing."
+        var text = "Delete permanently from My skills and this device."
         if let sets, sets > 0 {
             // Counts add up per skill, so for several skills one Set may be counted twice; don't give a number.
             text += count == 1

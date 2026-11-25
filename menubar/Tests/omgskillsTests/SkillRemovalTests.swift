@@ -202,7 +202,7 @@ struct SkillRemovalTests {
         #expect(reported == 1)
         #expect(removal.state == .done(title: "Removed pdf from My skills",
             message: "Copies here moved to the Trash. Copies on other Macs stay there."))
-        #expect(SkillRemoval.everywhereWarning(count: 1, sets: nil).contains("synced versions are deleted for good"))
+        #expect(SkillRemoval.everywhereWarning(count: 1, sets: nil) == "Delete permanently from My skills and this device.")
         #expect(SkillRemoval.everywhereWarning(count: 1, sets: 2).hasSuffix("It's also taken out of 2 Sets; people keep what they installed."))
         #expect(!SkillRemoval.everywhereWarning(count: 1, sets: 0).contains("Set"))
         #expect(SkillRemoval.everywhereWarning(count: 2, sets: 3).hasSuffix("taken out of the Sets they're in; people keep what they installed."))
