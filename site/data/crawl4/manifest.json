@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-25T02:27:57.533Z",
+  "generatedAt": "2026-11-25T17:10:03.083Z",
   "skills": {
-    "path": "skills-1f9fa4cc25e2.json",
-    "sha256": "1f9fa4cc25e2a444e4f002c11c0322b82535faaed38b030e460df443e416e963",
-    "bytes": 88452917
+    "path": "skills-61b47354aabe.json",
+    "sha256": "61b47354aabe6f71bf12d19ed1671551efcdda767a72a95d56f3563964540934",
+    "bytes": 88452438
   },
   "trending": {
-    "path": "trending-0018d3837a35.json",
-    "sha256": "0018d3837a352e23e0e73a82bac92c93f47ffb55ceb996b65632d4763edd4c66",
-    "bytes": 55102
+    "path": "trending-1b37ec013a5b.json",
+    "sha256": "1b37ec013a5b4d0a491014caa21a43b1c6585f7bd7f42538346a1996471fc94d",
+    "bytes": 55487
   },
   "xTrending": {
     "path": "x-trending-c2ec558d316a.json",
@@ -22,9 +22,9 @@
     "bytes": 393175
   },
   "shaHistory": {
-    "path": "sha-history-55bad20cb5ec.json",
-    "sha256": "55bad20cb5ecfa9d5cb18e43623fd41f4e4a3cc5e2139f4400515ed01fe4389d",
-    "bytes": 9550422
+    "path": "sha-history-73b692b253d2.json",
+    "sha256": "73b692b253d2bfe0dc1f04751d46d31b1d70259021af92759855e2e9bc1ed2b6",
+    "bytes": 9551390
   },
   "skillEquivalence": {
     "path": "skill-equivalence-82d96da53728.json",
@@ -32,13 +32,13 @@
     "bytes": 18837
   },
   "searchCatalog": {
-    "path": "search-catalog-5e01c2da8206.json",
-    "sha256": "5e01c2da8206974cda8352d704c32956fab236b054494c41f8db5554791e6f4f",
+    "path": "search-catalog-f196d7055ca0.json",
+    "sha256": "f196d7055ca0a02dac5e7492ebf7922815589ac06f94df9e86153922998bc261",
     "bytes": 813
   },
   "sourceTrending": {
-    "path": "source-trending-1c5232f222d6.json",
-    "sha256": "1c5232f222d6326690911344fa8d5e4837d4244f1a4d73249b4f5ac8160e2f57",
-    "bytes": 134961
+    "path": "source-trending-b8fbd508357a.json",
+    "sha256": "b8fbd508357a0fb74bd706a846a50d76ccf6b3c8aad6ca2aaf667802f2e026e2",
+    "bytes": 136283
   }
 }
