@@ -220,3 +220,16 @@ test("after None of these, a text match never links a skill turned down, and new
   assert.equal(asked.candidates[0], "new/r:x");
   assert.deepEqual(resolveCopy(copy, entries, choices, "new/r:x"), { catalogSkillId: "new/r:x" });
 });
+
+test("an exact copy of a fork that froze an older version is offered with the original first, not linked to the fork", () => {
+  const sha = "d".repeat(40);
+  const copy = { skillMdSha: sha, name: "qa", description: "Old." };
+  const key = namedKey("qa", "Old.")!;
+  const entries = { [`sha:${sha}`]: { ids: ["fork/r:qa"] }, [key]: { ids: ["garrytan/gstack:qa", "fork/r:qa"] } };
+  const offered = resolveCopy(copy, entries);
+  assert.deepEqual(offered, { matchKey: key, candidates: ["garrytan/gstack:qa", "fork/r:qa"], nameKey: null, alsoByName: [] });
+  assert.deepEqual(resolveCopy(copy, entries, new Map([[key, "garrytan/gstack:qa"]])), { catalogSkillId: "garrytan/gstack:qa" });
+  // Still linked when the fork is the most-starred with that description, or the copy comes from its repo.
+  assert.deepEqual(resolveCopy(copy, { ...entries, [key]: { ids: ["fork/r:qa", "small/r:qa"] } }), { catalogSkillId: "fork/r:qa" });
+  assert.deepEqual(resolveCopy({ ...copy, githubUrl: "https://github.com/fork/r" }, entries), { catalogSkillId: "fork/r:qa" });
+});

@@ -301,7 +301,15 @@ export function resolveCopy(
   // copy's repo among its other candidates, or a confirmed text match.
   const exactEntry = copy.skillMdSha ? entries[contentKey(copy.skillMdSha)] : undefined;
   const exact = exactEntry?.ids.length ? pick(exactEntry, copy) : null;
-  if (exact) return { catalogSkillId: exact };
+  // One fork publishes exactly this file, but a more-starred skill has (or had) the same name and
+  // description: the fork froze an older version of that original. Offered as a choice, original first.
+  const described = copy.name && copy.description ? namedKey(copy.name, copy.description) : null;
+  const namedIds = described ? entries[described]?.ids ?? [] : [];
+  const frozenFork = !!exact && exactEntry!.ids.length === 1 && !exactEntry!.canonical && !pickOwnRepo(exactEntry!, copy)
+    && namedIds.includes(exact) && namedIds.indexOf(exact) > 0;
+  if (exact && !frozenFork) return { catalogSkillId: exact };
+  // Judged from here on as if its exact file weren't published (that only points at the fork).
+  if (frozenFork) copy = { ...copy, skillMdSha: null };
   const key = deciding(copy, entries);
   if (!key) return null;
   const entry = entries[key];
