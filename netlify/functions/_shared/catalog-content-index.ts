@@ -260,9 +260,9 @@ export async function ensureContentIndex(store: ContentIndexStore, fetcher: type
     return new URL(name, track.manifestUrl).toString();
   };
   const history = parseShaHistory(await get(asset(manifest.shaHistory), 60_000));
-  // Optional: without it, copies of older versions are matched by their content and name only.
-  const descriptions = manifest.descriptionHistory
-    ? parseDescriptionHistory(await get(asset(manifest.descriptionHistory), 60_000).catch(() => null)) : null;
+  // Optional (older catalogs): without it, copies of older versions are matched by content and name only.
+  // Listed but unreadable: fails the build, so it's tried again next hour rather than marked current.
+  const descriptions = manifest.descriptionHistory ? parseDescriptionHistory(await get(asset(manifest.descriptionHistory), 60_000)) : null;
   const skills = await get(asset(manifest.skills), 180_000);
   if (!Array.isArray(skills)) throw new Error("catalog skills has the wrong shape");
   await writeContentIndex(store, manifest.generatedAt, buildContentIndex(skills, history, descriptions));
@@ -313,20 +313,24 @@ export function resolveCopy(
   const listed = byName ? entries[byName]?.ids ?? [] : [];
   // Only when the name's list shares a candidate (the same name), as the choice endpoint requires.
   const nameIds = listed.some((id) => entry.ids.includes(id)) ? listed : [];
+  // "None of these": the library skills listed for it when the person said so.
+  let turnedDown: readonly string[] = [];
   if (choices.has(key)) {
     const chosen = choices.get(key);
     // A choice of a skill that's no longer a candidate (removed, changed) is asked again.
     if (chosen === null) return null;
-    // "None of these": left unlinked, and not asked again until a library skill they weren't shown turns up.
+    // Left unlinked, and not asked again until a library skill not listed then turns up.
     if (typeof chosen === "object" && chosen) {
       if (entry.ids.every((id) => chosen.noneOf.includes(id))) return null;
+      turnedDown = chosen.noneOf;
     } else if (chosen && (entry.ids.includes(chosen) || nameIds.includes(chosen))) return { catalogSkillId: chosen };
   }
   // "It's my own" said under another key (the name alone, before a closer library skill appeared, or
   // for another copy with that name) is neither overridden nor applied: the person is asked again.
   const saidOwnElsewhere = keysFor(copy).some((other) => choices.has(other) && choices.get(other) === null);
-  const byText = saidOwnElsewhere ? null : matchCopy(copy, entries, confirmed);
-  if (byText) return { catalogSkillId: byText };
+  // A text match never links a skill the person turned down.
+  const byText = saidOwnElsewhere ? null : matchCopy(copy, entries, confirmed && !turnedDown.includes(confirmed) ? confirmed : null);
+  if (byText && !turnedDown.includes(byText)) return { catalogSkillId: byText };
   // The name alone is no sign: suggested only with a second one (the same content, the same
   // description, or shared instruction text with a current candidate). Otherwise it's their own.
   const sharing = related.filter((id) => entry.ids.includes(id));
@@ -335,8 +339,10 @@ export function resolveCopy(
   // text come first, then the rest by stars; with the same content or description (a second sign
   // already), the most-starred is always offered, so forks sharing an older text never crowd out the
   // original whose text has moved on.
-  const lead = key.startsWith("n:") ? [] : entry.ids.slice(0, 1);
-  const candidates = [...new Set([...lead, ...sharing, ...entry.ids])].slice(0, MAX_CHOICES);
+  // Asked again after "None of these": the ones not listed then come first.
+  const fresh = entry.ids.filter((id) => !turnedDown.includes(id));
+  const lead = key.startsWith("n:") ? [] : fresh.slice(0, 1);
+  const candidates = [...new Set([...lead, ...sharing.filter((id) => !turnedDown.includes(id)), ...fresh, ...entry.ids])].slice(0, MAX_CHOICES);
   // alsoByName: other same-named library skills the person may keep instead (nameKey proves the name).
   return { matchKey: key, candidates, nameKey: nameIds.length ? byName : null, alsoByName: nameIds.filter((id) => !candidates.includes(id)) };
 }

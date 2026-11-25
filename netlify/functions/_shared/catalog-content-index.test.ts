@@ -208,3 +208,15 @@ test("with the same description, the most-starred is offered even when many fork
   assert.ok(offered && "candidates" in offered);
   assert.deepEqual(offered.candidates, ["garrytan/gstack:qa", ...forks.slice(0, 4)]);
 });
+
+test("after None of these, a text match never links a skill turned down, and new ones are offered first", () => {
+  const copy = { name: "x", description: "Does x." };
+  const key = namedKey("x", "Does x.")!;
+  const turned = Array.from({ length: 6 }, (_, i) => `old${i}/r:x`);
+  const choices = new Map([[key, { noneOf: turned }]]);
+  const entries = { [key]: { ids: [...turned, "new/r:x"] } };
+  const asked = resolveCopy(copy, entries, choices, "old0/r:x");
+  assert.ok(asked && "candidates" in asked, "Asked again, not linked to one turned down");
+  assert.equal(asked.candidates[0], "new/r:x");
+  assert.deepEqual(resolveCopy(copy, entries, choices, "new/r:x"), { catalogSkillId: "new/r:x" });
+});

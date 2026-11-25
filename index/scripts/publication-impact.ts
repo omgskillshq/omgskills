@@ -95,6 +95,7 @@ const SKILL_REMOVAL_PERCENT = 0.02;
 const COLLECTION_MEMBERSHIP_REMOVAL_PERCENT = 0.2;
 const KNOWN_MANIFEST_ASSET_KEYS = new Set([
   "skills",
+  "descriptionHistory",
   "trending",
   "trendingLeaderboard",
   "leaderboardViewData",

@@ -619,7 +619,7 @@ export const skillLinkChoices = pgTable(
     userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     matchKey: text("match_key").notNull(),
     catalogSkillId: text("catalog_skill_id"),
-    /** "None of these": the library skills shown then (catalog_skill_id is null). */
+    /** "None of these": the library skills listed for it then (catalog_skill_id is null). */
     noneOf: text("none_of").array(),
     chosenAt: timestamp("chosen_at", { withTimezone: true }).notNull().defaultNow()
   },

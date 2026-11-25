@@ -1,4 +1,4 @@
--- "None of these": the library skills a person was shown and said their copy is none of. The copy
+-- "None of these": the library skills listed for a copy when a person said it's none of them. The copy
 -- stays unlinked and isn't asked about again until another library skill turns up for it.
 
 ALTER TABLE skill_link_choices ADD COLUMN none_of text[];
