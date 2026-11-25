@@ -619,6 +619,8 @@ export const skillLinkChoices = pgTable(
     userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     matchKey: text("match_key").notNull(),
     catalogSkillId: text("catalog_skill_id"),
+    /** "None of these": the library skills shown then (catalog_skill_id is null). */
+    noneOf: text("none_of").array(),
     chosenAt: timestamp("chosen_at", { withTimezone: true }).notNull().defaultNow()
   },
   (table) => [
@@ -627,6 +629,10 @@ export const skillLinkChoices = pgTable(
     check(
       "skill_link_choices_catalog_skill_id_check",
       sql`${table.catalogSkillId} IS NULL OR char_length(${table.catalogSkillId}) BETWEEN 1 AND 500`
+    ),
+    check(
+      "skill_link_choices_none_of_check",
+      sql`${table.noneOf} IS NULL OR (${table.catalogSkillId} IS NULL AND cardinality(${table.noneOf}) BETWEEN 1 AND 500)`
     )
   ]
 );

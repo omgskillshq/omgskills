@@ -211,7 +211,7 @@ type Props = {
   additions?: MySkillAdditions;
   /** Saves which library skill a personal skill is, when several share its content (null: it's the person's own). */
   /** nameKey: when keeping another library skill with the copy's name (see LibraryMatchPicker). */
-  chooseLibraryMatch?: (matchKey: string, catalogSkillId: string | null, nameKey?: string) => Promise<void>;
+  chooseLibraryMatch?: (matchKey: string, catalogSkillId: string | null, nameKey?: string, noneOf?: boolean) => Promise<void>;
   /** Library details for those choices. */
   libraryMatchDetails?: (ids: string[], signal: AbortSignal) => Promise<(CatalogSummary | null)[]>;
   /** My skills is still waiting on its cloud and added skills, so its count would jump. */

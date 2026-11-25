@@ -1,5 +1,5 @@
 import type { Pool } from "pg";
-import { keysFor, resolveCopy, type ContentIndexEntry } from "./catalog-content-index.js";
+import { keysFor, linkChoiceOf, resolveCopy, type ContentIndexEntry, type LinkChoice } from "./catalog-content-index.js";
 import { readTextMatches } from "./content-match.js";
 import { appendSkillRelease, incrementGroupRevision, lockGroupForMutation, upsertPublicSkillSource } from "./group-storage.js";
 import type { PreparedPublicRelease } from "./public-releases.js";
@@ -57,15 +57,15 @@ export async function linkSetItemsToLibrary(pool: Pool, deps: SetLinkDeps): Prom
   // Only the version the Set holds counts: a newer saved version the owner hasn't put in the Set doesn't.
   const copyOf = (row: Candidate) => ({ skillMdSha: row.itemSha, name: row.name, description: row.description });
   const index = await deps.readIndex([...new Set(rows.flatMap((row) => keysFor(copyOf(row))))]);
-  const choiceRows = await pool.query<{ userId: string; matchKey: string; catalogSkillId: string | null }>(
-    `SELECT user_id AS "userId", match_key AS "matchKey", catalog_skill_id AS "catalogSkillId"
+  const choiceRows = await pool.query<{ userId: string; matchKey: string; catalogSkillId: string | null; noneOf: string[] | null }>(
+    `SELECT user_id AS "userId", match_key AS "matchKey", catalog_skill_id AS "catalogSkillId", none_of AS "noneOf"
      FROM skill_link_choices WHERE user_id = ANY($1::uuid[])`,
     [[...new Set(rows.map((row) => row.ownerUserId))]],
   );
-  const choicesBy = new Map<string, Map<string, string | null>>();
+  const choicesBy = new Map<string, Map<string, LinkChoice>>();
   for (const row of choiceRows.rows) {
-    const map = choicesBy.get(row.userId) ?? new Map<string, string | null>();
-    map.set(row.matchKey, row.catalogSkillId);
+    const map = choicesBy.get(row.userId) ?? new Map<string, LinkChoice>();
+    map.set(row.matchKey, linkChoiceOf(row));
     choicesBy.set(row.userId, map);
   }
   const byText = await readTextMatches(pool, [...new Set(rows.map((row) => row.itemSha))]);

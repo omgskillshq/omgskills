@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   resolveCopy,
-  buildContentIndex, contentIndexReader, contentKey, ensureContentIndex, keysFor, matchCopy, nameKey, namedKey, partitionOf, writeContentIndex,
+  linkChoiceOf,
+  buildContentIndex, contentIndexReader, contentKey, ensureContentIndex, keysFor, matchCopy, nameKey, namedKey, parseDescriptionHistory, partitionOf, writeContentIndex,
   type ContentIndexStore,
 } from "./catalog-content-index.js";
 
@@ -165,4 +166,45 @@ test("no Keep offered when the name's list shares no candidate (the endpoint wou
   assert.ok(offered && "matchKey" in offered);
   assert.equal(offered.nameKey, null);
   assert.deepEqual(offered.alsoByName, []);
+});
+
+test("none of these: left unlinked and not asked, until a library skill they weren't shown turns up", () => {
+  const sha = "c".repeat(40);
+  const copy = { skillMdSha: sha, name: "x", description: "Does x." };
+  const entries = { [`sha:${sha}`]: { ids: ["big/repo:x", "fork/repo:x"] } };
+  const noneOf = new Map([[`sha:${sha}`, { noneOf: ["big/repo:x", "fork/repo:x"] }]]);
+  assert.equal(resolveCopy(copy, entries, noneOf), null);
+  // A confirmed text match with one they turned down doesn't link it either.
+  assert.equal(resolveCopy(copy, entries, noneOf, "big/repo:x"), null);
+  const more = { [`sha:${sha}`]: { ids: ["orig/repo:x", "big/repo:x", "fork/repo:x"] } };
+  assert.deepEqual(resolveCopy(copy, more, noneOf), { matchKey: `sha:${sha}`, candidates: ["orig/repo:x", "big/repo:x", "fork/repo:x"], nameKey: null, alsoByName: [] });
+  assert.deepEqual(linkChoiceOf({ catalogSkillId: null, noneOf: ["a/b:x"] }), { noneOf: ["a/b:x"] });
+  assert.equal(linkChoiceOf({ catalogSkillId: null, noneOf: null }), null);
+  assert.equal(linkChoiceOf({ catalogSkillId: "a/b:x", noneOf: null }), "a/b:x");
+});
+
+test("a copy of an older version finds the original by its earlier description, most stars first", async () => {
+  const { namedKey: indexNamedKey } = await import("../../../index/scripts/description-history.js");
+  const old = "Systematically QA test a web application.";
+  assert.equal(indexNamedKey("qa", old), namedKey("qa", old), "The publish step and the index make the same key");
+  const skills = [
+    { id: "garrytan/gstack:qa", name: "qa", description: "Fix browser bugs.", stars: 138000 },
+    { id: "fork/r:qa", name: "qa", description: old, stars: 84 },
+  ];
+  const key = namedKey("qa", old)!;
+  const without = buildContentIndex(skills, null).get(partitionOf(key))![key];
+  assert.deepEqual(without.ids, ["fork/r:qa"]);
+  const withHistory = buildContentIndex(skills, null, parseDescriptionHistory({ keysById: { "garrytan/gstack:qa": [key, "bad"], "gone/r:qa": [key] } }));
+  assert.deepEqual(withHistory.get(partitionOf(key))![key].ids, ["garrytan/gstack:qa", "fork/r:qa"]);
+  assert.equal(parseDescriptionHistory({ keysById: [] }), null);
+});
+
+test("with the same description, the most-starred is offered even when many forks share the copy's text", () => {
+  const copy = { name: "qa", description: "Old." };
+  const key = namedKey("qa", "Old.")!;
+  const forks = Array.from({ length: 6 }, (_, i) => `fork${i}/r:qa`);
+  const entries = { [key]: { ids: ["garrytan/gstack:qa", ...forks] }, [nameKey("qa")!]: { ids: ["garrytan/gstack:qa", ...forks] } };
+  const offered = resolveCopy(copy, entries, new Map(), null, forks);
+  assert.ok(offered && "candidates" in offered);
+  assert.deepEqual(offered.candidates, ["garrytan/gstack:qa", ...forks.slice(0, 4)]);
 });

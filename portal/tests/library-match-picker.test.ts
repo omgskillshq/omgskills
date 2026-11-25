@@ -26,7 +26,12 @@ test("the picker lists the candidates, most stars first already selected, with a
   assert.match(html, /checked=""[^>]*>.*?big\/repo/s);
   assert.match(html, /This one/);
   assert.match(html, /It&#x27;s my own/);
+  assert.match(html, />Neither</);
   assert.match(html, /role="radiogroup" aria-labelledby="library-match-sha:a{40}"/);
+  const label = (candidates: string[]) => renderToStaticMarkup(createElement(LibraryMatchPicker, {
+    match: { matchKey: key, candidates }, load: async () => [], choose: async () => {} }));
+  assert.match(label(["a/b:x"]), />No, it isn&#x27;t</);
+  assert.match(label(["a/b:x", "c/d:x", "e/f:x"]), />None of these</);
 });
 
 test("choices show most stars first, whatever order they arrive in", () => {

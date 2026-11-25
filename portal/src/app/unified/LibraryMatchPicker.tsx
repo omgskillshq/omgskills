@@ -43,7 +43,8 @@ export function LibraryMatchPicker({ match, current, load, choose }: {
   current?: { catalogId: string; author: string };
   /** Library details for the candidates (name, author, stars); a failed one shows its ID. */
   load: (ids: string[], signal: AbortSignal) => Promise<(CatalogSummary | null)[]>;
-  choose: (matchKey: string, catalogSkillId: string | null, nameKey?: string) => Promise<void>;
+  /** noneOf: "None of these", asked again only when another library skill turns up. */
+  choose: (matchKey: string, catalogSkillId: string | null, nameKey?: string, noneOf?: boolean) => Promise<void>;
 }) {
   const [details, setDetails] = useState<(CatalogSummary | null)[]>([]);
   const [selected, setSelected] = useState(match.candidates[0]);
@@ -70,11 +71,11 @@ export function LibraryMatchPicker({ match, current, load, choose }: {
   const headingId = `library-match-${match.matchKey}`;
   // Only a library skill the server listed for the copy's name: saving any other would be refused.
   const keep = current && match.nameKey && match.alsoByName?.includes(current.catalogId) ? current : null;
-  const save = async (catalogSkillId: string | null, nameKey?: string) => {
+  const save = async (catalogSkillId: string | null, nameKey?: string, noneOf?: boolean) => {
     setBusy(true);
     setError("");
     try {
-      await choose(match.matchKey, catalogSkillId, nameKey);
+      await choose(match.matchKey, catalogSkillId, nameKey, noneOf);
     } catch {
       setError("Couldn't save that. Try again.");
     } finally {
@@ -107,6 +108,8 @@ export function LibraryMatchPicker({ match, current, load, choose }: {
         <button type="button" className="ua-pill ua-primary" disabled={busy} onClick={() => void save(selected)}>This one</button>
         {keep && <button type="button" className="ua-pill" disabled={busy}
           onClick={() => void save(keep.catalogId, match.nameKey)}>Keep {keep.author ? `@${keep.author}` : "this one"}</button>}
+        <button type="button" className="ua-pill" disabled={busy} onClick={() => void save(null, undefined, true)}>
+          {match.candidates.length === 1 ? "No, it isn't" : match.candidates.length === 2 ? "Neither" : "None of these"}</button>
         <button type="button" className="ua-pill" disabled={busy} onClick={() => void save(null)}>It's my own</button>
       </div>
       {error && <p role="alert" className="ua-muted">{error}</p>}

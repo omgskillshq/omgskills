@@ -20,7 +20,9 @@ export type SkillLinkDependencies = typeof defaults;
  * POST { matchKey, catalogSkillId, nameKey? }: which library skill the person's copies with this content
  * are, when several library skills share it; catalogSkillId null means "my own skill". The skill must be
  * one of the candidates the index lists for that content, or (with nameKey, the copies' name) another
- * library skill with that name, kept as the creator it's shown under. Applies to every copy with that content.
+ * library skill with that name, kept as the creator it's shown under. With noneOf: true (and catalogSkillId
+ * null), "none of these": the library skills listed now are saved, so it's asked again only when another
+ * turns up. Applies to every copy with that content.
  */
 export async function handleSkillLinkChoice(req: Request, overrides: Partial<SkillLinkDependencies> = {}): Promise<Response> {
   if (req.method === "OPTIONS") return optionsResponse(req);
@@ -31,6 +33,9 @@ export async function handleSkillLinkChoice(req: Request, overrides: Partial<Ski
     const body = await requireJsonObject(req);
     if (!isMatchKey(body.matchKey)) return errorResponse(req, 400, "Invalid matchKey");
     const catalogSkillId = body.catalogSkillId;
+    const noneOf = body.noneOf === true;
+    if (body.noneOf !== undefined && typeof body.noneOf !== "boolean") return errorResponse(req, 400, "Invalid noneOf");
+    if (noneOf && catalogSkillId !== null) return errorResponse(req, 400, "None of these takes no library skill");
     if (catalogSkillId !== null && (typeof catalogSkillId !== "string" || catalogSkillId.length < 1 || catalogSkillId.length > 500)) {
       return errorResponse(req, 400, "Invalid catalogSkillId");
     }
@@ -49,16 +54,16 @@ export async function handleSkillLinkChoice(req: Request, overrides: Partial<Ski
     const keptByName = typeof catalogSkillId === "string" && named.includes(catalogSkillId) && ids.some((id) => named.includes(id));
     if (catalogSkillId !== null && !ids.includes(catalogSkillId) && !keptByName) return errorResponse(req, 404, "Not one of this skill's library matches");
     const saved = await deps.getPgPool().query(
-      `INSERT INTO skill_link_choices (user_id, match_key, catalog_skill_id)
-       SELECT $1, $2, $3
+      `INSERT INTO skill_link_choices (user_id, match_key, catalog_skill_id, none_of)
+       SELECT $1, $2, $3, $5::text[]
        WHERE EXISTS (SELECT 1 FROM skill_link_choices WHERE user_id = $1 AND match_key = $2)
           OR (SELECT count(*) FROM skill_link_choices WHERE user_id = $1) < $4
-       ON CONFLICT (user_id, match_key) DO UPDATE SET catalog_skill_id = EXCLUDED.catalog_skill_id, chosen_at = now()
+       ON CONFLICT (user_id, match_key) DO UPDATE SET catalog_skill_id = EXCLUDED.catalog_skill_id, none_of = EXCLUDED.none_of, chosen_at = now()
        RETURNING match_key`,
-      [user.id, body.matchKey, catalogSkillId, MAX_CHOICES_PER_USER],
+      [user.id, body.matchKey, catalogSkillId, MAX_CHOICES_PER_USER, noneOf ? ids.slice(0, 500) : null],
     );
     if (!saved.rows.length) return errorResponse(req, 409, `Too many saved choices (${MAX_CHOICES_PER_USER})`);
-    return jsonResponse(req, { matchKey: body.matchKey, catalogSkillId });
+    return jsonResponse(req, { matchKey: body.matchKey, catalogSkillId, ...(noneOf ? { noneOf: true } : {}) });
   } catch (error) {
     if (error instanceof Response) return errorResponse(req, error.status, await error.text());
     return errorResponse(req, 500, "Couldn't save the choice");
