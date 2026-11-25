@@ -272,3 +272,28 @@ test("versions list each SKILL.md a skill's current copies have, with their agen
   assert.deepEqual(skillVersions(group), [["Agents", "Claude"], ["Codex"]]);
   assert.equal(skillVersions(groupSyncedSkills([base], { groupInstallations: true })[0]).length, 1);
 });
+
+test("the skill's library link comes from the copies Macs have now, not one removed long ago", () => {
+  // A Codex copy removed in July matched a fork exactly; the person later chose the original for the
+  // copies installed now. The skill shows the original, whatever order the rows come in.
+  const now: SyncedSkill = { inventoryVersion: 3, id: "now", deviceId: "mac-a", name: "health", description: "Code quality dashboard.",
+    skillMdSha: "a".repeat(40), catalogSkillId: "garrytan/gstack:health", githubUrl: null, isLocalOnly: false,
+    source: "claude", lastSeenAt: "2026-11-25T12:00:00Z", isCurrent: true };
+  const legacyNow: SyncedSkill = { ...now, id: "legacy-now", deviceId: null, inventoryVersion: undefined, source: "Claude", lastSeenAt: "2026-09-28T12:00:00Z" };
+  const removed: SyncedSkill = { ...now, id: "removed", deviceId: null, inventoryVersion: undefined, source: "Codex",
+    skillMdSha: "b".repeat(40), catalogSkillId: "howdeploy/NekoFree:health", lastSeenAt: "2026-07-16T12:00:00Z", isCurrent: false };
+  const rows = [removed, legacyNow, now];
+  for (const input of [rows, [...rows].reverse()]) {
+    const [group] = groupSyncedSkills(input, { groupInstallations: true });
+    assert.equal(group.catalogSkillId, "garrytan/gstack:health");
+    assert.ok(hasCatalogId(group, "howdeploy/NekoFree:health"), "The old copy still finds the skill by its own link");
+  }
+  // The files link never comes from the copy linked to the fork.
+  const forkUrl = { ...removed, githubUrl: "https://github.com/howdeploy/NekoFree" };
+  for (const input of [[forkUrl, legacyNow, now], [now, legacyNow, forkUrl]]) {
+    const [group] = groupSyncedSkills(input, { groupInstallations: true });
+    assert.equal(group.githubUrl, null);
+  }
+  const ownUrl = { ...legacyNow, githubUrl: "https://github.com/garrytan/gstack" };
+  assert.equal(groupSyncedSkills([forkUrl, ownUrl, now], { groupInstallations: true })[0].githubUrl, "https://github.com/garrytan/gstack");
+});

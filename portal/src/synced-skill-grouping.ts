@@ -170,6 +170,13 @@ function chooseDisplayInstallation(skills: SyncedSkill[]) {
   return chooseRepresentativeSkill(candidates.filter(skill => counts.get(skill.skillMdSha ?? "") === top));
 }
 
+/** Copies linked to this library skill or to none, the current ones first. */
+function sameSkill(group: SyncedSkill[], catalogSkillId: string | null | undefined) {
+  const id = catalogSkillId?.trim();
+  const same = group.filter((skill) => !skill.catalogSkillId?.trim() || skill.catalogSkillId.trim() === id);
+  return [...same.filter((skill) => skill.isCurrent !== false), ...same.filter((skill) => skill.isCurrent === false)];
+}
+
 export function groupSyncedSkills(skills: SyncedSkill[], { groupInstallations = false } = {}): GroupedSyncedSkill[] {
   const physicalGroups: SyncedSkill[][] = [];
   const displayGroups = new Map<string, SyncedSkill[]>();
@@ -226,7 +233,9 @@ export function groupSyncedSkills(skills: SyncedSkill[], { groupInstallations = 
   return [...physicalGroups, ...displayGroups.values(), ...catalogGroups.values(), ...unresolvedGroups]
     .map((group) => {
       const resolved = groupInstallations ? group.filter(skill => skill.catalogSkillId?.trim()) : [];
-      const catalog = resolved.length ? chooseRepresentativeSkill(resolved) : null;
+      // The library skill the copies Macs have now link to: a copy removed long ago (another version,
+      // another agent) doesn't decide whose skill this is.
+      const catalog = resolved.length ? chooseDisplayInstallation(resolved) : null;
       // Actions use a current installation; catalog display fields may come from another copy.
       const representative = groupInstallations ? chooseDisplayInstallation(group) : chooseRepresentativeSkill(group);
       const bestDescription =
@@ -241,7 +250,10 @@ export function groupSyncedSkills(skills: SyncedSkill[], { groupInstallations = 
         ...representative,
         ...(catalog && { catalogSkillId: catalog.catalogSkillId, identityStatus: catalog.identityStatus, isLocalOnly: catalog.isLocalOnly }),
         description: bestDescription,
-        githubUrl: catalog?.githubUrl ?? representative.githubUrl ?? group.find((skill) => skill.githubUrl)?.githubUrl ?? null,
+        // The files link goes with the library link: never a copy linked to another library skill.
+        githubUrl: (catalog
+          ? catalog.githubUrl ?? sameSkill(group, catalog.catalogSkillId).find((skill) => skill.githubUrl)?.githubUrl
+          : representative.githubUrl ?? group.find((skill) => skill.githubUrl)?.githubUrl) ?? null,
         allSkillIds: group.map((skill) => skill.id),
         sourceSkills: group,
         sources
