@@ -3,7 +3,7 @@ import { listUserDevices } from "./device-auth.js";
 import { cloudSkillKeys } from "./cloud-skill-keys.js";
 import { readCloudRecordNames } from "./cloud-save.js";
 import { verifiedCatalogHint } from "./github-skill-resolution.js";
-import { keysFor, readBlobContentIndex, resolveCopy, type ContentIndexEntry } from "./catalog-content-index.js";
+import { keysFor, linkChoiceOf, readBlobContentIndex, resolveCopy, type ContentIndexEntry, type LinkChoice } from "./catalog-content-index.js";
 import { readTextMatches, type TextMatch } from "./content-match.js";
 import { withTimeout } from "./http.js";
 import { loadCatalogHintIdentity, type PublishedCatalogIdentity } from "./published-catalog.js";
@@ -78,7 +78,7 @@ export async function readSyncInventory(
     if (catalogSkillId) Object.assign(skill, { catalogSkillId, identityStatus: "resolved", isLocalOnly: false });
   }
   // A person's own choices between library skills sharing a copy's content (see skill_link_choices).
-  const choices = unhinted.length && Object.keys(index).length ? await readLinkChoices(pool, userId) : new Map<string, string | null>();
+  const choices = unhinted.length && Object.keys(index).length ? await readLinkChoices(pool, userId) : new Map<string, LinkChoice>();
   // What the background job found comparing these versions' text.
   const byText = unhinted.length && Object.keys(index).length
     ? await readTextMatches(pool, [...new Set(unhinted.flatMap((skill) => skill.skillMdSha ? [skill.skillMdSha as string] : []))])
@@ -138,10 +138,10 @@ function safeRepositoryUrl(value: string | null): string | null {
   } catch { return null; }
 }
 
-async function readLinkChoices(pool: Pool, userId: string): Promise<Map<string, string | null>> {
-  const result = await pool.query<{ matchKey: string; catalogSkillId: string | null }>(
-    'SELECT match_key AS "matchKey", catalog_skill_id AS "catalogSkillId" FROM skill_link_choices WHERE user_id = $1',
+async function readLinkChoices(pool: Pool, userId: string): Promise<Map<string, LinkChoice>> {
+  const result = await pool.query<{ matchKey: string; catalogSkillId: string | null; noneOf: string[] | null }>(
+    'SELECT match_key AS "matchKey", catalog_skill_id AS "catalogSkillId", none_of AS "noneOf" FROM skill_link_choices WHERE user_id = $1',
     [userId],
   );
-  return new Map(result.rows.map((row) => [row.matchKey, row.catalogSkillId]));
+  return new Map(result.rows.map((row) => [row.matchKey, linkChoiceOf(row)]));
 }

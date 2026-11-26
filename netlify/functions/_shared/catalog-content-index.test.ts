@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   resolveCopy,
-  buildContentIndex, contentIndexReader, contentKey, ensureContentIndex, keysFor, matchCopy, nameKey, namedKey, partitionOf, writeContentIndex,
+  linkChoiceOf,
+  buildContentIndex, contentIndexReader, contentKey, ensureContentIndex, keysFor, matchCopy, nameKey, namedKey, parseDescriptionHistory, partitionOf, writeContentIndex,
   type ContentIndexStore,
 } from "./catalog-content-index.js";
 
@@ -165,4 +166,84 @@ test("no Keep offered when the name's list shares no candidate (the endpoint wou
   assert.ok(offered && "matchKey" in offered);
   assert.equal(offered.nameKey, null);
   assert.deepEqual(offered.alsoByName, []);
+});
+
+test("none of these: left unlinked and not asked, until a library skill they weren't shown turns up", () => {
+  const sha = "c".repeat(40);
+  const copy = { skillMdSha: sha, name: "x", description: "Does x." };
+  const entries = { [`sha:${sha}`]: { ids: ["big/repo:x", "fork/repo:x"] } };
+  const noneOf = new Map([[`sha:${sha}`, { noneOf: ["big/repo:x", "fork/repo:x"] }]]);
+  assert.equal(resolveCopy(copy, entries, noneOf), null);
+  // A confirmed text match with one they turned down doesn't link it either.
+  assert.equal(resolveCopy(copy, entries, noneOf, "big/repo:x"), null);
+  const more = { [`sha:${sha}`]: { ids: ["orig/repo:x", "big/repo:x", "fork/repo:x"] } };
+  assert.deepEqual(resolveCopy(copy, more, noneOf), { matchKey: `sha:${sha}`, candidates: ["orig/repo:x", "big/repo:x", "fork/repo:x"], nameKey: null, alsoByName: [] });
+  assert.deepEqual(linkChoiceOf({ catalogSkillId: null, noneOf: ["a/b:x"] }), { noneOf: ["a/b:x"] });
+  assert.equal(linkChoiceOf({ catalogSkillId: null, noneOf: null }), null);
+  assert.equal(linkChoiceOf({ catalogSkillId: "a/b:x", noneOf: null }), "a/b:x");
+});
+
+test("a copy of an older version finds the original by its earlier description, most stars first", async () => {
+  const { namedKey: indexNamedKey } = await import("../../../index/scripts/description-history.js");
+  const old = "Systematically QA test a web application.";
+  assert.equal(indexNamedKey("qa", old), namedKey("qa", old), "The publish step and the index make the same key");
+  const skills = [
+    { id: "garrytan/gstack:qa", name: "qa", description: "Fix browser bugs.", stars: 138000 },
+    { id: "fork/r:qa", name: "qa", description: old, stars: 84 },
+  ];
+  const key = namedKey("qa", old)!;
+  const without = buildContentIndex(skills, null).get(partitionOf(key))![key];
+  assert.deepEqual(without.ids, ["fork/r:qa"]);
+  const withHistory = buildContentIndex(skills, null, parseDescriptionHistory({ keysById: { "garrytan/gstack:qa": [key, "bad"], "gone/r:qa": [key] } }));
+  assert.deepEqual(withHistory.get(partitionOf(key))![key].ids, ["garrytan/gstack:qa", "fork/r:qa"]);
+  assert.equal(parseDescriptionHistory({ keysById: [] }), null);
+});
+
+test("with the same description, the most-starred is offered even when many forks share the copy's text", () => {
+  const copy = { name: "qa", description: "Old." };
+  const key = namedKey("qa", "Old.")!;
+  const forks = Array.from({ length: 6 }, (_, i) => `fork${i}/r:qa`);
+  const entries = { [key]: { ids: ["garrytan/gstack:qa", ...forks] }, [nameKey("qa")!]: { ids: ["garrytan/gstack:qa", ...forks] } };
+  const offered = resolveCopy(copy, entries, new Map(), null, forks);
+  assert.ok(offered && "candidates" in offered);
+  assert.deepEqual(offered.candidates, ["garrytan/gstack:qa", ...forks.slice(0, 4)]);
+});
+
+test("after None of these, a text match never links a skill turned down, and new ones are offered first", () => {
+  const copy = { name: "x", description: "Does x." };
+  const key = namedKey("x", "Does x.")!;
+  const turned = Array.from({ length: 6 }, (_, i) => `old${i}/r:x`);
+  const choices = new Map([[key, { noneOf: turned }]]);
+  const entries = { [key]: { ids: [...turned, "new/r:x"] } };
+  const asked = resolveCopy(copy, entries, choices, "old0/r:x");
+  assert.ok(asked && "candidates" in asked, "Asked again, not linked to one turned down");
+  assert.equal(asked.candidates[0], "new/r:x");
+  assert.deepEqual(resolveCopy(copy, entries, choices, "new/r:x"), { catalogSkillId: "new/r:x" });
+});
+
+test("an exact copy of a fork that froze an older version is offered with the original first, not linked to the fork", () => {
+  const sha = "d".repeat(40);
+  const copy = { skillMdSha: sha, name: "qa", description: "Old." };
+  const key = namedKey("qa", "Old.")!;
+  const entries = { [`sha:${sha}`]: { ids: ["fork/r:qa"] }, [key]: { ids: ["garrytan/gstack:qa", "fork/r:qa"] } };
+  const offered = resolveCopy(copy, entries);
+  assert.deepEqual(offered, { matchKey: key, candidates: ["garrytan/gstack:qa", "fork/r:qa"], nameKey: null, alsoByName: [] });
+  assert.deepEqual(resolveCopy(copy, entries, new Map([[key, "garrytan/gstack:qa"]])), { catalogSkillId: "garrytan/gstack:qa" });
+  // Still linked when the fork is the most-starred with that description, or the copy comes from its repo.
+  assert.deepEqual(resolveCopy(copy, { ...entries, [key]: { ids: ["fork/r:qa", "small/r:qa"] } }), { catalogSkillId: "fork/r:qa" });
+  assert.deepEqual(resolveCopy({ ...copy, githubUrl: "https://github.com/fork/r" }, entries), { catalogSkillId: "fork/r:qa" });
+});
+
+test("the fork's exact file confirmed by text doesn't link it back; a turned-down repo isn't linked as the copy's own", () => {
+  const sha = "e".repeat(40);
+  const copy = { skillMdSha: sha, name: "qa", description: "Old." };
+  const key = namedKey("qa", "Old.")!;
+  const entries = { [`sha:${sha}`]: { ids: ["fork/r:qa"] }, [key]: { ids: ["garrytan/gstack:qa", "fork/r:qa"] } };
+  const offered = resolveCopy(copy, entries, new Map(), "fork/r:qa");
+  assert.ok(offered && "candidates" in offered);
+  const mine = { name: "x", description: "Does x.", githubUrl: "https://github.com/big/repo" };
+  const xKey = namedKey("x", "Does x.")!;
+  const xEntries = { [xKey]: { ids: ["big/repo:x", "fork/repo:x", "new/repo:x"] } };
+  const turned = resolveCopy(mine, xEntries, new Map([[xKey, { noneOf: ["big/repo:x", "fork/repo:x"] }]]));
+  assert.ok(turned && "candidates" in turned && turned.candidates[0] === "new/repo:x");
 });

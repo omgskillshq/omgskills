@@ -47,3 +47,17 @@ test("keeping another library skill with the copies' name: saved for their own k
   assert.equal((await call({ matchKey: key, catalogSkillId: "kept/repo:x", nameKey: byName },
     { entries: { ...entries, [byName]: { ids: ["kept/repo:x"] } } })).status, 404);
 });
+
+test("none of these: saved with the library skills listed now, never with a skill", async () => {
+  const queries: unknown[][] = [];
+  const saved = await call({ matchKey: key, catalogSkillId: null, noneOf: true }, { queries });
+  assert.equal(saved.status, 200);
+  assert.deepEqual(await saved.json(), { matchKey: key, catalogSkillId: null, noneOf: true });
+  assert.deepEqual(queries[0], ["user-1", key, null, 2000, ["big/repo:x", "fork/repo:x"]]);
+  // Any other choice clears it.
+  await call({ matchKey: key, catalogSkillId: null }, { queries });
+  assert.equal(queries[1][4], null);
+  assert.equal((await call({ matchKey: key, catalogSkillId: "big/repo:x", noneOf: true })).status, 400);
+  assert.equal((await call({ matchKey: key, catalogSkillId: null, noneOf: "yes" })).status, 400);
+  assert.equal((await call({ matchKey: `sha:${"b".repeat(40)}`, catalogSkillId: null, noneOf: true })).status, 404);
+});

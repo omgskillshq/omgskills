@@ -11,6 +11,16 @@ import {
   type ShaCanonicalSkill,
 } from "../scraper/new-crawl/sha-canonical.js";
 import { validateShaCanonicalArtifact } from "../scraper/new-crawl/validate-canonical-policy.js";
+import { execFileSync } from "node:child_process";
+import {
+  buildDescriptionHistory,
+  parseDescriptionHistory,
+  pruneDescriptionHistoryAssets,
+  readJsonIfPresent,
+  sameDescriptionHistory,
+  writeDescriptionHistoryAsset,
+  type DescriptionHistoryAsset,
+} from "./description-history.js";
 
 export type ShaHistorySkill = {
   id: string;
@@ -31,6 +41,7 @@ type Asset = {
 
 type Manifest = Record<string, unknown> & {
   shaHistory?: Asset;
+  descriptionHistory?: Asset;
 };
 
 export type ShaHistoryAsset = {
@@ -269,6 +280,49 @@ export function previousShaHistoryAssetPath(dataDir: string, currentPath: string
     )[0]?.file;
 }
 
+async function loadExistingDescriptionHistory(track: { dir: string; manifestURL: string }): Promise<DescriptionHistoryAsset | null> {
+  const manifestPath = join(track.dir, "manifest.json");
+  const manifest = existsSync(manifestPath) ? readJson<Manifest>(manifestPath) : await fetchJson<Manifest>(track.manifestURL);
+  if (!manifest.descriptionHistory) return null;
+  const localAssetPath = join(track.dir, manifest.descriptionHistory.path);
+  if (existsSync(localAssetPath)) return parseDescriptionHistory(readJson(localAssetPath));
+  return parseDescriptionHistory(await fetchJson(new URL(manifest.descriptionHistory.path, track.manifestURL).toString()));
+}
+
+/** The catalog as last committed (before this run's changes), or null when git can't say. */
+function previousCommittedSkills(): { id?: unknown; name?: unknown; description?: unknown }[] | null {
+  try {
+    const value = JSON.parse(execFileSync("git", ["-C", repoRoot, "show", "HEAD:index/skills.json"], { encoding: "utf8", maxBuffer: 1 << 30 }));
+    return Array.isArray(value) ? value : null;
+  } catch (error) {
+    console.warn(`description history: previous catalog unavailable (${error instanceof Error ? error.message.split("\n")[0] : String(error)})`);
+    return null;
+  }
+}
+
+/** Earlier names and descriptions of library skills, for the match index (see description-history.ts). */
+async function publishDescriptionHistory(skills: readonly { id?: unknown; name?: unknown; description?: unknown }[]) {
+  const existing: (DescriptionHistoryAsset | null)[] = [];
+  for (const track of dataTrackDirs) existing.push(await loadExistingDescriptionHistory(track));
+  const backfill = parseDescriptionHistory(readJsonIfPresent(join(indexRoot, "seeds", "description-history-backfill.json")));
+  const built = buildDescriptionHistory([...existing, backfill], previousCommittedSkills(), skills, new Date().toISOString());
+  const reused = existing.find((asset) => sameDescriptionHistory(asset, built));
+  const asset = reused ?? built;
+  for (const track of dataTrackDirs) {
+    const manifestPath = join(track.dir, "manifest.json");
+    if (!existsSync(manifestPath)) fail(`missing manifest: ${manifestPath}`);
+    const manifest = readJson<Manifest>(manifestPath);
+    const priorPath = manifest.descriptionHistory?.path;
+    const written = writeDescriptionHistoryAsset(track.dir, asset);
+    if (JSON.stringify(manifest.descriptionHistory) !== JSON.stringify(written)) {
+      manifest.descriptionHistory = written;
+      writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+    }
+    pruneDescriptionHistoryAssets(track.dir, [written.path, priorPath ?? ""]);
+  }
+  console.log(`${reused ? "reused" : "published"} description history for ${Object.keys(asset.keysById).length} skills`);
+}
+
 async function main() {
   if (!existsSync(skillsPath)) fail(`missing ${skillsPath}`);
 
@@ -315,6 +369,7 @@ async function main() {
   console.log(
     `${result.changed ? "published" : "reused"} ${finalCounts.shaCount} shas, ${finalCounts.pairCount} sha/id pairs, and ${canonicalCount} canonical mappings (${canonicalEnabled ? "enabled" : "disabled"})`,
   );
+  await publishDescriptionHistory(skills);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

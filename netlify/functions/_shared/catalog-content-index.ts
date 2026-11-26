@@ -46,8 +46,20 @@ export function partitionOf(key: string): string {
   return createHash("sha256").update(key, "utf8").digest("hex").slice(0, 2);
 }
 
-/** Builds the index from the published skills and their fingerprint history. */
-export function buildContentIndex(skills: readonly IndexedSkill[], history: ShaHistoryAsset | null): Map<string, ContentIndexPartition> {
+/**
+ * Earlier names and descriptions of library skills (description-history-*.json, published with the
+ * catalog): a copy of an older version still finds the skill it came from.
+ */
+export type DescriptionHistory = { keysById: Record<string, unknown> };
+
+export function parseDescriptionHistory(value: unknown): DescriptionHistory | null {
+  const keysById = value && typeof value === "object" ? (value as { keysById?: unknown }).keysById : null;
+  return keysById && typeof keysById === "object" && !Array.isArray(keysById) ? { keysById: keysById as Record<string, unknown> } : null;
+}
+
+/** Builds the index from the published skills, their fingerprint history and their earlier descriptions. */
+export function buildContentIndex(skills: readonly IndexedSkill[], history: ShaHistoryAsset | null,
+  descriptions: DescriptionHistory | null = null): Map<string, ContentIndexPartition> {
   const live = new Set<string>();
   const originalOf = new Map<string, string>();
   const mirrors = new Set<string>();
@@ -80,7 +92,9 @@ export function buildContentIndex(skills: readonly IndexedSkill[], history: ShaH
     if (typeof skill.id !== "string" || typeof skill.name !== "string") continue;
     const id = resolve(skill.id);
     if (!id) continue;
-    for (const key of [typeof skill.description === "string" ? namedKey(skill.name, skill.description) : null, nameKey(skill.name)]) {
+    const earlier = descriptions?.keysById[skill.id];
+    const older = Array.isArray(earlier) ? earlier.filter((key): key is string => typeof key === "string" && /^nd:[0-9a-f]{64}$/.test(key)) : [];
+    for (const key of [typeof skill.description === "string" ? namedKey(skill.name, skill.description) : null, nameKey(skill.name), ...older]) {
       if (!key) continue;
       const entry = entries.get(key) ?? { ids: [] };
       if (!entry.ids.includes(id)) entry.ids.push(id);
@@ -183,7 +197,7 @@ export type ContentIndexStore = {
   set(key: string, value: unknown): Promise<void>;
 };
 
-export const CONTENT_INDEX_VERSION = 3;
+export const CONTENT_INDEX_VERSION = 4;
 
 /**
  * Writes a freshly built index, each part whole, then meta.json (which says which catalog it's for).
@@ -236,7 +250,8 @@ export async function ensureContentIndex(store: ContentIndexStore, fetcher: type
     if (!response.ok) throw new Error(`catalog ${response.status}`);
     return response.json();
   };
-  const manifest = await get(track.manifestUrl, 15_000) as { generatedAt?: unknown; skills?: { path?: unknown }; shaHistory?: { path?: unknown } };
+  const manifest = await get(track.manifestUrl, 15_000) as { generatedAt?: unknown; skills?: { path?: unknown }; shaHistory?: { path?: unknown };
+    descriptionHistory?: { path?: unknown } };
   if (typeof manifest.generatedAt !== "string") throw new Error("catalog manifest has no date");
   if (await contentIndexIsCurrent(store, manifest.generatedAt)) return false;
   const asset = (reference: { path?: unknown } | undefined) => {
@@ -245,10 +260,24 @@ export async function ensureContentIndex(store: ContentIndexStore, fetcher: type
     return new URL(name, track.manifestUrl).toString();
   };
   const history = parseShaHistory(await get(asset(manifest.shaHistory), 60_000));
+  // Optional (older catalogs): without it, copies of older versions are matched by content and name only.
+  // Listed but unreadable: fails the build, so it's tried again next hour rather than marked current.
+  const descriptions = manifest.descriptionHistory ? parseDescriptionHistory(await get(asset(manifest.descriptionHistory), 60_000)) : null;
   const skills = await get(asset(manifest.skills), 180_000);
   if (!Array.isArray(skills)) throw new Error("catalog skills has the wrong shape");
-  await writeContentIndex(store, manifest.generatedAt, buildContentIndex(skills, history));
+  await writeContentIndex(store, manifest.generatedAt, buildContentIndex(skills, history, descriptions));
   return true;
+}
+
+/**
+ * A person's choice for one key: a library skill, "my own" (null), or "none of these" (the library
+ * skills they were shown then: asked again only once another one turns up).
+ */
+export type LinkChoice = string | null | { noneOf: string[] };
+
+/** A saved choice as stored (skill_link_choices): none_of set only with no library skill. */
+export function linkChoiceOf(row: { catalogSkillId: string | null; noneOf?: string[] | null }): LinkChoice {
+  return row.catalogSkillId === null && Array.isArray(row.noneOf) && row.noneOf.length ? { noneOf: row.noneOf } : row.catalogSkillId;
 }
 
 /** Most library skills offered to a person choosing which one their copy is. */
@@ -262,7 +291,7 @@ export const MAX_CHOICES = 5;
 export function resolveCopy(
   copy: IndexedCopy,
   entries: Readonly<Record<string, ContentIndexEntry>>,
-  choices: ReadonlyMap<string, string | null> = new Map(),
+  choices: ReadonlyMap<string, LinkChoice> = new Map(),
   confirmed?: string | null,
   /** Library skills the copy's text was compared with and shares real text with (closest first). */
   related: readonly string[] = [],
@@ -272,12 +301,25 @@ export function resolveCopy(
   // copy's repo among its other candidates, or a confirmed text match.
   const exactEntry = copy.skillMdSha ? entries[contentKey(copy.skillMdSha)] : undefined;
   const exact = exactEntry?.ids.length ? pick(exactEntry, copy) : null;
-  if (exact) return { catalogSkillId: exact };
+  // One fork publishes exactly this file, but a more-starred skill has (or had) the same name and
+  // description: the fork froze an older version of that original. Offered as a choice, original first.
+  const described = copy.name && copy.description ? namedKey(copy.name, copy.description) : null;
+  const namedIds = described ? entries[described]?.ids ?? [] : [];
+  const frozenFork = !!exact && exactEntry!.ids.length === 1 && !exactEntry!.canonical && !pickOwnRepo(exactEntry!, copy)
+    && namedIds.includes(exact) && namedIds.indexOf(exact) > 0;
+  if (exact && !frozenFork) return { catalogSkillId: exact };
+  // Judged from here on as if its exact file weren't published (that only points at the fork).
+  if (frozenFork) copy = { ...copy, skillMdSha: null };
   const key = deciding(copy, entries);
   if (!key) return null;
   const entry = entries[key];
+  // "None of these": the library skills listed for it when the person said so.
+  const saved = choices.get(key);
+  const turnedDown: readonly string[] = saved && typeof saved === "object" ? saved.noneOf : [];
+  // Never linked to a skill turned down, nor (by its text) to the fork whose exact file it is.
+  const ruledOut = frozenFork && exact ? [...turnedDown, exact] : turnedDown;
   const own = repoOf(copy.githubUrl) ? pickOwnRepo(entry, copy) : null;
-  if (own) return { catalogSkillId: own };
+  if (own && !turnedDown.includes(own)) return { catalogSkillId: own };
   // Other library skills with the copy's name: one may be kept (the creator it's shown under), though
   // it isn't among the closer candidates. Saved for this copy's own key, like any choice.
   const byName = copy.name ? nameKey(copy.name) : null;
@@ -288,20 +330,28 @@ export function resolveCopy(
     const chosen = choices.get(key);
     // A choice of a skill that's no longer a candidate (removed, changed) is asked again.
     if (chosen === null) return null;
-    if (chosen && (entry.ids.includes(chosen) || nameIds.includes(chosen))) return { catalogSkillId: chosen };
+    // Left unlinked, and not asked again until a library skill not listed then turns up.
+    if (typeof chosen === "object" && chosen) {
+      if (entry.ids.every((id) => chosen.noneOf.includes(id))) return null;
+    } else if (chosen && (entry.ids.includes(chosen) || nameIds.includes(chosen))) return { catalogSkillId: chosen };
   }
   // "It's my own" said under another key (the name alone, before a closer library skill appeared, or
   // for another copy with that name) is neither overridden nor applied: the person is asked again.
   const saidOwnElsewhere = keysFor(copy).some((other) => choices.has(other) && choices.get(other) === null);
-  const byText = saidOwnElsewhere ? null : matchCopy(copy, entries, confirmed);
-  if (byText) return { catalogSkillId: byText };
+  const byText = saidOwnElsewhere ? null : matchCopy(copy, entries, confirmed && !ruledOut.includes(confirmed) ? confirmed : null);
+  if (byText && !ruledOut.includes(byText)) return { catalogSkillId: byText };
   // The name alone is no sign: suggested only with a second one (the same content, the same
   // description, or shared instruction text with a current candidate). Otherwise it's their own.
   const sharing = related.filter((id) => entry.ids.includes(id));
   if (key.startsWith("n:") && !sharing.length) return null;
   // Suggested, never linked: the person says which one it is, or that it's their own. Those sharing
-  // text come first, then the rest by stars.
-  const candidates = [...new Set([...sharing, ...entry.ids])].slice(0, MAX_CHOICES);
+  // text come first, then the rest by stars; with the same content or description (a second sign
+  // already), the most-starred is always offered, so forks sharing an older text never crowd out the
+  // original whose text has moved on.
+  // Asked again after "None of these": the ones not listed then come first.
+  const fresh = entry.ids.filter((id) => !turnedDown.includes(id));
+  const lead = key.startsWith("n:") ? [] : fresh.slice(0, 1);
+  const candidates = [...new Set([...lead, ...sharing.filter((id) => !turnedDown.includes(id)), ...fresh, ...entry.ids])].slice(0, MAX_CHOICES);
   // alsoByName: other same-named library skills the person may keep instead (nameKey proves the name).
   return { matchKey: key, candidates, nameKey: nameIds.length ? byName : null, alsoByName: nameIds.filter((id) => !candidates.includes(id)) };
 }

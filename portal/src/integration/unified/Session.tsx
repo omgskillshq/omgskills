@@ -343,8 +343,8 @@ function AccountView({ identity, signedIn, accountKey, base, local, connectedInv
     cloud={cloud}
     additions={mySkills}
     chooseLibraryMatch={available && !snapshot.accessDenied && !composition?.readOnly && !local
-      ? async (matchKey, catalogSkillId, nameKey) => {
-        await api("/api/portal/skill-link", { method: "POST", body: JSON.stringify({ matchKey, catalogSkillId, ...(nameKey ? { nameKey } : {}) }) });
+      ? async (matchKey, catalogSkillId, nameKey, noneOf) => {
+        await api("/api/portal/skill-link", { method: "POST", body: JSON.stringify({ matchKey, catalogSkillId, ...(nameKey ? { nameKey } : {}), ...(noneOf ? { noneOf: true } : {}) }) });
         await account.reload();
       } : undefined}
     libraryMatchDetails={(ids, signal) => Promise.all(ids.map(id => publicClient.skill(id, signal).catch(() => null)))}
