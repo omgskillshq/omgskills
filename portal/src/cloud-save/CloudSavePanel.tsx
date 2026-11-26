@@ -86,7 +86,7 @@ export function CloudSavePanel({ api, skills, denied }: { api: PortalApi; skills
     {error && <p role="alert">{error}</p>}
     {notice && <p role="status">{notice}</p>}
     {state.settings.enabled && <p className="rd-muted" role="status">
-      {cloudSummaryText(rows)} · {formatBytes(state.usage.bytes)} of {formatBytes(state.usage.limitBytes)} used.
+      {cloudSummaryText(rows, state.summary)} · {formatBytes(state.usage.bytes)} of {formatBytes(state.usage.limitBytes)} used.
       Your Mac syncs changes in the background; if it asks, reconnect it to allow syncing.
     </p>}
 

@@ -57,7 +57,7 @@ test("with cloud save off, unsaved skills read as not saved", () => {
   assert.deepEqual(rows.map(row => row.status), ["off"]);
 });
 
-test("a Mac's reason for not saving a skill wins over guessing", () => {
+test("a Mac's reason for not saving the version it has now wins over guessing and over an older saved copy", () => {
   const rows = cloudSkillRows(state({
     skills: [saved("notes")],
     skipped: { ship: "links", pdf: "failed", huge: "too_large", odd: "unreadable", spec: "library", notes: "failed" },
@@ -66,8 +66,9 @@ test("a Mac's reason for not saving a skill wins over guessing", () => {
     installed("pdf", { catalogSkillId: "anthropics/skills:pdf", isLocalOnly: false }),
     installed("huge"), installed("odd"), installed("spec"), installed("notes"), installed("fresh"),
   ]);
+  // The version on the Mac now couldn't be saved: an older saved copy (notes) doesn't make it synced.
   assert.deepEqual(rows.map(row => [row.key, row.status]), [
-    ["notes", "saved"], ["pdf", "failed"], ["ship", "links"], ["huge", "too_large"], ["odd", "unreadable"],
+    ["notes", "failed"], ["pdf", "failed"], ["ship", "links"], ["huge", "too_large"], ["odd", "unreadable"],
     ["fresh", "waiting"], ["spec", "waiting"],
   ]);
   // With cloud save off, nothing is being saved, so old reasons don't show.
@@ -418,4 +419,22 @@ test("an installed copy's folder comes from its agent", () => {
   assert.equal(skillFolder({ source: "codex", name: "deploy" }), "~/.codex/skills/deploy");
   assert.equal(skillFolder({ source: "agents", installationFolder: null, name: "x" }), "~/.agents/skills/x");
   assert.equal(skillFolder({ source: "Owner/Repo", name: "x" }), null);
+});
+
+test("only copies some Mac has now count: an old app's copies stop counting after 30 days", async () => {
+  const { cloudCounts, cloudSummaryText } = await import("../src/cloud-save/cloud-save");
+  const now = Date.parse("2026-11-26T00:00:00Z");
+  const rows = cloudSkillRows(state({ skills: [saved("kept")], skipped: { pptx: "links" } }), [
+    installed("here", { deviceId: "mac" }),
+    installed("pptx", { deviceId: "mac", catalogSkillId: "a/b:pptx", isLocalOnly: false }),
+    installed("recent-old-app", { lastSeenAt: "2026-11-20T00:00:00Z" }),
+    installed("stale-old-app", { lastSeenAt: "2026-09-28T00:00:00Z" }),
+  ], now);
+  assert.deepEqual(rows.map(row => [row.key, row.status, row.onMac]).sort(), [
+    ["here", "waiting", true], ["kept", "saved", false], ["pptx", "links", true], ["recent-old-app", "waiting", true],
+  ]);
+  assert.deepEqual(cloudCounts(rows), { skills: 4, cantSync: 1, notSyncedYet: 2, leftOut: 0, notOnMacs: 1 });
+  assert.equal(cloudSummaryText(rows), "4 skills · 1 can't sync · 2 not synced yet · 1 not on your Macs");
+  // The server's counts win, so every screen says the same (My skills includes added library skills).
+  assert.equal(cloudSummaryText(rows, { skills: 4, mySkills: 6, cantSync: 0, notSyncedYet: 0, leftOut: 0, notOnMacs: 0 }), "6 skills · all synced");
 });

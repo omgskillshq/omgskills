@@ -1,13 +1,12 @@
 import { PortalApiError } from "../api-error";
 import type { PortalApi } from "../portal-api";
-import type { SyncedSkill } from "../synced-skill-grouping";
 
-export type CloudFinding = { rule: string; kind: string; line: number };
-export type CloudLabel = "scripts" | "download_and_run" | "invisible_characters" | "hidden_instructions" | "confirmed_secret";
-/** The background scan of a saved version; "incomplete" is never shown as clean. */
-export type CloudScan = { status: "clean" | "flagged" | "incomplete"; scannedAt: string; findings?: CloudScanFinding[]; findingCount?: number };
-/** Something a scan found worth a look: the rule, file and line, never the matched text. Older servers leave the list out. */
-export type CloudScanFinding = { rule: string; label: string; severity: string; path: string; line: number | null };
+import type { CloudFinding, CloudLabel, CloudScan, CloudScanFinding, CloudSkipReason, CloudSkillRow, CloudSummary } from "./cloud-rows";
+import { cloudCounts, installationCloudKey, needsAttention, statusOrder } from "./cloud-rows";
+
+// The rows and counts are shared with the server (cloud-rows.ts).
+export type { CloudFinding, CloudLabel, CloudScan, CloudScanFinding, CloudSkipReason, CloudSkillRow, CloudSummary } from "./cloud-rows";
+export { cloudCounts, cloudSkillKey, cloudSkillRows, installationCloudKey, isLiveCopy, needsAttention } from "./cloud-rows";
 
 export type CloudSaveState = {
   settings: { enabled: boolean; excludedSkillKeys: string[] };
@@ -27,9 +26,9 @@ export type CloudSaveState = {
   needsReview: { key: string; files: { path: string; findings: CloudFinding[] }[]; confirmed: boolean; updatedAt: string }[];
   /** Why a Mac didn't save each skill on its last pass. */
   skipped: Record<string, CloudSkipReason>;
+  /** The counts every screen shows, worked out by the server; older servers leave it out. */
+  summary?: CloudSummary;
 };
-
-export type CloudSkipReason = "library" | "links" | "too_large" | "unreadable" | "failed";
 
 export type CloudSaveView =
   | { status: "loading" }
@@ -114,15 +113,6 @@ export function confirmCloudReview(api: PortalApi, key: string) {
   return api(`${base}/skills/${encodeURIComponent(key)}/review`, { method: "POST", body: JSON.stringify({ confirm: true }) });
 }
 
-/** A skill's identity across agents and Macs, matching the server and the Mac: the folder name, NFC and lower case, untrimmed. */
-export function cloudSkillKey(name: string) {
-  return name.normalize("NFC").toLowerCase();
-}
-
-/** The cloud save key one installed copy uses: the server's, else its folder name. */
-export function installationCloudKey(skill: { cloudKey?: string | null; installationFolder?: string | null; name: string }) {
-  return skill.cloudKey || cloudSkillKey(skill.installationFolder || skill.name);
-}
 
 export type CloudDeleteSelection = { kind: "skill"; key: string } | { kind: "all" } | null;
 
@@ -133,102 +123,6 @@ export function isDeletingCloudSkill(selection: CloudDeleteSelection, key: strin
 export function isDeletingAllCloudSkills(selection: CloudDeleteSelection): boolean {
   return selection?.kind === "all";
 }
-
-export type CloudSkillRow = {
-  key: string;
-  name: string;
-  /** The saved description, for a skill added from GitHub; empty otherwise (the Mac's report gives it). */
-  description: string;
-  status: "saved" | "deleted" | "review" | "confirmed" | "excluded" | "library" | "set" | "waiting" | "off"
-    | "links" | "too_large" | "unreadable" | "failed";
-  versionCount: number;
-  setCount: number;
-  savedAt: string | null;
-  labels: CloudLabel[];
-  /** The saved version's background scan, once it has run. */
-  scan: CloudScan | null;
-  findings: { path: string; findings: CloudFinding[] }[];
-  /** Installed on one of your Macs now, as opposed to kept only in the cloud. */
-  onMac: boolean;
-  /** Installed from the library or a Set rather than written by you. */
-  origin: "library" | "set" | null;
-  /** Where a skill added from GitHub came from. */
-  githubSource: { repo: string; folder: string; stars?: number } | null;
-};
-
-/**
- * One row per skill: every skill seen on a Mac, plus any saved skill no longer there.
- * Library and Set installs aren't uploaded while unchanged, since they can be fetched again.
- * A Mac's own reason for not saving a skill wins over guessing from the inventory.
- */
-export function cloudSkillRows(state: CloudSaveState, installed: SyncedSkill[]): CloudSkillRow[] {
-  const names = new Map<string, string>();
-  const fromLibrary = new Set<string>();
-  const fromCatalog = new Set<string>();
-  for (const skill of installed) {
-    if (skill.isCurrent === false) continue;
-    const key = installationCloudKey(skill);
-    if (!key) continue;
-    if (!names.has(key)) names.set(key, skill.name);
-    if (skill.catalogSkillId || skill.installedFromSet) fromLibrary.add(key);
-    if (skill.catalogSkillId) fromCatalog.add(key);
-  }
-  const saved = new Map(state.skills.map(skill => [skill.key, skill]));
-  const reviews = new Map(state.needsReview.map(review => [review.key, review]));
-  const excluded = new Set(state.settings.excludedSkillKeys);
-  const keys = [...new Set([...names.keys(), ...saved.keys(), ...reviews.keys()])];
-  // Two folders can hold skills with the same name; they're saved apart, so say which folder is which.
-  const nameCounts = new Map<string, number>();
-  for (const key of keys) {
-    const name = names.get(key) ?? key;
-    nameCounts.set(name, (nameCounts.get(name) ?? 0) + 1);
-  }
-  const label = (key: string) => {
-    const name = names.get(key) ?? key;
-    return (nameCounts.get(name) ?? 0) > 1 && cloudSkillKey(name) !== key ? `${name} (folder ${key})` : name;
-  };
-  return keys.map((key): CloudSkillRow => {
-    const copy = saved.get(key);
-    const review = reviews.get(key);
-    const found: CloudSkillRow["status"] = excluded.has(key) ? "excluded"
-      : review ? (review.confirmed ? "confirmed" : "review")
-      : copy ? (copy.deletedLocallyAt ? "deleted" : fromLibrary.has(key) ? "library" : "saved")
-      : !state.settings.enabled ? "off"
-      // Only a saved copy is "from the library"; an older Mac reports unchanged installs as not uploaded.
-      : state.skipped[key] === "library" ? "waiting"
-      : state.skipped[key] ?? "waiting";
-    // A private skill installed from a Set isn't in the library; say where it came from.
-    const status = found === "library" && fromLibrary.has(key) && !fromCatalog.has(key) ? "set" : found;
-    return {
-      key,
-      name: label(key),
-      description: copy?.description ?? "",
-      status,
-      versionCount: copy?.versionCount ?? 0,
-      setCount: copy?.setCount ?? 0,
-      savedAt: copy?.currentVersion.savedAt ?? null,
-      labels: copy?.currentVersion.labels ?? [],
-      scan: copy?.currentVersion.scan ?? null,
-      findings: review?.files ?? [],
-      onMac: names.has(key),
-      origin: fromCatalog.has(key) ? "library" : fromLibrary.has(key) ? "set" : null,
-      githubSource: githubSourceOf(copy?.githubSource),
-    };
-  }).sort((a, b) => statusOrder[a.status] - statusOrder[b.status] || a.name.localeCompare(b.name));
-}
-
-/** A saved skill's GitHub source, when the server sent a sane one. */
-function githubSourceOf(value: unknown): CloudSkillRow["githubSource"] {
-  if (!value || typeof value !== "object") return null;
-  const { repo, folder, stars } = value as Record<string, unknown>;
-  if (typeof repo !== "string" || !/^[A-Za-z0-9-]+\/[A-Za-z0-9_.-]+$/.test(repo) || typeof folder !== "string") return null;
-  return { repo, folder, ...(typeof stars === "number" && Number.isSafeInteger(stars) && stars >= 0 ? { stars } : {}) };
-}
-
-const statusOrder: Record<CloudSkillRow["status"], number> = {
-  review: 0, confirmed: 1, saved: 2, deleted: 3, failed: 4, links: 5, too_large: 6, unreadable: 7, waiting: 8, off: 9,
-  library: 10, set: 10, excluded: 11,
-};
 
 export const statusText: Record<CloudSkillRow["status"], string> = {
   saved: "Synced",
@@ -257,25 +151,19 @@ export const labelText: Record<CloudLabel, string> = {
 /**
  * One line for every screen: all your skills (on your Macs or kept in the cloud), then only what
  * needs a look. The cloud keeps a record of every skill, so a skill whose files need attention still counts.
+ * Takes the server's counts when it sent them, so every screen says the same.
  */
-export function cloudSummaryText(rows: CloudSkillRow[]) {
-  const count = (test: (row: CloudSkillRow) => boolean) => rows.filter(test).length;
-  const attention = count(row => needsAttention(row.status));
-  const pending = count(row => row.status === "waiting" || row.status === "confirmed");
-  const leftOut = count(row => row.status === "excluded");
-  const notOnMac = count(row => !row.onMac);
-  const parts = [`${rows.length} ${rows.length === 1 ? "skill" : "skills"}`];
-  if (!attention && !pending && !leftOut) parts.push("all synced");
-  if (attention) parts.push(`${attention} can't sync`);
-  if (pending) parts.push(`${pending} not synced yet`);
-  if (leftOut) parts.push(`${leftOut} left out`);
-  if (notOnMac) parts.push(`${notOnMac} not on your Macs`);
+export function cloudSummaryText(rows: CloudSkillRow[], summary?: CloudSummary) {
+  const counts = summary ?? cloudCounts(rows);
+  // Everything in My skills when the server counted it (library skills you added too), as the Mac shows.
+  const total = counts.mySkills ?? counts.skills;
+  const parts = [`${total} ${total === 1 ? "skill" : "skills"}`];
+  if (!counts.cantSync && !counts.notSyncedYet && !counts.leftOut) parts.push("all synced");
+  if (counts.cantSync) parts.push(`${counts.cantSync} can't sync`);
+  if (counts.notSyncedYet) parts.push(`${counts.notSyncedYet} not synced yet`);
+  if (counts.leftOut) parts.push(`${counts.leftOut} left out`);
+  if (counts.notOnMacs) parts.push(`${counts.notOnMacs} not on your Macs`);
   return parts.join(" · ");
-}
-
-/** Skills cloud save can't keep a copy of until something is done about them. */
-export function needsAttention(status: CloudSkillRow["status"]) {
-  return status === "review" || status === "failed" || status === "links" || status === "too_large" || status === "unreadable";
 }
 
 /** One status for a skill whose copies sit in several folders: the one that needs attention first. */

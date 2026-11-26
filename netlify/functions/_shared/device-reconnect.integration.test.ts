@@ -6,7 +6,7 @@ import path from "node:path";
 import test from "node:test";
 import pg, { type Pool } from "pg";
 import { codeChallengeForVerifier, createDeviceCredential, createPairingCode, hashToken } from "./crypto.js";
-import { BASE_DEVICE_SCOPES, requireDeviceActor, requireDeviceToken, revokePresentedDevice, type DeviceScope } from "./device-auth.js";
+import { BASE_DEVICE_SCOPES, listUserDevices, requireDeviceActor, requireDeviceToken, revokePresentedDevice, type DeviceScope } from "./device-auth.js";
 import { exchangePairingCode, issuePairingCode, MAX_ACTIVE_DEVICES } from "./device-pairing.js";
 import { bindDeviceReconnectKey, hashReconnectKey } from "./device-reconnect.js";
 import { addGroupItemWithClient } from "./group-items.js";
@@ -490,6 +490,28 @@ test("reconnecting an active Mac does not consume another slot; a revoked Mac ca
       [owner, hashToken(createDeviceCredential())]);
     await assert.rejects(pair(pool, owner, key), status(409));
     assert.ok((await rows(pool, "device_tokens")).find(row => row.id === first.deviceId).revoked_at);
+  });
+});
+
+test("a pairing whose Mac never reported shows inactive after a week and doesn't use up a place", async () => {
+  await withSchema(async pool => {
+    const owner = await user(pool), first = await pair(pool, owner, key);
+    const insert = (age: string) => pool.query<{ id: string }>(`INSERT INTO device_tokens(user_id,token_hash,device_name,expires_at,created_at)
+      VALUES($1,$2,'Abandoned',now()+interval '1 year',now()-$3::interval) RETURNING id`, [owner, hashToken(createDeviceCredential()), age]);
+    const abandoned = (await insert("8 days")).rows[0].id, recent = (await insert("1 day")).rows[0].id;
+    const reported = (await insert("30 days")).rows[0].id;
+    await pool.query("UPDATE device_tokens SET inventory_checked_at = now() - interval '20 days' WHERE id = $1", [reported]);
+    const statuses = new Map((await listUserDevices(pool, owner)).map((device: { id: string; status: string }) => [device.id, device.status]));
+    assert.equal(statuses.get(abandoned), "inactive");
+    assert.equal(statuses.get(recent), "active", "A new pairing gets a week");
+    assert.equal(statuses.get(reported), "active", "A Mac that checked in is a real Mac");
+    assert.equal(statuses.get(first.deviceId), "active");
+    // Abandoned pairings don't count toward the limit: with one place left (and several abandoned), a Mac still
+    // connects; the next is refused.
+    for (let i = 4; i < MAX_ACTIVE_DEVICES; i++) await insert("1 day");
+    for (let i = 0; i < 5; i++) await insert("8 days");
+    await pair(pool, owner, otherKey);
+    await assert.rejects(pair(pool, owner, "ef".repeat(32)), status(409));
   });
 });
 

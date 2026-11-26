@@ -51,12 +51,19 @@ export async function readSyncInventory(
     [userId]
   );
 
-  const skills = result.rows.map(({ stableKey, ...row }) => ({
-    ...row,
-    installationFolder: installationFolderFromKey(stableKey, row.source),
-    // Historical uploads accepted arbitrary URLs. Do not repeat credentials.
-    githubUrl: safeRepositoryUrl(row.githubUrl)
-  }));
+  // Copies from an app too old to say which Mac they're on are superseded once a Mac reports with its own:
+  // that Mac's report is the truth about what's installed, so they're history, not skills on a Mac.
+  const superseded = result.rows.some((row) => row.deviceId != null && row.isCurrent !== false);
+  const skills = result.rows.flatMap(({ stableKey, ...row }) => {
+    if (superseded && row.deviceId == null && row.isCurrent !== false && version !== 3) return [];
+    return [{
+      ...row,
+      ...(superseded && row.deviceId == null ? { isCurrent: false } : {}),
+      installationFolder: installationFolderFromKey(stableKey, row.source),
+      // Historical uploads accepted arbitrary URLs. Do not repeat credentials.
+      githubUrl: safeRepositoryUrl(row.githubUrl)
+    }];
+  });
   // The cloud save record each copy uses; same-name folders holding different skills are saved apart.
   const records = await readCloudRecordNames(pool, userId);
   const sources = new Map(records.flatMap((record) => record.githubSource ? [[record.key, record.githubSource] as const] : []));

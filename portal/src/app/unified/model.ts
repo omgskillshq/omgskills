@@ -7,6 +7,7 @@ import {
 } from "../../synced-skill-grouping";
 import { isMember, type PortalData, type PortalSet } from "../model";
 import type { CloudScan } from "../../cloud-save/cloud-save";
+import { isLiveCopy } from "../../cloud-save/cloud-rows";
 import { validPublicSort, publicPageRequest, type PublicSort } from "./public-paging";
 import { discoveryCategories } from "./discovery-categories";
 
@@ -422,14 +423,8 @@ function catalogOwner(id: string | null | undefined) {
 }
 
 /** Copies from the older account-wide sync (no device) that no Mac has refreshed for this long are history. */
-const LEGACY_COPY_STALE_MS = 30 * 24 * 60 * 60 * 1000;
-
-function isLive(copy: SyncedSkill, now: number) {
-  if (copy.isCurrent === false) return false;
-  if (copy.deviceId != null) return true;
-  const seen = Date.parse(copy.lastSeenAt);
-  return !Number.isFinite(seen) || now - seen < LEGACY_COPY_STALE_MS;
-}
+// A copy some Mac has now: the same rule the server and the Sync counts use (cloud-rows.ts).
+const isLive = (copy: SyncedSkill, now: number) => isLiveCopy(copy, now);
 
 /** Some Mac still has this skill; a skill no Mac has any more only lives on in Sets. */
 export function onAMac(skill: SkillDisplay, now = Date.now()) {

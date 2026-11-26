@@ -8,9 +8,18 @@ import {
   type SyncedSkill,
 } from "../../../portal/src/synced-skill-grouping.js";
 import type { CloudSaveState } from "./cloud-save.js";
+import {
+  cloudSkillKey,
+  cloudSkillRows,
+  installationCloudKey,
+  isLiveCopy,
+  needsAttention,
+  statusOrder,
+  type CloudSkillRow,
+  type CloudSkillStatus,
+} from "../../../portal/src/cloud-save/cloud-rows.js";
 
-export type LibraryCloudStatus = "saved" | "deleted" | "review" | "confirmed" | "excluded" | "library" | "set"
-  | "waiting" | "off" | "links" | "too_large" | "unreadable" | "failed";
+export type LibraryCloudStatus = CloudSkillStatus;
 
 /** Where an agent's read of a skill comes from: the account's saved copy, or the public library version. */
 export type LibraryReadSource = "saved" | "public";
@@ -55,26 +64,11 @@ export type MySkillsInputs = {
   now?: number;
 };
 
-const LEGACY_COPY_STALE_MS = 30 * 24 * 60 * 60 * 1000;
+/** The folder key cloud save uses (same as the web and the Mac). */
+export { cloudSkillKey };
 
-/** The folder key cloud save uses: NFC and lower case, untrimmed (same as the web and the Mac). */
-export function cloudSkillKey(name: string) {
-  return name.normalize("NFC").toLowerCase();
-}
-
-/** The cloud save key one installed copy uses: the inventory's, else its folder name. */
-function copyKey(copy: SyncedSkill) {
-  return copy.cloudKey || cloudSkillKey(copy.installationFolder || copy.name);
-}
-
-function isLive(copy: SyncedSkill, now: number) {
-  if (copy.isCurrent === false) return false;
-  if (copy.deviceId != null) return true;
-  // The database gives a Date; JSON gives a string.
-  const value: unknown = copy.lastSeenAt;
-  const seen = value instanceof Date ? value.getTime() : Date.parse(String(value));
-  return !Number.isFinite(seen) || now - seen < LEGACY_COPY_STALE_MS;
-}
+const copyKey = (copy: SyncedSkill) => installationCloudKey(copy);
+const isLive = (copy: SyncedSkill, now: number) => isLiveCopy(copy, now);
 
 function catalogOwner(id: string | null | undefined) {
   const owner = id?.split("/")[0] ?? "";
@@ -85,64 +79,18 @@ function keysOf(copies: SyncedSkill[]) {
   return [...new Set(copies.map(copyKey))];
 }
 
-type CloudRow = { key: string; name: string; description: string | null; status: LibraryCloudStatus; savedAt: string | null; confirmedSecret: boolean;
-  onMac: boolean; origin: "library" | "set" | null };
+type CloudRow = CloudSkillRow & { confirmedSecret: boolean };
 
-const statusOrder: Record<LibraryCloudStatus, number> = {
-  review: 0, confirmed: 1, saved: 2, deleted: 3, failed: 4, links: 5, too_large: 6, unreadable: 7, waiting: 8, off: 9,
-  library: 10, set: 10, excluded: 11,
-};
-
-const attention = new Set<LibraryCloudStatus>(["review", "failed", "links", "too_large", "unreadable"]);
-
-/** One row per folder key, as the web's cloudSkillRows. */
-function cloudRows(state: CloudSaveState, installed: SyncedSkill[]): Map<string, CloudRow> {
-  const names = new Map<string, string>();
-  const fromLibrary = new Set<string>();
-  const fromCatalog = new Set<string>();
-  for (const skill of installed) {
-    if (skill.isCurrent === false) continue;
-    const key = copyKey(skill);
-    if (!key) continue;
-    if (!names.has(key)) names.set(key, skill.name);
-    if (skill.catalogSkillId || skill.installedFromSet) fromLibrary.add(key);
-    if (skill.catalogSkillId) fromCatalog.add(key);
-  }
-  const saved = new Map(state.skills.map(skill => [skill.key, skill]));
-  const reviews = new Map(state.needsReview.map(review => [review.key, review]));
-  const excluded = new Set(state.settings.excludedSkillKeys);
-  const keys = [...new Set([...names.keys(), ...saved.keys(), ...reviews.keys()])];
-  const nameCounts = new Map<string, number>();
-  for (const key of keys) {
-    const name = names.get(key) ?? key;
-    nameCounts.set(name, (nameCounts.get(name) ?? 0) + 1);
-  }
-  const label = (key: string) => {
-    const name = names.get(key) ?? key;
-    return (nameCounts.get(name) ?? 0) > 1 && cloudSkillKey(name) !== key ? `${name} (folder ${key})` : name;
-  };
-  return new Map(keys.map((key): [string, CloudRow] => {
-    const copy = saved.get(key);
-    const review = reviews.get(key);
-    const found: LibraryCloudStatus = excluded.has(key) ? "excluded"
-      : review ? (review.confirmed ? "confirmed" : "review")
-      : copy ? (copy.deletedLocallyAt ? "deleted" : fromLibrary.has(key) ? "library" : "saved")
-      : !state.settings.enabled ? "off"
-      : state.skipped[key] === "library" ? "waiting"
-      : state.skipped[key] ?? "waiting";
-    const status = found === "library" && fromLibrary.has(key) && !fromCatalog.has(key) ? "set" : found;
-    return [key, {
-      key, name: label(key), description: copy?.description ?? null, status, savedAt: copy?.currentVersion.savedAt ?? null,
-      confirmedSecret: !!copy?.currentVersion.labels?.includes("confirmed_secret"),
-      onMac: names.has(key), origin: fromCatalog.has(key) ? "library" : fromLibrary.has(key) ? "set" : null,
-    }];
-  }));
+/** One row per folder key: the web's own rows (cloud-rows.ts), so agents see what the web shows. */
+function cloudRows(state: CloudSaveState, installed: SyncedSkill[], now: number): Map<string, CloudRow> {
+  return new Map(cloudSkillRows(state, installed, now).map((row): [string, CloudRow] =>
+    [row.key, { ...row, confirmedSecret: row.labels.includes("confirmed_secret") }]));
 }
 
 /** The status a skill with copies in several folders shows: the one that needs attention first. */
 function pickRow(rows: Map<string, CloudRow>, keys: string[]): CloudRow | null {
   let best: CloudRow | null = null;
-  const rank = (row: CloudRow) => (attention.has(row.status) ? 0 : 100) + statusOrder[row.status];
+  const rank = (row: CloudRow) => (needsAttention(row.status) ? 0 : 100) + statusOrder[row.status];
   for (const key of keys) {
     const row = rows.get(key);
     if (row && (!best || rank(row) < rank(best))) best = row;
@@ -164,7 +112,7 @@ const reasons: Partial<Record<LibraryCloudStatus, string>> = {
  * Your saved copy comes first; a library skill without one reads its public version. A personal skill with no
  * saved copy is only on your Mac.
  */
-const isLocked = (row: CloudRow) => attention.has(row.status) || row.status === "confirmed" || row.confirmedSecret;
+const isLocked = (row: CloudRow) => needsAttention(row.status) || row.status === "confirmed" || row.confirmedSecret;
 
 function access(row: CloudRow | null, catalogId: string | null, saved: boolean, locked: CloudRow | null = null):
   Pick<LibrarySkill, "available" | "source" | "reason"> {
@@ -191,7 +139,7 @@ export function buildMySkills(input: MySkillsInputs): MySkillsLibrary {
   // Skills some Mac has now, with only their live copies (the web's liveMine).
   const mine = grouped.map(skill => ({ skill, live: skill.sourceSkills.filter(copy => isLive(copy, now)) }))
     .filter(entry => entry.live.length > 0);
-  const rows = input.cloud ? cloudRows(input.cloud, input.inventory) : new Map<string, CloudRow>();
+  const rows = input.cloud ? cloudRows(input.cloud, input.inventory, now) : new Map<string, CloudRow>();
 
   const installedSkills: LibrarySkill[] = mine.map(({ skill, live }) => {
     const catalogId = skill.catalogSkillId || null;
