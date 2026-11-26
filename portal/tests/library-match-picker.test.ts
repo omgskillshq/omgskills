@@ -74,7 +74,7 @@ test("each choice confirms what was saved", () => {
   assert.equal(choiceMessage({ kind: "keep", author: "howdeploy" }), "Kept @howdeploy");
   assert.equal(choiceMessage({ kind: "none", count: 1, id: "garrytan/gstack:qa", skill: qa }), "Saved: not qa by @garrytan");
   assert.equal(choiceMessage({ kind: "none", count: 3, id: "garrytan/gstack:qa", skill: qa }), "Saved: none of these");
-  assert.equal(choiceMessage({ kind: "own" }), "Saved as your own skill");
+  assert.equal(choiceMessage({ kind: "own" }), "Marked as Personal");
 });
 
 test("a skill the person said is their own is marked own; a linked or unknown one isn't", () => {

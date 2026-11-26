@@ -153,12 +153,15 @@ test("my skills marks only skills cloud save can't keep, and picks the copy that
   assert.equal(skillCloudRow(rows, ["missing"]), null);
 });
 
-test("Show splits my skills into personal (own) and public (library), each by name, and survives the address", async () => {
+test("Show splits my skills into public (library or GitHub), personal (marked) and unknown, each by name, and survives the address", async () => {
   const { skillsByOrigin, parseNavigation, navigationSearch, initialNavigation } = await import("../src/app/unified/model");
-  const skill = (name: string, catalogId?: string) => ({ key: name, name, catalogId }) as never;
-  const split = skillsByOrigin([skill("zeta", "a/b:zeta"), skill("beta"), skill("Alpha"), skill("delta", "a/b:delta")]);
+  const skill = (name: string, catalogId?: string, extra = {}) => ({ key: name, name, catalogId, githubUrl: null, ...extra }) as never;
+  const split = skillsByOrigin([skill("zeta", "a/b:zeta"), skill("beta", undefined, { own: true }), skill("Alpha", undefined, { own: true }),
+    skill("delta", "a/b:delta"), skill("tutor", undefined, { githubUrl: "https://github.com/janestreet/agent_skills" }), skill("mystery")]);
   assert.deepEqual(split.personal.map((s: { name: string }) => s.name), ["Alpha", "beta"]);
-  assert.deepEqual(split.public.map((s: { name: string }) => s.name), ["delta", "zeta"]);
+  assert.deepEqual(split.public.map((s: { name: string }) => s.name), ["delta", "tutor", "zeta"]);
+  assert.deepEqual(split.unknown.map((s: { name: string }) => s.name), ["mystery"]);
+  assert.equal(parseNavigation(navigationSearch({ ...initialNavigation, show: "unknown" })).show, "unknown");
   assert.equal(parseNavigation(navigationSearch({ ...initialNavigation, show: "origin" })).show, "origin");
   assert.equal(parseNavigation("?view=all&show=bogus").show, undefined);
   assert.equal(parseNavigation("?view=discover&show=public").show, undefined, "Only my own lists");
@@ -166,11 +169,13 @@ test("Show splits my skills into personal (own) and public (library), each by na
 
 test("By creator groups library skills under each creator A to Z, personal ones last, and survives the address", async () => {
   const { skillsByCreator, parseNavigation, navigationSearch, initialNavigation } = await import("../src/app/unified/model");
-  const skill = (name: string, catalogId?: string, author = "") => ({ key: name, name, catalogId, author }) as never;
-  const groups = skillsByCreator([skill("zeta", "zed/r:zeta", "zed"), skill("mine"), skill("beta", "Anna/r:beta", "Anna"),
-    skill("alpha", "anna/x:alpha", "anna"), skill("gamma", "owner/r:gamma")]);
-  assert.deepEqual(groups.map((g: { creator: string | null; skills: { name: string }[] }) => [g.creator, g.skills.map(s => s.name)]),
-    [["Anna", ["alpha", "beta"]], ["owner", ["gamma"]], ["zed", ["zeta"]], [null, ["mine"]]]);
+  const skill = (name: string, catalogId?: string, author = "", extra = {}) => ({ key: name, name, catalogId, author, githubUrl: null, ...extra }) as never;
+  const groups = skillsByCreator([skill("zeta", "zed/r:zeta", "zed"), skill("mine", undefined, "", { own: true }), skill("beta", "Anna/r:beta", "Anna"),
+    skill("alpha", "anna/x:alpha", "anna"), skill("gamma", "owner/r:gamma"), skill("mystery"),
+    skill("tutor", undefined, "", { githubUrl: "https://github.com/janestreet/agent_skills" })]);
+  assert.deepEqual(groups.map((g: { creator: string | null; unknown?: true; skills: { name: string }[] }) => [g.creator, g.unknown ?? false, g.skills.map(s => s.name)]),
+    [["Anna", false, ["alpha", "beta"]], ["janestreet", false, ["tutor"]], ["owner", false, ["gamma"]], ["zed", false, ["zeta"]],
+      [null, false, ["mine"]], [null, true, ["mystery"]]]);
   assert.deepEqual(skillsByCreator([skill("only", "a/b:only", "a")]).map((g: { creator: string | null }) => g.creator), ["a"], "No empty Personal group");
   assert.equal(parseNavigation(navigationSearch({ ...initialNavigation, show: "creator" })).show, "creator");
 });

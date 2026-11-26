@@ -169,10 +169,10 @@ export type Navigation = {
   /** Which of my skills to show: own ones, library ones, or both split by origin. */
   show?: SkillShow;
 };
-export type SkillShow = "installed" | "not-installed" | "personal" | "public" | "origin" | "creator";
-const skillShows: SkillShow[] = ["installed", "not-installed", "personal", "public", "origin", "creator"];
+export type SkillShow = "installed" | "not-installed" | "personal" | "public" | "unknown" | "origin" | "creator";
+const skillShows: SkillShow[] = ["installed", "not-installed", "personal", "public", "unknown", "origin", "creator"];
 export const byName = (a: SkillDisplay, b: SkillDisplay) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
-/** Personal skills are your own; public ones were installed from the library. Each part sorted by name. */
+/** Show: public (library or a GitHub repo), personal (said to be yours), unknown (neither yet). Each part sorted by name. */
 /**
  * Skills in My skills that no Mac has now: saved copies whose folder belongs to no skill in the list.
  * Only a saved copy counts; a review alone saved nothing. Details come from the last copy a Mac
@@ -214,27 +214,37 @@ export function byInstalled(skills: SkillDisplay[], show: SkillShow | undefined)
   return show === "installed" ? skills.filter(skill => !notInstalled(skill))
     : show === "not-installed" ? skills.filter(notInstalled) : skills;
 }
+/**
+ * Where a skill comes from: public (a library skill, or one from a GitHub repo, whose creator is known),
+ * personal (the person said it's theirs), or unknown (neither, until they say so).
+ */
+export function skillOrigin(skill: SkillDisplay): "public" | "personal" | "unknown" {
+  return skill.catalogId ? "public" : skill.own ? "personal" : githubOwner(skill.githubUrl) ? "public" : "unknown";
+}
 export function skillsByOrigin(skills: SkillDisplay[]) {
   return {
-    personal: skills.filter(skill => !skill.catalogId).sort(byName),
-    public: skills.filter(skill => !!skill.catalogId).sort(byName),
+    personal: skills.filter(skill => skillOrigin(skill) === "personal").sort(byName),
+    public: skills.filter(skill => skillOrigin(skill) === "public").sort(byName),
+    unknown: skills.filter(skill => skillOrigin(skill) === "unknown").sort(byName),
   };
 }
-/** Library skills under their creator (A to Z), then personal ones; each group by name. */
-export function skillsByCreator(skills: SkillDisplay[]): { creator: string | null; skills: SkillDisplay[] }[] {
+/** Public skills under their creator (A to Z), then personal ones, then unknown ones; each group by name. */
+export function skillsByCreator(skills: SkillDisplay[]): { creator: string | null; unknown?: true; skills: SkillDisplay[] }[] {
   const groups = new Map<string, { creator: string; skills: SkillDisplay[] }>();
-  for (const skill of skills.filter(skill => !!skill.catalogId)) {
-    const creator = skill.author || skill.catalogId!.split("/")[0] || skill.catalogId!;
+  for (const skill of skills.filter(skill => skillOrigin(skill) === "public")) {
+    const creator = skill.author || skill.catalogId?.split("/")[0] || githubOwner(skill.githubUrl) || skill.catalogId!;
     const key = creator.toLowerCase();
     const group = groups.get(key) ?? { creator, skills: [] };
     group.skills.push(skill);
     groups.set(key, group);
   }
-  const personal = skills.filter(skill => !skill.catalogId).sort(byName);
+  const personal = skills.filter(skill => skillOrigin(skill) === "personal").sort(byName);
+  const unknown = skills.filter(skill => skillOrigin(skill) === "unknown").sort(byName);
   return [
     ...[...groups.values()].sort((a, b) => a.creator.localeCompare(b.creator, undefined, { sensitivity: "base" }))
       .map(group => ({ creator: group.creator, skills: group.skills.sort(byName) })),
     ...(personal.length ? [{ creator: null, skills: personal }] : []),
+    ...(unknown.length ? [{ creator: null, unknown: true as const, skills: unknown }] : []),
   ];
 }
 export const initialNavigation: Navigation = {

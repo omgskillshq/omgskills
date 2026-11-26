@@ -41,7 +41,7 @@ export function choiceMessage(choice: { kind: "this"; skill: CatalogSummary | nu
   if (choice.kind === "this") return `Linked to ${named(choice.skill, choice.id)}`;
   if (choice.kind === "keep") return choice.author ? `Kept @${choice.author}` : "Kept this library skill";
   if (choice.kind === "none") return choice.count === 1 && choice.id ? `Saved: not ${named(choice.skill, choice.id)}` : "Saved: none of these";
-  return "Saved as your own skill";
+  return "Marked as Personal";
 }
 
 function starCount(stars?: number) {
