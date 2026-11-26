@@ -909,7 +909,7 @@ export function UnifiedApp({
     setMakingMine(skillKey);
     try {
       await chooseLibraryMatch(key, null);
-      setSuccessNotice("Saved as your own skill");
+      setSuccessNotice("Marked as Personal");
     } catch {
       setNotice("Couldn't save that. Try again.");
     } finally {
@@ -936,12 +936,14 @@ export function UnifiedApp({
   const statusLabel = !detail || canInstall || savedInstall || (detail.installCommand && !canInstall) ? undefined
     : detail.setItemCloudShared ? cloudSharedLabel(detail, activeSet?.role)
     : detail.cloudKey || detail.added ? "Not installed" : detail.catalogId || detail.setItemKind === "catalog" ? "Library skill"
-    : detail.installed?.isLocalOnly ? "Personal skill" : "Source unavailable";
+    : detail.own ? "Personal skill" : detailGithubOwner ? "From GitHub" : "Source unavailable";
   // Every skill says what kind it is, as a quiet icon at the end: from the public library (globe) or personal.
   // A skill that's neither (its source can't be found) gets a package-with-question-mark icon instead of a label.
   const kindLabel = !detail ? undefined : detail.catalogId || detail.setItemKind === "catalog" ? "Library skill"
-    : detail.installed?.isLocalOnly ? "Personal skill" : statusLabel === "Source unavailable" ? "Source unavailable" : undefined;
-  const KindIcon = kindLabel === "Library skill" ? Globe : kindLabel === "Personal skill" ? User
+    : detail.own ? "Personal skill" : detailGithubOwner ? "From GitHub"
+    : statusLabel === "Source unavailable" ? "Source unavailable" : undefined;
+  // From a GitHub repo but not the library: public (its creator is known), so the same globe.
+  const KindIcon = kindLabel === "Library skill" || kindLabel === "From GitHub" ? Globe : kindLabel === "Personal skill" ? User
     : kindLabel === "Source unavailable" ? PackageQuestionMark : null;
   const collection = catalog.collections.find((item) => item.id === nav.id);
   const detailCollections = detail?.catalogId
@@ -1644,8 +1646,8 @@ export function UnifiedApp({
     );
   // Removed from My skills: gone at once, before the change comes back.
   if (removed.length && !discovery) visible = visible.filter(skill => !removed.includes(skill.key));
-  const origin = !isDiscovery(nav.view) && !setPage && nav.show && ["personal", "public", "origin"].includes(nav.show) ? skillsByOrigin(visible) : null;
-  if (origin && nav.show !== "origin") visible = nav.show === "personal" ? origin.personal : origin.public;
+  const origin = !isDiscovery(nav.view) && !setPage && nav.show && ["personal", "public", "unknown", "origin"].includes(nav.show) ? skillsByOrigin(visible) : null;
+  if (origin && nav.show !== "origin") visible = nav.show === "personal" ? origin.personal : nav.show === "unknown" ? origin.unknown : origin.public;
   // My own lists are in name order, so a letter index can jump through them.
   const nameOrdered = !discovery && !setPage && ["all", "favorites", "set"].includes(nav.view) && listState === "ready";
   if (nameOrdered) visible = [...visible].sort(byName);
@@ -1733,6 +1735,7 @@ export function UnifiedApp({
           {nav.view === "all" && nav.id !== "attention" && <option value="not-installed">Not installed</option>}
           <option value="personal">Personal</option>
           <option value="public">Public</option>
+          <option value="unknown">Unknown</option>
           <option value="origin">By origin</option>
           <option value="creator">By creator</option>
         </select>
@@ -2322,10 +2325,11 @@ export function UnifiedApp({
                       ? <>
                           {origin.personal.length > 0 && <section className="ua-origin-group"><SectionHeading title="Personal" />{rows(origin.personal)}</section>}
                           {origin.public.length > 0 && <section className="ua-origin-group"><SectionHeading title="Public" />{rows(origin.public)}</section>}
+                          {origin.unknown.length > 0 && <section className="ua-origin-group"><SectionHeading title="Unknown" />{rows(origin.unknown)}</section>}
                         </>
                       : creators && visible.length
-                        ? creators.map(group => <section key={group.creator ?? ""} className="ua-origin-group">
-                            <SectionHeading title={group.creator ? `@${group.creator}` : "Personal"} />{rows(group.skills)}</section>)
+                        ? creators.map(group => <section key={group.creator ?? (group.unknown ? "\u0000unknown" : "")} className="ua-origin-group">
+                            <SectionHeading title={group.creator ? `@${group.creator}` : group.unknown ? "Unknown" : "Personal"} />{rows(group.skills)}</section>)
                         : rows(visible, nav.view === "top")
                     : null}
                   {!management && nav.view === "set" &&
@@ -2488,7 +2492,7 @@ export function UnifiedApp({
                               <span className="ua-muted">Unavailable</span>
                               {detailOwnKey && chooseLibraryMatch && signedIn && (
                                 <button type="button" className="ua-link ua-detail-make-mine" disabled={makingMine === detail.key}
-                                  onClick={() => void makeMine(detail.key, detailOwnKey)}>Make it mine</button>
+                                  onClick={() => void makeMine(detail.key, detailOwnKey)}>Mark as Personal</button>
                               )}
                             </span>
                           )}

@@ -5,6 +5,7 @@ import { cloudBlobKey, type CloudObjectStore } from "./cloud-store.js";
 import { forgetContentMatches } from "./content-match.js";
 import { skillMdBody } from "./skill-readme.js";
 import { cloudNameKey, type CloudRecordName } from "./cloud-skill-keys.js";
+import { parseGithubSource, type GithubSource } from "./github-source.js";
 import { installationFolderFromKey } from "./sync-skill.js";
 import { drainCloudPurge, queuedFileCount, releaseStorageKeys, reserveStorageKeys } from "./cloud-storage-purge.js";
 import { combineLabels, pathLabels, scanFileContents, type SecretFinding, type SkillLabel } from "./skill-scan.js";
@@ -168,6 +169,8 @@ export type CloudSavedSkill = {
   deletedLocallyAt: string | null;
   /** Sets that share this skill; deleting it takes it out of them. */
   setCount: number;
+  /** Where it came from, for a skill added on the web from GitHub; null otherwise. */
+  githubSource: GithubSource | null;
 };
 
 export type CloudSkillReview = {
@@ -366,13 +369,16 @@ async function reportedNames(db: Database, userId: string, wanted: { key: string
 }
 
 /** The names of a person's saved skills, for `cloudSkillKeys`. */
-export async function readCloudRecordNames(db: Database, userId: string): Promise<CloudRecordName[]> {
-  const result = await db.query<{ key: string; name: string | null; deviceId: string | null }>(
-    `SELECT saved.skill_key AS key, saved.skill_name AS name, cloud.device_id AS "deviceId"
+export async function readCloudRecordNames(db: Database, userId: string): Promise<(CloudRecordName & { githubSource?: GithubSource })[]> {
+  const result = await db.query<{ key: string; name: string | null; deviceId: string | null; githubSource?: unknown }>(
+    `SELECT saved.skill_key AS key, saved.skill_name AS name, cloud.device_id AS "deviceId", saved.github_source AS "githubSource"
      FROM cloud_saved_skills saved JOIN cloud_releases cloud ON cloud.release_id = saved.current_release_id
      WHERE saved.user_id = $1`, [userId]);
   const reported = await reportedNames(db, userId, result.rows.filter((row) => !row.name));
-  return result.rows.map((row) => ({ key: row.key, name: row.name ?? reported.get(row.key) ?? null }));
+  return result.rows.map((row) => {
+    const githubSource = parseGithubSource(row.githubSource);
+    return { key: row.key, name: row.name ?? reported.get(row.key) ?? null, ...(githubSource ? { githubSource } : {}) };
+  });
 }
 
 /**
@@ -402,16 +408,24 @@ async function checkSkillName(db: Database, input: { userId: string; deviceId: s
   return incoming ?? saved;
 }
 
+/** A source to store, checked; null when there is none or it isn't whole. */
+function githubSourceJson(source: unknown): string | null {
+  const parsed = parseGithubSource(source);
+  return parsed ? JSON.stringify(parsed) : null;
+}
+
 export async function readCloudSave(db: Database, userId: string): Promise<CloudSaveState> {
   const [settings, bytes, skills, needsReview, skipped] = await Promise.all([
     readCloudSaveSettings(db, userId),
     usedBytes(db, userId),
-    db.query<CloudSavedVersion & { key: string; name: string | null; description: string | null; versionCount: number; deletedLocallyAt: string | null; setCount: number }>(
+    db.query<CloudSavedVersion & { key: string; name: string | null; description: string | null; versionCount: number; deletedLocallyAt: string | null; setCount: number;
+      githubSource: unknown }>(
       `
         SELECT
           saved.skill_key AS key,
           saved.skill_name AS name,
           saved.skill_description AS description,
+          saved.github_source AS "githubSource",
           to_char(saved.deleted_locally_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "deletedLocallyAt",
           (SELECT count(*)::int FROM skill_releases WHERE source_id = saved.source_id) AS "versionCount",
           (SELECT count(DISTINCT item.group_id)::int FROM skill_group_items item WHERE item.source_id = saved.source_id) AS "setCount",
@@ -434,13 +448,14 @@ export async function readCloudSave(db: Database, userId: string): Promise<Cloud
     needsReview,
     skipped,
     usage: { bytes, limitBytes: CLOUD_SAVE_LIMITS.maximumUserBytes },
-    skills: skills.rows.map(({ key, name, description, versionCount, deletedLocallyAt, setCount, ...version }) => ({
+    skills: skills.rows.map(({ key, name, description, versionCount, deletedLocallyAt, setCount, githubSource, ...version }) => ({
       key,
       name: name ?? reported.get(key) ?? null,
       description,
       versionCount,
       deletedLocallyAt,
       setCount,
+      githubSource: parseGithubSource(githubSource),
       currentVersion: version
     }))
   };
@@ -793,6 +808,8 @@ export async function saveCloudVersion(
     skillName?: unknown;
     /** The SKILL.md description, for a skill added from GitHub; a Mac's save leaves it out and clears any saved one. */
     skillDescription?: string | null;
+    /** Where a skill added from GitHub came from; kept through later saves (it's where the skill started). */
+    githubSource?: GithubSource | null;
   }
 ): Promise<SaveCloudVersionResult> {
   const skillKey = normalizeSkillKey(input.skillKey);
@@ -890,7 +907,9 @@ export async function saveCloudVersion(
     const existing = current.rows[0];
     const keptName = await checkSkillName(client, { ...input, skillKey, skillName }, existing);
     if (existing && keptName && existing.name !== keptName) {
-      await client.query("UPDATE cloud_saved_skills SET skill_name = $2 WHERE source_id = $1", [sourceId, keptName]);
+      // Renamed: no longer the skill that came from GitHub (a name never kept before, filled in now, isn't a rename).
+      await client.query(`UPDATE cloud_saved_skills SET skill_name = $2,
+        github_source = CASE WHEN skill_name IS NOT NULL THEN NULL ELSE github_source END WHERE source_id = $1`, [sourceId, keptName]);
     }
     if (existing?.treeSha === manifest.treeSha) {
       // Only this Mac's own waiting copy is settled by matching the current version.
@@ -934,19 +953,22 @@ export async function saveCloudVersion(
     );
     await client.query(
       `
-        INSERT INTO cloud_saved_skills (source_id, user_id, skill_key, current_release_id, skill_name, skill_description)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO cloud_saved_skills (source_id, user_id, skill_key, current_release_id, skill_name, skill_description, github_source)
+        VALUES ($1, $2, $3, $4, $5, $6, $8::jsonb)
         ON CONFLICT (source_id) DO UPDATE SET
           current_release_id = EXCLUDED.current_release_id,
           skill_name = COALESCE(EXCLUDED.skill_name, cloud_saved_skills.skill_name),
           -- A Mac's save may have changed SKILL.md, so a description kept from GitHub is dropped then.
           skill_description = CASE WHEN EXCLUDED.skill_description IS NOT NULL THEN EXCLUDED.skill_description
             WHEN $7::boolean THEN NULL ELSE cloud_saved_skills.skill_description END,
+          -- Renamed by a Mac: it's no longer the skill that came from GitHub, so its source goes.
+          github_source = CASE WHEN EXCLUDED.skill_name IS NOT NULL AND cloud_saved_skills.skill_name IS NOT NULL
+            AND EXCLUDED.skill_name <> cloud_saved_skills.skill_name THEN NULL ELSE cloud_saved_skills.github_source END,
           deleted_locally_at = NULL,
           updated_at = now()
       `,
       [sourceId, input.userId, skillKey, releaseId, keptName, input.skillDescription?.slice(0, MAX_SAVED_DESCRIPTION) || null,
-        input.deviceId !== null]
+        input.deviceId !== null, githubSourceJson(input.githubSource)]
     );
     await client.query("DELETE FROM cloud_skill_reviews WHERE user_id = $1 AND skill_key = $2", [input.userId, skillKey]);
     await client.query("COMMIT");

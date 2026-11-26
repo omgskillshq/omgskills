@@ -6,6 +6,7 @@ import { CloudSaveError, readCloudRecordNames, readCloudSaveSettings, saveCloudV
 import type { CloudObjectStore } from "./cloud-store.js";
 import { candidateKey, cloudNameKey } from "./cloud-skill-keys.js";
 import { GithubImportError, manifestOf, type GithubSkill } from "./github-skill-import.js";
+import { parseGithubSource, type GithubSource } from "./github-source.js";
 
 /** The first free key for the skill: its folder name, then "<folder>@agents", "@agents-2", …; null when none is valid. */
 export function githubSkillKey(skill: Pick<GithubSkill, "folder" | "repo" | "name">, taken: Set<string>): string | null {
@@ -19,6 +20,12 @@ export function githubSkillKey(skill: Pick<GithubSkill, "folder" | "repo" | "nam
     if (!taken.has(key)) return key;
   }
   return null;
+}
+
+/** Where a skill read from GitHub came from; an upload (no repo) has none. */
+function sourceOf(skill: GithubSkill): GithubSource | null {
+  if (!skill.repo) return null;
+  return parseGithubSource({ repo: skill.fullName ?? skill.repo, folder: skill.folder, commitSha: skill.commitSha, stars: skill.stars });
 }
 
 const SYNC_OFF = "Sync is off. Turn on Sync My skills (menu → Sync) to add skills here.";
@@ -66,7 +73,7 @@ export async function saveGithubSkill(pool: Pool, store: CloudObjectStore, userI
       if (!key) throw new GithubImportError("unsupported_file", "This skill's folder name can't be used as a skill name.", 422);
       try {
         const saved = await saveCloudVersion(pool, { userId, deviceId: null, skillKey: key, files: manifestOf(skill.files), skillName: skill.name,
-          skillDescription: skill.description });
+          skillDescription: skill.description, githubSource: sourceOf(skill) });
         if (saved.status !== "saved") throw new GithubImportError("unavailable", "The skill couldn't be saved. Try again.", 503);
         return { key: saved.skill.key, name: skill.name };
       } catch (error) {

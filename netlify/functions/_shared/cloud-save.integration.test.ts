@@ -1769,7 +1769,7 @@ test("a skill added from GitHub saves like a Mac's, with no device, and a Mac ca
     };
     const skill = (name: string, folder: string): GithubSkill => {
       const files = [file("SKILL.md", `---\nname: ${name}\ndescription: d\n---\n`), file("run.sh", "echo hi\n", "100755")];
-      return { repo: "o/r", commitSha: "c".repeat(40), folder, name, description: "d", skillMd: "", labels: ["scripts"], files,
+      return { repo: "o/r", commitSha: "c".repeat(40), folder, stars: 42, name, description: "d", skillMd: "", labels: ["scripts"], files,
         totalBytes: files.reduce((sum, item) => sum + item.data.byteLength, 0) };
     };
     const refused = (promise: Promise<unknown>, code: string) =>
@@ -1780,6 +1780,8 @@ test("a skill added from GitHub saves like a Mac's, with no device, and a Mac ca
     assert.deepEqual(await saveGithubSkill(pool, store, userId, skill("PDF", "skills/pdf")), { key: "pdf", name: "PDF" });
     const saved = (await readCloudSave(pool, userId)).skills;
     assert.deepEqual(saved.map((item) => [item.key, item.name, item.description, item.currentVersion.deviceId]), [["pdf", "pdf", "d", null]]);
+    // Where it came from is kept, so it shows its creator, link and stars.
+    assert.deepEqual(saved[0].githubSource, { repo: "o/r", folder: "skills/pdf", commitSha: "c".repeat(40), stars: 42 });
     const loaded = await loadCloudVersionPackage(pool, store, { userId, releaseId: saved[0].currentVersion.id });
     assert.deepEqual(loaded.package.entries.map((entry) => [entry.path, entry.mode]).sort(), [["SKILL.md", "100644"], ["run.sh", "100755"]]);
 
@@ -1793,6 +1795,14 @@ test("a skill added from GitHub saves like a Mac's, with no device, and a Mac ca
     await uploadAll(pool, store, userId, v1);
     assert.equal((await saveCloudVersion(pool, { userId, deviceId, skillKey: "pdf", files: manifest(v1), skillName: "PDF" })).status, "saved");
     assert.equal((await readCloudSave(pool, userId)).skills.find((item) => item.key === "pdf")?.description, null);
+    // Its source stays: that's still where the skill started.
+    assert.equal((await readCloudSave(pool, userId)).skills.find((item) => item.key === "pdf")?.githubSource?.repo, "o/r");
+    // Renamed by that Mac: it's another skill now, so the source goes.
+    assert.equal((await saveCloudVersion(pool, { userId, deviceId, skillKey: "pdf", files: manifest(v1), skillName: "PDF renamed" })).status, "saved");
+    assert.equal((await readCloudSave(pool, userId)).skills.find((item) => item.key === "pdf")?.githubSource, null);
+    // An upload (no repo) has none.
+    assert.equal((await saveGithubSkill(pool, store, userId, { ...skill("uploaded", "uploaded"), repo: "", commitSha: "" })).key, "uploaded");
+    assert.equal((await readCloudSave(pool, userId)).skills.find((item) => item.key === "uploaded")?.githubSource, null);
 
     // The same skill added twice at once (two tabs, a double click) is saved once.
     const both = await Promise.allSettled([saveGithubSkill(pool, store, userId, skill("twin", "a/twin")),

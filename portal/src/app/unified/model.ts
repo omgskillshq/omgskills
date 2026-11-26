@@ -169,23 +169,24 @@ export type Navigation = {
   /** Which of my skills to show: own ones, library ones, or both split by origin. */
   show?: SkillShow;
 };
-export type SkillShow = "installed" | "not-installed" | "personal" | "public" | "origin" | "creator";
-const skillShows: SkillShow[] = ["installed", "not-installed", "personal", "public", "origin", "creator"];
+export type SkillShow = "installed" | "not-installed" | "personal" | "public" | "unknown" | "origin" | "creator";
+const skillShows: SkillShow[] = ["installed", "not-installed", "personal", "public", "unknown", "origin", "creator"];
 export const byName = (a: SkillDisplay, b: SkillDisplay) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
-/** Personal skills are your own; public ones were installed from the library. Each part sorted by name. */
+/** Show: public (library or a GitHub repo), personal (said to be yours), unknown (neither yet). Each part sorted by name. */
 /**
  * Skills in My skills that no Mac has now: saved copies whose folder belongs to no skill in the list.
  * Only a saved copy counts; a review alone saved nothing. Details come from the last copy a Mac
  * reported, unless that skill is still installed elsewhere (then the row's own label tells them apart).
  */
-export function notInstalledSkills(rows: { key: string; name: string; description?: string; savedAt: string | null }[], mine: SkillDisplay[],
+export function notInstalledSkills(rows: { key: string; name: string; description?: string; savedAt: string | null;
+  githubSource?: { repo: string; folder: string; stars?: number } | null }[], mine: SkillDisplay[],
   everMine: SkillDisplay[], keysOf: (skill: SkillDisplay) => string[]): SkillDisplay[] {
   const listed = new Set(mine.flatMap(keysOf));
   return rows.filter(row => row.savedAt && !listed.has(row.key)).map(row => {
     const last = everMine.find(skill => keysOf(skill).includes(row.key));
     const stillInstalled = last && mine.some(skill => skill.key === last.key);
     return { ...(last && !stillInstalled ? last : { name: row.name, description: row.description ?? "", author: "", githubUrl: null, tags: [],
-      ...(last?.own ? { own: true } : {}) }),
+      ...(last?.own ? { own: true } : {}), ...githubDetails(row.githubSource) }),
       key: `cloud:${row.key}`, installed: undefined, cloudKey: row.key };
   });
 }
@@ -213,27 +214,37 @@ export function byInstalled(skills: SkillDisplay[], show: SkillShow | undefined)
   return show === "installed" ? skills.filter(skill => !notInstalled(skill))
     : show === "not-installed" ? skills.filter(notInstalled) : skills;
 }
+/**
+ * Where a skill comes from: public (a library skill, or one from a GitHub repo, whose creator is known),
+ * personal (the person said it's theirs), or unknown (neither, until they say so).
+ */
+export function skillOrigin(skill: SkillDisplay): "public" | "personal" | "unknown" {
+  return skill.catalogId ? "public" : skill.own ? "personal" : githubOwner(skill.githubUrl) ? "public" : "unknown";
+}
 export function skillsByOrigin(skills: SkillDisplay[]) {
   return {
-    personal: skills.filter(skill => !skill.catalogId).sort(byName),
-    public: skills.filter(skill => !!skill.catalogId).sort(byName),
+    personal: skills.filter(skill => skillOrigin(skill) === "personal").sort(byName),
+    public: skills.filter(skill => skillOrigin(skill) === "public").sort(byName),
+    unknown: skills.filter(skill => skillOrigin(skill) === "unknown").sort(byName),
   };
 }
-/** Library skills under their creator (A to Z), then personal ones; each group by name. */
-export function skillsByCreator(skills: SkillDisplay[]): { creator: string | null; skills: SkillDisplay[] }[] {
+/** Public skills under their creator (A to Z), then personal ones, then unknown ones; each group by name. */
+export function skillsByCreator(skills: SkillDisplay[]): { creator: string | null; unknown?: true; skills: SkillDisplay[] }[] {
   const groups = new Map<string, { creator: string; skills: SkillDisplay[] }>();
-  for (const skill of skills.filter(skill => !!skill.catalogId)) {
-    const creator = skill.author || skill.catalogId!.split("/")[0] || skill.catalogId!;
+  for (const skill of skills.filter(skill => skillOrigin(skill) === "public")) {
+    const creator = skill.author || skill.catalogId?.split("/")[0] || githubOwner(skill.githubUrl) || skill.catalogId!;
     const key = creator.toLowerCase();
     const group = groups.get(key) ?? { creator, skills: [] };
     group.skills.push(skill);
     groups.set(key, group);
   }
-  const personal = skills.filter(skill => !skill.catalogId).sort(byName);
+  const personal = skills.filter(skill => skillOrigin(skill) === "personal").sort(byName);
+  const unknown = skills.filter(skill => skillOrigin(skill) === "unknown").sort(byName);
   return [
     ...[...groups.values()].sort((a, b) => a.creator.localeCompare(b.creator, undefined, { sensitivity: "base" }))
       .map(group => ({ creator: group.creator, skills: group.skills.sort(byName) })),
     ...(personal.length ? [{ creator: null, skills: personal }] : []),
+    ...(unknown.length ? [{ creator: null, unknown: true as const, skills: unknown }] : []),
   ];
 }
 export const initialNavigation: Navigation = {
@@ -450,6 +461,19 @@ export function liveMine(mine: SkillDisplay[], now = Date.now()) {
   return mine.map((skill) => liveSkill(skill, now)).filter((skill) => skill.installed);
 }
 
+/** A skill added from GitHub that isn't in the library: its repo's link, owner photo and stars (as of the add). */
+function githubDetails(source: { repo: string; folder: string; stars?: number } | null | undefined) {
+  if (!source) return {};
+  const owner = source.repo.split("/")[0];
+  return { githubUrl: `https://github.com/${source.repo}`, avatar: `https://github.com/${encodeURIComponent(owner)}.png?size=80`,
+    ...(source.stars !== undefined ? { stars: source.stars } : {}) };
+}
+
+/** A GitHub repo's owner from its link (https://github.com/owner/repo), for a skill the library doesn't know. */
+function githubOwner(url: string | null | undefined) {
+  return url?.match(/^https:\/\/github\.com\/([A-Za-z0-9-]+)\/[^/]/)?.[1] ?? "";
+}
+
 export function skillDisplays(data: PortalData, catalog: CatalogDisplay) {
   const grouped = groupSyncedSkills(data.skills, { groupInstallations: true });
   const byId = new Map(catalog.skills.map((skill) => [skill.id, skill]));
@@ -457,6 +481,7 @@ export function skillDisplays(data: PortalData, catalog: CatalogDisplay) {
     const publicSkill = skill.catalogSkillId
       ? byId.get(skill.catalogSkillId)
       : undefined;
+    const own = !skill.catalogSkillId && skill.sourceSkills.some((copy) => copy.markedOwn === true);
     return {
       key: `synced:${skill.id}`,
       catalogId: skill.catalogSkillId || undefined,
@@ -464,13 +489,18 @@ export function skillDisplays(data: PortalData, catalog: CatalogDisplay) {
       description: skill.description || "",
       author: publicSkill?.author || catalogOwner(skill.catalogSkillId),
       avatar: publicSkill?.avatar || (catalogOwner(skill.catalogSkillId)
-        ? `https://github.com/${encodeURIComponent(catalogOwner(skill.catalogSkillId))}.png?size=80` : undefined),
+        ? `https://github.com/${encodeURIComponent(catalogOwner(skill.catalogSkillId))}.png?size=80`
+        // Not in the library but from GitHub (and not said to be theirs): the repo owner's photo.
+        : !skill.catalogSkillId && !own && githubOwner(skill.githubUrl)
+          ? `https://github.com/${encodeURIComponent(githubOwner(skill.githubUrl))}.png?size=80` : undefined),
       githubUrl: skill.githubUrl,
-      stars: publicSkill?.stars,
+      // Stars as of the add, from a copy of the same repo the link shows.
+      stars: publicSkill?.stars ?? (skill.catalogSkillId || own ? undefined
+        : skill.sourceSkills.find(copy => typeof copy.githubStars === "number" && copy.githubUrl === skill.githubUrl)?.githubStars ?? undefined),
       tags: publicSkill?.tags || [],
       installCommand: publicSkill?.installCommand,
       installed: skill,
-      ...(!skill.catalogSkillId && skill.sourceSkills.some((copy) => copy.markedOwn === true) ? { own: true } : {}),
+      ...(own ? { own: true } : {}),
     };
   });
   const library: SkillDisplay[] = catalog.skills.map(({ id, ...skill }) => ({
