@@ -1,3 +1,5 @@
+import { useEffect, type RefObject } from "react";
+
 // Hover text under a small icon (scan shield, review badge, kind icon) is placed by CSS next to the icon.
 // Near a panel's edge it would be cut off, so before it shows it's shifted sideways to fit inside the
 // nearest box that clips (the side panel), keeping a small margin.
@@ -30,4 +32,20 @@ export function fitTip(button: HTMLElement) {
   const shift = tipShift(tip.getBoundingClientRect(),
     { left: Math.max(box.left, viewport.left), right: Math.min(box.right, viewport.right) });
   if (shift) tip.style.translate = `${shift}px 0`;
+}
+
+/**
+ * Fits again while the text shows: when its words change (a review answer arriving), and on window
+ * resizes or rotation while it's open by tap.
+ */
+export function useTipFit(ref: RefObject<HTMLElement | null>, open: boolean, label: string) {
+  useEffect(() => {
+    const button = ref.current;
+    if (!button) return;
+    if (open || button.matches(":hover, :focus-visible")) fitTip(button);
+    if (!open) return;
+    const refit = () => fitTip(button);
+    window.addEventListener("resize", refit);
+    return () => window.removeEventListener("resize", refit);
+  }, [ref, open, label]);
 }

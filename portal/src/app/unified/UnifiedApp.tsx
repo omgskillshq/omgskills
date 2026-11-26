@@ -153,7 +153,7 @@ import { AlphaRail, railLetter, railLettersOf as railLetters } from "./AlphaRail
 import { CloudStatusBadge, CloudStatusSection, type CloudInfo } from "./CloudStatus";
 import { SetItemScan } from "./SetItemScan";
 import { LibraryMatchPicker, libraryMatchOf, potentialMatch } from "./LibraryMatchPicker";
-import { fitTip } from "./tip-bounds";
+import { fitTip, useTipFit } from "./tip-bounds";
 import type { CatalogSummary } from "./model";
 import { ReviewBadge } from "./ReviewBadge";
 import { looksLikeGithubLink, type MySkillAdditions } from "../my-skills-additions";
@@ -260,8 +260,10 @@ function IconButton({
 // A plain icon (not a button look) whose words show on hover, or on tap for touch screens.
 function KindTip({ label, icon: Icon }: { label: string; icon: LucideIcon }) {
   const [open, setOpen] = useState(false);
+  const button = useRef<HTMLButtonElement>(null);
+  useTipFit(button, open, label);
   return (
-    <button type="button" className="ua-kind-tip" aria-label={label} data-open={open}
+    <button ref={button} type="button" className="ua-kind-tip" aria-label={label} data-open={open}
       onPointerEnter={event => fitTip(event.currentTarget)} onFocus={event => fitTip(event.currentTarget)}
       onClick={event => { fitTip(event.currentTarget); setOpen(value => !value); }} onBlur={() => setOpen(false)}>
       <Icon aria-hidden="true" />
@@ -278,8 +280,10 @@ function ScanTip({ scannedAt, yourCopy }: { scannedAt: string; yourCopy: boolean
   const day = new Date(scannedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" });
   // On a library skill it's your installed copy that was scanned, not the library's.
   const label = `Team-safe · ${yourCopy ? "your copy scanned" : "scanned"} ${day}: no keys, personal details, internal addresses, hidden instructions or download-and-run commands found`;
+  const button = useRef<HTMLButtonElement>(null);
+  useTipFit(button, open, label);
   return (
-    <button type="button" className="ua-scan-tip" aria-label={label} data-open={open}
+    <button ref={button} type="button" className="ua-scan-tip" aria-label={label} data-open={open}
       onPointerEnter={event => fitTip(event.currentTarget)} onFocus={event => fitTip(event.currentTarget)}
       onClick={event => { fitTip(event.currentTarget); setOpen(value => !value); }} onBlur={() => setOpen(false)}
       onKeyDown={event => { if (event.key === "Escape" && open) { event.stopPropagation(); setOpen(false); } }}>

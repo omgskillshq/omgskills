@@ -2,8 +2,8 @@
 // skill's web page shows (/api/skill-review). It only reports what the review found.
 
 import { ShieldCheck, ShieldCogCorner, ShieldQuestionMark } from "lucide-react";
-import { useEffect, useState } from "react";
-import { fitTip } from "./tip-bounds";
+import { useEffect, useRef, useState } from "react";
+import { fitTip, useTipFit } from "./tip-bounds";
 
 // One shield per state; the words show on hover, tap or focus, like the scan tip beside it.
 const ICONS = { no_issues: ShieldCheck, under_review: ShieldCogCorner, not_reviewed: ShieldQuestionMark } as const;
@@ -45,8 +45,11 @@ export function ReviewBadge({ catalogId, treeSha }: { catalogId: string; treeSha
   const [open, setOpen] = useState(false);
   const Icon = ICONS[current.badge];
   const label = words.title;
+  // The answer can arrive while the words show: fit the new words.
+  const button = useRef<HTMLButtonElement>(null);
+  useTipFit(button, open, label);
   return (
-    <button type="button" className="ua-scan-tip ua-review-badge" data-state={current.badge} aria-label={label} data-open={open}
+    <button ref={button} type="button" className="ua-scan-tip ua-review-badge" data-state={current.badge} aria-label={label} data-open={open}
       onPointerEnter={event => fitTip(event.currentTarget)} onFocus={event => fitTip(event.currentTarget)}
       onClick={event => { fitTip(event.currentTarget); setOpen(value => !value); }} onBlur={() => setOpen(false)}
       onKeyDown={event => { if (event.key === "Escape" && open) { event.stopPropagation(); setOpen(false); } }}>
