@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-25T21:39:08.899Z",
+  "generatedAt": "2026-11-26T01:47:39.290Z",
   "skills": {
-    "path": "skills-99b774bfbd61.json",
-    "sha256": "99b774bfbd610eb241811f1e9b931752201eea530a4b44420d24c80b36a869a7",
-    "bytes": 88455648
+    "path": "skills-aee1bb29f4da.json",
+    "sha256": "aee1bb29f4da6d9c8de1f38a77f00cf6f495bd2114a7bb714a1af0a22c630eab",
+    "bytes": 88457830
   },
   "trending": {
-    "path": "trending-c5ba1e199678.json",
-    "sha256": "c5ba1e1996785d91da28fbbaeaacbc55eeefe3bcaed2df4392107a9dedceb17c",
-    "bytes": 54891
+    "path": "trending-b7b0433c5b50.json",
+    "sha256": "b7b0433c5b50de121e3b6998cac59bb2354e2aa67944f996397db34735d960ba",
+    "bytes": 54017
   },
   "xTrending": {
     "path": "x-trending-c2ec558d316a.json",
@@ -22,9 +22,9 @@
     "bytes": 393175
   },
   "shaHistory": {
-    "path": "sha-history-73b692b253d2.json",
-    "sha256": "73b692b253d2bfe0dc1f04751d46d31b1d70259021af92759855e2e9bc1ed2b6",
-    "bytes": 9551390
+    "path": "sha-history-7539d7c8cf95.json",
+    "sha256": "7539d7c8cf956389336f58ed60f426c0935af79ccf73b923bed1fe46a297b17d",
+    "bytes": 9552679
   },
   "skillEquivalence": {
     "path": "skill-equivalence-82d96da53728.json",
@@ -32,13 +32,13 @@
     "bytes": 18837
   },
   "searchCatalog": {
-    "path": "search-catalog-8ecdec4417a8.json",
-    "sha256": "8ecdec4417a8fe04d17c300024c522d7b685c435af592ebefb75c1bce6131993",
+    "path": "search-catalog-eb3ec1f71721.json",
+    "sha256": "eb3ec1f7172113e9e6dccfa1b09f45eda19ba81c981241430045771e08b7c719",
     "bytes": 813
   },
   "sourceTrending": {
-    "path": "source-trending-e7c38cfb7a1e.json",
-    "sha256": "e7c38cfb7a1e0263ac8ccbcd333977f81675a597792558e4fdad4e1d0dffa001",
-    "bytes": 131451
+    "path": "source-trending-2465903570db.json",
+    "sha256": "2465903570dbd26144a4fc80809282f8d4f0c262f12565840d61e18d2329c84e",
+    "bytes": 130978
   }
 }
