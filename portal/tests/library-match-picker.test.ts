@@ -85,3 +85,12 @@ test("a skill the person said is their own is marked own; a linked or unknown on
   const own = Object.fromEntries(mine.map(skill => [skill.name, skill.own ?? false]));
   assert.deepEqual(own, { mine: true, unknown: false, linked: false });
 });
+
+test("hover text near a panel edge moves back inside it", async () => {
+  const { tipShift } = await import("../src/app/unified/tip-bounds");
+  const panel = { left: 0, right: 400 };
+  assert.equal(tipShift({ left: 100, right: 300 }, panel), 0, "Fits: stays");
+  assert.equal(tipShift({ left: 250, right: 470 }, panel), -78, "Past the right edge: moves left");
+  assert.equal(tipShift({ left: -20, right: 100 }, panel), 28, "Past the left edge: moves right");
+  assert.equal(tipShift({ left: 0, right: 500 }, panel), 8, "Wider than the panel: starts at its left edge");
+});
