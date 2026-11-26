@@ -14,9 +14,10 @@ const row = (overrides: Record<string, unknown>) => ({
 });
 
 function pool(rows: unknown[], confirmed: { sha: string; catalogSkillId: string | null; relatedIds?: string[] }[] = [],
-  choices: { matchKey: string; catalogSkillId: string | null; noneOf?: string[] | null }[] = []): Pool {
+  choices: { matchKey: string; catalogSkillId: string | null; noneOf?: string[] | null }[] = [], saved: unknown[] = []): Pool {
   return { query: async (sql: string) => ({ rows: sql.includes("FROM synced_skills") ? rows
-    : sql.includes("FROM content_match_results") ? confirmed : sql.includes("FROM skill_link_choices") ? choices : [] }) } as unknown as Pool;
+    : sql.includes("FROM content_match_results") ? confirmed : sql.includes("FROM skill_link_choices") ? choices
+    : sql.includes("FROM cloud_saved_skills") ? saved : [] }) } as unknown as Pool;
 }
 
 const catalog: PublishedCatalogIdentity = {
@@ -218,6 +219,32 @@ test("a same-name copy asking which library skill it is: no Make it mine on the 
   assert.ok(byId.asks.catalogMatchKey);
   assert.equal(byId.edited.catalogMatchKey, undefined);
   assert.equal(byId.edited.catalogOwnKey, undefined);
+});
+
+test("a skill added from GitHub and installed by the app shows that repo, its stars, and links to its library skill", async () => {
+  const added = { key: "socratic-tutor", name: "socratic-tutor", deviceId: null,
+    githubSource: { repo: "janestreet/agent_skills", folder: "socratic-tutor", commitSha: "c".repeat(40), stars: 11700 } };
+  const copy = row({ id: "tutor", stableKey: "location:v1:claude:socratic-tutor", name: "socratic-tutor", description: "Tutor.",
+    catalogSkillIdHint: null, skillMdSha: "5".repeat(40), source: "claude" });
+  const first = async (read: (keys: string[]) => Promise<Record<string, ContentIndexEntry>>, githubUrl: string | null = null) => {
+    const { skills } = await readSyncInventory(pool([{ ...copy, githubUrl }], [], [], [added]), "user", 2, new Date(), async () => catalog, read) as {
+      skills: Array<{ githubUrl?: string | null; gitRelativePath?: string | null; githubStars?: number; catalogSkillId?: string | null; cloudKey?: string }>
+    };
+    return skills[0];
+  };
+  const unknown = await first(index([], {}));
+  assert.equal(unknown.cloudKey, "socratic-tutor");
+  assert.equal(unknown.githubUrl, "https://github.com/janestreet/agent_skills");
+  assert.equal(unknown.gitRelativePath, "socratic-tutor");
+  assert.equal(unknown.githubStars, 11700);
+  // Its own git remote wins.
+  assert.equal((await first(index([], {}), "https://github.com/me/fork")).githubUrl, "https://github.com/me/fork");
+  // Once the library lists that repo's skill (edited copy, same name), its own repo links it.
+  const listed = index([
+    skill("janestreet/agent_skills:socratic-tutor", { name: "socratic-tutor", description: "Tutor.", github_url: "https://github.com/janestreet/agent_skills" }),
+    skill("someone/fork:socratic-tutor", { name: "socratic-tutor", description: "Tutor." }),
+  ], {});
+  assert.equal((await first(listed)).catalogSkillId, "janestreet/agent_skills:socratic-tutor");
 });
 
 test("a mirror counts for its original when that's listed, and never on its own", async () => {

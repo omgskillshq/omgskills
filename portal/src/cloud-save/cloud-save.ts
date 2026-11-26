@@ -20,6 +20,8 @@ export type CloudSaveState = {
     deletedLocallyAt: string | null;
     /** Sets that share this skill; older servers leave it out. */
     setCount?: number;
+    /** Where a skill added from GitHub came from (stars as of the add); null or absent otherwise. */
+    githubSource?: { repo: string; folder: string; commitSha: string; stars?: number } | null;
     currentVersion: { id: string; savedAt: string; fileCount: number; totalBytes: number; labels?: CloudLabel[]; scan?: CloudScan | null };
   }[];
   needsReview: { key: string; files: { path: string; findings: CloudFinding[] }[]; confirmed: boolean; updatedAt: string }[];
@@ -150,6 +152,8 @@ export type CloudSkillRow = {
   onMac: boolean;
   /** Installed from the library or a Set rather than written by you. */
   origin: "library" | "set" | null;
+  /** Where a skill added from GitHub came from. */
+  githubSource: { repo: string; folder: string; stars?: number } | null;
 };
 
 /**
@@ -208,8 +212,17 @@ export function cloudSkillRows(state: CloudSaveState, installed: SyncedSkill[]):
       findings: review?.files ?? [],
       onMac: names.has(key),
       origin: fromCatalog.has(key) ? "library" : fromLibrary.has(key) ? "set" : null,
+      githubSource: githubSourceOf(copy?.githubSource),
     };
   }).sort((a, b) => statusOrder[a.status] - statusOrder[b.status] || a.name.localeCompare(b.name));
+}
+
+/** A saved skill's GitHub source, when the server sent a sane one. */
+function githubSourceOf(value: unknown): CloudSkillRow["githubSource"] {
+  if (!value || typeof value !== "object") return null;
+  const { repo, folder, stars } = value as Record<string, unknown>;
+  if (typeof repo !== "string" || !/^[A-Za-z0-9-]+\/[A-Za-z0-9_.-]+$/.test(repo) || typeof folder !== "string") return null;
+  return { repo, folder, ...(typeof stars === "number" && Number.isSafeInteger(stars) && stars >= 0 ? { stars } : {}) };
 }
 
 const statusOrder: Record<CloudSkillRow["status"], number> = {

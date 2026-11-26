@@ -110,13 +110,20 @@ const tooSlow = () => new GithubImportError("too_slow",
   "GitHub took too long to send this skill. Try again; a skill with fewer or smaller files reads faster.", 504);
 const encodePath = (value: string) => value.split("/").map(encodeURIComponent).join("/");
 
+/** The repo's star count, when GitHub sent a sane one. */
+function starsOf(repo: { stargazers_count?: unknown }): number | undefined {
+  const stars = repo.stargazers_count;
+  return typeof stars === "number" && Number.isSafeInteger(stars) && stars >= 0 ? stars : undefined;
+}
+
 /** The commit and root tree the link points at, and the folder inside it. A ref may hold slashes, so each split is tried. */
 async function resolveLink(link: GithubImportLink, options: GithubImportOptions) {
   const repoPath = `/repos/${encodeURIComponent(link.owner)}/${encodeURIComponent(link.repo)}`;
   const notFound = () => new GithubImportError("not_found",
     "That repo wasn't found. Only public GitHub repos can be added.", 404);
-  const repo = await api<{ private?: boolean }>(repoPath, options, notFound);
+  const repo = await api<{ private?: boolean; stargazers_count?: unknown }>(repoPath, options, notFound);
   if (repo.private) throw notFound();
+  const stars = starsOf(repo);
   const splits = link.kind === "repo" ? [{ ref: "HEAD", folder: [] as string[] }]
     : link.rest.map((_, index) => ({ ref: link.rest.slice(0, index + 1).join("/"), folder: link.rest.slice(index + 1) }));
   for (const split of splits) {
@@ -127,7 +134,7 @@ async function resolveLink(link: GithubImportLink, options: GithubImportOptions)
     });
     const sha = commit?.sha?.toLowerCase();
     const tree = commit?.commit?.tree?.sha?.toLowerCase();
-    if (sha && tree && SHA.test(sha) && SHA.test(tree)) return { repoPath, commitSha: sha, rootTree: tree, folder: split.folder.join("/") };
+    if (sha && tree && SHA.test(sha) && SHA.test(tree)) return { repoPath, commitSha: sha, rootTree: tree, folder: split.folder.join("/"), stars };
   }
   throw new GithubImportError("branch_not_found", "That branch or tag wasn't found in the repo.", 404);
 }
@@ -233,6 +240,8 @@ export type GithubSkill = {
   commitSha: string;
   /** The skill's folder in the repo, "" at the root. */
   folder: string;
+  /** The repo's stars when read; absent for an upload or when GitHub didn't say. */
+  stars?: number;
   name: string;
   description: string;
   skillMd: string;
@@ -250,7 +259,8 @@ export async function readGithubSkill(
   options: GithubImportOptions & { pinned?: { commitSha: string; folder: string } } = {},
 ): Promise<GithubSkill> {
   const read = await readGithubSkillFiles(link, options);
-  return { repo: read.repo, commitSha: read.commitSha, folder: read.folder, ...checkSkillFiles(read.files) };
+  return { repo: read.repo, commitSha: read.commitSha, folder: read.folder, ...(read.stars !== undefined ? { stars: read.stars } : {}),
+    ...checkSkillFiles(read.files) };
 }
 
 /**
@@ -260,19 +270,20 @@ export async function readGithubSkill(
 export async function readGithubSkillFiles(
   link: GithubImportLink,
   options: GithubImportOptions & { pinned?: { commitSha: string; folder: string } } = {},
-): Promise<{ repo: string; commitSha: string; folder: string; files: GithubSkillFile[] }> {
-  let target: { repoPath: string; commitSha: string; rootTree: string; folder: string };
+): Promise<{ repo: string; commitSha: string; folder: string; files: GithubSkillFile[]; stars?: number }> {
+  let target: { repoPath: string; commitSha: string; rootTree: string; folder: string; stars?: number };
   if (options.pinned) {
     const commitSha = options.pinned.commitSha.toLowerCase();
     if (!SHA.test(commitSha)) throw new GithubImportError("invalid_link", "Find the skill again, then add it.", 400);
     const repoPath = `/repos/${encodeURIComponent(link.owner)}/${encodeURIComponent(link.repo)}`;
     const notFound = () => new GithubImportError("not_found", "That repo wasn't found. Only public GitHub repos can be added.", 404);
-    if ((await api<{ private?: boolean }>(repoPath, options, notFound)).private) throw notFound();
+    const repo = await api<{ private?: boolean; stargazers_count?: unknown }>(repoPath, options, notFound);
+    if (repo.private) throw notFound();
     const commit = await api<{ tree?: { sha?: string } }>(`${repoPath}/git/commits/${commitSha}`, options,
       () => new GithubImportError("not_found", "That version is no longer on GitHub. Find the skill again.", 404));
     const rootTree = commit.tree?.sha?.toLowerCase();
     if (!rootTree || !SHA.test(rootTree)) throw unavailable();
-    target = { repoPath, commitSha, rootTree, folder: options.pinned.folder };
+    target = { repoPath, commitSha, rootTree, folder: options.pinned.folder, stars: starsOf(repo) };
   } else {
     target = await resolveLink(link, options);
   }
@@ -327,7 +338,8 @@ export async function readGithubSkillFiles(
     if (!data) throw fetchFailed(options);
     return { path: entry.path!, mode: entry.mode!, blobSha: entry.sha!.toLowerCase(), data };
   });
-  return { repo: `${owner}/${repo}`, commitSha: target.commitSha, folder: target.folder, files };
+  return { repo: `${owner}/${repo}`, commitSha: target.commitSha, folder: target.folder, files,
+    ...(target.stars !== undefined ? { stars: target.stars } : {}) };
 }
 
 /**

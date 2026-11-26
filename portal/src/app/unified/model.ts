@@ -178,14 +178,15 @@ export const byName = (a: SkillDisplay, b: SkillDisplay) => a.name.localeCompare
  * Only a saved copy counts; a review alone saved nothing. Details come from the last copy a Mac
  * reported, unless that skill is still installed elsewhere (then the row's own label tells them apart).
  */
-export function notInstalledSkills(rows: { key: string; name: string; description?: string; savedAt: string | null }[], mine: SkillDisplay[],
+export function notInstalledSkills(rows: { key: string; name: string; description?: string; savedAt: string | null;
+  githubSource?: { repo: string; folder: string; stars?: number } | null }[], mine: SkillDisplay[],
   everMine: SkillDisplay[], keysOf: (skill: SkillDisplay) => string[]): SkillDisplay[] {
   const listed = new Set(mine.flatMap(keysOf));
   return rows.filter(row => row.savedAt && !listed.has(row.key)).map(row => {
     const last = everMine.find(skill => keysOf(skill).includes(row.key));
     const stillInstalled = last && mine.some(skill => skill.key === last.key);
     return { ...(last && !stillInstalled ? last : { name: row.name, description: row.description ?? "", author: "", githubUrl: null, tags: [],
-      ...(last?.own ? { own: true } : {}) }),
+      ...(last?.own ? { own: true } : {}), ...githubDetails(row.githubSource) }),
       key: `cloud:${row.key}`, installed: undefined, cloudKey: row.key };
   });
 }
@@ -450,6 +451,19 @@ export function liveMine(mine: SkillDisplay[], now = Date.now()) {
   return mine.map((skill) => liveSkill(skill, now)).filter((skill) => skill.installed);
 }
 
+/** A skill added from GitHub that isn't in the library: its repo's link, owner photo and stars (as of the add). */
+function githubDetails(source: { repo: string; folder: string; stars?: number } | null | undefined) {
+  if (!source) return {};
+  const owner = source.repo.split("/")[0];
+  return { githubUrl: `https://github.com/${source.repo}`, avatar: `https://github.com/${encodeURIComponent(owner)}.png?size=80`,
+    ...(source.stars !== undefined ? { stars: source.stars } : {}) };
+}
+
+/** A GitHub repo's owner from its link (https://github.com/owner/repo), for a skill the library doesn't know. */
+function githubOwner(url: string | null | undefined) {
+  return url?.match(/^https:\/\/github\.com\/([A-Za-z0-9-]+)\/[^/]/)?.[1] ?? "";
+}
+
 export function skillDisplays(data: PortalData, catalog: CatalogDisplay) {
   const grouped = groupSyncedSkills(data.skills, { groupInstallations: true });
   const byId = new Map(catalog.skills.map((skill) => [skill.id, skill]));
@@ -464,9 +478,13 @@ export function skillDisplays(data: PortalData, catalog: CatalogDisplay) {
       description: skill.description || "",
       author: publicSkill?.author || catalogOwner(skill.catalogSkillId),
       avatar: publicSkill?.avatar || (catalogOwner(skill.catalogSkillId)
-        ? `https://github.com/${encodeURIComponent(catalogOwner(skill.catalogSkillId))}.png?size=80` : undefined),
+        ? `https://github.com/${encodeURIComponent(catalogOwner(skill.catalogSkillId))}.png?size=80`
+        // Not in the library but from GitHub: the repo owner's photo.
+        : !skill.catalogSkillId && githubOwner(skill.githubUrl)
+          ? `https://github.com/${encodeURIComponent(githubOwner(skill.githubUrl))}.png?size=80` : undefined),
       githubUrl: skill.githubUrl,
-      stars: publicSkill?.stars,
+      stars: publicSkill?.stars ?? (skill.catalogSkillId ? undefined
+        : skill.sourceSkills.map(copy => copy.githubStars).find((stars): stars is number => typeof stars === "number")),
       tags: publicSkill?.tags || [],
       installCommand: publicSkill?.installCommand,
       installed: skill,
