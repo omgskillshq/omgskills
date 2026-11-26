@@ -471,6 +471,7 @@ export function skillDisplays(data: PortalData, catalog: CatalogDisplay) {
     const publicSkill = skill.catalogSkillId
       ? byId.get(skill.catalogSkillId)
       : undefined;
+    const own = !skill.catalogSkillId && skill.sourceSkills.some((copy) => copy.markedOwn === true);
     return {
       key: `synced:${skill.id}`,
       catalogId: skill.catalogSkillId || undefined,
@@ -479,16 +480,17 @@ export function skillDisplays(data: PortalData, catalog: CatalogDisplay) {
       author: publicSkill?.author || catalogOwner(skill.catalogSkillId),
       avatar: publicSkill?.avatar || (catalogOwner(skill.catalogSkillId)
         ? `https://github.com/${encodeURIComponent(catalogOwner(skill.catalogSkillId))}.png?size=80`
-        // Not in the library but from GitHub: the repo owner's photo.
-        : !skill.catalogSkillId && githubOwner(skill.githubUrl)
+        // Not in the library but from GitHub (and not said to be theirs): the repo owner's photo.
+        : !skill.catalogSkillId && !own && githubOwner(skill.githubUrl)
           ? `https://github.com/${encodeURIComponent(githubOwner(skill.githubUrl))}.png?size=80` : undefined),
       githubUrl: skill.githubUrl,
-      stars: publicSkill?.stars ?? (skill.catalogSkillId ? undefined
-        : skill.sourceSkills.map(copy => copy.githubStars).find((stars): stars is number => typeof stars === "number")),
+      // Stars as of the add, from a copy of the same repo the link shows.
+      stars: publicSkill?.stars ?? (skill.catalogSkillId || own ? undefined
+        : skill.sourceSkills.find(copy => typeof copy.githubStars === "number" && copy.githubUrl === skill.githubUrl)?.githubStars ?? undefined),
       tags: publicSkill?.tags || [],
       installCommand: publicSkill?.installCommand,
       installed: skill,
-      ...(!skill.catalogSkillId && skill.sourceSkills.some((copy) => copy.markedOwn === true) ? { own: true } : {}),
+      ...(own ? { own: true } : {}),
     };
   });
   const library: SkillDisplay[] = catalog.skills.map(({ id, ...skill }) => ({

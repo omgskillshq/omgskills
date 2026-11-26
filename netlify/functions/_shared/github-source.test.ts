@@ -8,7 +8,7 @@ test("a GitHub source is kept only whole and sane", () => {
     { repo: "janestreet/agent_skills", folder: "socratic-tutor", commitSha, stars: 11700 });
   assert.deepEqual(parseGithubSource({ repo: "o/r", folder: "", commitSha, stars: -1 }), { repo: "o/r", folder: "", commitSha });
   for (const bad of [null, "o/r", { repo: "", folder: "", commitSha }, { repo: "o/r", folder: "", commitSha: "" },
-    { repo: "o/r/x", folder: "", commitSha }, { repo: "o/r", folder: "../x", commitSha }, { repo: "o/r", commitSha }]) {
+    { repo: "o/r/x", folder: "", commitSha }, { repo: "o/r", folder: "../x", commitSha }, { repo: "o/r", folder: "a\\b", commitSha }, { repo: "o/r", folder: "a\nb", commitSha }, { repo: "o/r", commitSha }]) {
     assert.equal(parseGithubSource(bad), null, JSON.stringify(bad));
   }
 });

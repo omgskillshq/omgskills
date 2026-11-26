@@ -30,6 +30,7 @@ test("an installed skill from GitHub that isn't in the library: owner photo and 
     copy("tutor", { githubUrl: "https://github.com/janestreet/agent_skills", githubStars: 11700 }),
     copy("cloned", { githubUrl: "https://github.com/me/skills" }),
     copy("local", { isLocalOnly: true }),
+    copy("mine", { githubUrl: "https://github.com/someone/repo", githubStars: 5, markedOwn: true }),
   ] } as never, { skills: [] } as never);
   const by = Object.fromEntries(mine.map(skill => [skill.name, skill]));
   assert.equal(by.tutor.avatar, "https://github.com/janestreet.png?size=80");
@@ -37,4 +38,7 @@ test("an installed skill from GitHub that isn't in the library: owner photo and 
   assert.equal(by.cloned.avatar, "https://github.com/me.png?size=80");
   assert.equal(by.cloned.stars, undefined);
   assert.equal(by.local.avatar, undefined);
+  // Said to be theirs: no one else's photo or stars.
+  assert.equal(by.mine.avatar, undefined);
+  assert.equal(by.mine.stars, undefined);
 });

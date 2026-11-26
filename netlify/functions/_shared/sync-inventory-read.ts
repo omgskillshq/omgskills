@@ -60,16 +60,7 @@ export async function readSyncInventory(
   // The cloud save record each copy uses; same-name folders holding different skills are saved apart.
   const records = await readCloudRecordNames(pool, userId);
   const sources = new Map(records.flatMap((record) => record.githubSource ? [[record.key, record.githubSource] as const] : []));
-  for (const [skill, cloudKey] of cloudSkillKeys(skills, records)) {
-    Object.assign(skill, { cloudKey });
-    // Added on the web from GitHub, then installed by the app (no git remote of its own): the repo it
-    // came from, so it shows its creator, link and stars, and links to that repo's library skill if listed.
-    const source = sources.get(cloudKey);
-    if (source && !skill.githubUrl) {
-      Object.assign(skill, { githubUrl: `https://github.com/${source.repo}`, gitRelativePath: skill.gitRelativePath || source.folder || null,
-        ...(source.stars !== undefined ? { githubStars: source.stars } : {}) });
-    }
-  }
+  for (const [skill, cloudKey] of cloudSkillKeys(skills, records)) Object.assign(skill, { cloudKey });
   // Presence reports store the Mac's catalog hint unverified; link the rows it proves.
   // Copies with no hint (installed from GitHub directly) are matched by the prebuilt content index:
   // the exact SKILL.md first, then the same name and description (another version of a library
@@ -110,6 +101,15 @@ export async function readSyncInventory(
       // Several library skills have this content: the person picks (most stars first).
       Object.assign(skill, { catalogMatchKey: resolved.matchKey, catalogCandidates: resolved.candidates, catalogNameKey: resolved.nameKey, catalogAlsoByName: resolved.alsoByName });
     }
+  }
+  // Added on the web from GitHub, then installed by the app (no git remote of its own, not a library or
+  // Set install): the repo it came from, so it shows its creator, link and stars. Applied after matching,
+  // so it never decides a link (nor overrides the person's own choice).
+  for (const skill of skills) {
+    const source = typeof skill.cloudKey === "string" ? sources.get(skill.cloudKey) : undefined;
+    if (!source || skill.githubUrl || skill.catalogSkillId || skill.catalogSkillIdHint || skill.installedFromSet) continue;
+    Object.assign(skill, { githubUrl: `https://github.com/${source.repo}`, gitRelativePath: source.folder || null,
+      ...(source.stars !== undefined ? { githubStars: source.stars } : {}) });
   }
   const offeredNames = new Set(skills.flatMap((skill) => "catalogMatchKey" in skill && typeof skill.name === "string"
     ? [nameKey(skill.name)].filter((key): key is string => !!key) : []));

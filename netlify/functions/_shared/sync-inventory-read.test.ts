@@ -239,12 +239,19 @@ test("a skill added from GitHub and installed by the app shows that repo, its st
   assert.equal(unknown.githubStars, 11700);
   // Its own git remote wins.
   assert.equal((await first(index([], {}), "https://github.com/me/fork")).githubUrl, "https://github.com/me/fork");
-  // Once the library lists that repo's skill (edited copy, same name), its own repo links it.
+  // It only shows where the skill came from; it never decides a link (the person's choice, or a match, does).
   const listed = index([
     skill("janestreet/agent_skills:socratic-tutor", { name: "socratic-tutor", description: "Tutor.", github_url: "https://github.com/janestreet/agent_skills" }),
     skill("someone/fork:socratic-tutor", { name: "socratic-tutor", description: "Tutor." }),
   ], {});
-  assert.equal((await first(listed)).catalogSkillId, "janestreet/agent_skills:socratic-tutor");
+  const offered = await first(listed) as { catalogSkillId?: string | null; catalogMatchKey?: string; githubUrl?: string | null };
+  assert.equal(offered.catalogSkillId ?? null, null);
+  assert.ok(offered.catalogMatchKey);
+  assert.equal(offered.githubUrl, "https://github.com/janestreet/agent_skills");
+  // A library install under that key keeps its own (library) link.
+  const { skills } = await readSyncInventory(pool([{ ...copy, catalogSkillId: "a/b:socratic-tutor" }], [], [], [added]), "user", 2, new Date(),
+    async () => catalog, index([], {})) as { skills: Array<{ githubUrl?: string | null }> };
+  assert.equal(skills[0].githubUrl, null);
 });
 
 test("a mirror counts for its original when that's listed, and never on its own", async () => {

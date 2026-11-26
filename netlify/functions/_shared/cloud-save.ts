@@ -408,6 +408,12 @@ async function checkSkillName(db: Database, input: { userId: string; deviceId: s
   return incoming ?? saved;
 }
 
+/** A source to store, checked; null when there is none or it isn't whole. */
+function githubSourceJson(source: unknown): string | null {
+  const parsed = parseGithubSource(source);
+  return parsed ? JSON.stringify(parsed) : null;
+}
+
 export async function readCloudSave(db: Database, userId: string): Promise<CloudSaveState> {
   const [settings, bytes, skills, needsReview, skipped] = await Promise.all([
     readCloudSaveSettings(db, userId),
@@ -901,7 +907,9 @@ export async function saveCloudVersion(
     const existing = current.rows[0];
     const keptName = await checkSkillName(client, { ...input, skillKey, skillName }, existing);
     if (existing && keptName && existing.name !== keptName) {
-      await client.query("UPDATE cloud_saved_skills SET skill_name = $2 WHERE source_id = $1", [sourceId, keptName]);
+      // Renamed: no longer the skill that came from GitHub (a name never kept before, filled in now, isn't a rename).
+      await client.query(`UPDATE cloud_saved_skills SET skill_name = $2,
+        github_source = CASE WHEN skill_name IS NOT NULL THEN NULL ELSE github_source END WHERE source_id = $1`, [sourceId, keptName]);
     }
     if (existing?.treeSha === manifest.treeSha) {
       // Only this Mac's own waiting copy is settled by matching the current version.
@@ -953,11 +961,14 @@ export async function saveCloudVersion(
           -- A Mac's save may have changed SKILL.md, so a description kept from GitHub is dropped then.
           skill_description = CASE WHEN EXCLUDED.skill_description IS NOT NULL THEN EXCLUDED.skill_description
             WHEN $7::boolean THEN NULL ELSE cloud_saved_skills.skill_description END,
+          -- Renamed by a Mac: it's no longer the skill that came from GitHub, so its source goes.
+          github_source = CASE WHEN EXCLUDED.skill_name IS NOT NULL AND cloud_saved_skills.skill_name IS NOT NULL
+            AND EXCLUDED.skill_name <> cloud_saved_skills.skill_name THEN NULL ELSE cloud_saved_skills.github_source END,
           deleted_locally_at = NULL,
           updated_at = now()
       `,
       [sourceId, input.userId, skillKey, releaseId, keptName, input.skillDescription?.slice(0, MAX_SAVED_DESCRIPTION) || null,
-        input.deviceId !== null, input.githubSource ? JSON.stringify(parseGithubSource(input.githubSource)) : null]
+        input.deviceId !== null, githubSourceJson(input.githubSource)]
     );
     await client.query("DELETE FROM cloud_skill_reviews WHERE user_id = $1 AND skill_key = $2", [input.userId, skillKey]);
     await client.query("COMMIT");

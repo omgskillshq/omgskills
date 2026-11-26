@@ -24,7 +24,8 @@ export function githubSkillKey(skill: Pick<GithubSkill, "folder" | "repo" | "nam
 
 /** Where a skill read from GitHub came from; an upload (no repo) has none. */
 function sourceOf(skill: GithubSkill): GithubSource | null {
-  return parseGithubSource({ repo: skill.repo, folder: skill.folder, commitSha: skill.commitSha, stars: skill.stars });
+  if (!skill.repo) return null;
+  return parseGithubSource({ repo: skill.fullName ?? skill.repo, folder: skill.folder, commitSha: skill.commitSha, stars: skill.stars });
 }
 
 const SYNC_OFF = "Sync is off. Turn on Sync My skills (menu → Sync) to add skills here.";

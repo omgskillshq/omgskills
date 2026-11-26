@@ -1797,6 +1797,9 @@ test("a skill added from GitHub saves like a Mac's, with no device, and a Mac ca
     assert.equal((await readCloudSave(pool, userId)).skills.find((item) => item.key === "pdf")?.description, null);
     // Its source stays: that's still where the skill started.
     assert.equal((await readCloudSave(pool, userId)).skills.find((item) => item.key === "pdf")?.githubSource?.repo, "o/r");
+    // Renamed by that Mac: it's another skill now, so the source goes.
+    assert.equal((await saveCloudVersion(pool, { userId, deviceId, skillKey: "pdf", files: manifest(v1), skillName: "PDF renamed" })).status, "saved");
+    assert.equal((await readCloudSave(pool, userId)).skills.find((item) => item.key === "pdf")?.githubSource, null);
     // An upload (no repo) has none.
     assert.equal((await saveGithubSkill(pool, store, userId, { ...skill("uploaded", "uploaded"), repo: "", commitSha: "" })).key, "uploaded");
     assert.equal((await readCloudSave(pool, userId)).skills.find((item) => item.key === "uploaded")?.githubSource, null);

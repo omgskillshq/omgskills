@@ -20,6 +20,7 @@ export function parseGithubSource(value: unknown): GithubSource | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const { repo, folder, commitSha, stars } = value as Record<string, unknown>;
   if (typeof repo !== "string" || !REPO.test(repo) || typeof commitSha !== "string" || !SHA.test(commitSha)) return null;
-  if (typeof folder !== "string" || folder.length > 500 || (folder && folder.split("/").some(part => !part || part === "." || part === ".."))) return null;
+  if (typeof folder !== "string" || folder.length > 500 || /[\\\u0000-\u001f\u007f]/.test(folder)
+    || (folder && folder.split("/").some(part => !part || part === "." || part === ".."))) return null;
   return { repo, folder, commitSha, ...(typeof stars === "number" && Number.isSafeInteger(stars) && stars >= 0 ? { stars } : {}) };
 }

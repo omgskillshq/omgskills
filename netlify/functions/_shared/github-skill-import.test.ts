@@ -30,7 +30,7 @@ function github(files: Record<string, RepoFile>, options: { refs?: string[]; pri
       return new Response(path === options.tamper ? `${file.text}!` : file.text);
     }
     const path = url.replace("https://api.github.com", "");
-    if (path === "/repos/o/r") return json({ private: options.private ?? false, stargazers_count: 1234 });
+    if (path === "/repos/o/r") return json({ private: options.private ?? false, stargazers_count: 1234, full_name: "Owner/Renamed" });
     const ref = path.match(/^\/repos\/o\/r\/commits\/(.+)$/)?.[1];
     if (ref) {
       const name = ref.split("/").map(decodeURIComponent).join("/");
@@ -79,6 +79,7 @@ test("a folder link reads that skill, pinned to the commit, with its labels", as
   assert.equal(skill.commitSha, COMMIT);
   assert.equal(skill.folder, "skills/pdf");
   assert.equal(skill.stars, 1234);
+  assert.equal(skill.fullName, "Owner/Renamed");
   assert.deepEqual(skill.files.map(file => file.path).sort(), ["SKILL.md", "scripts/run.sh"]);
   assert.deepEqual(skill.labels, ["scripts"]);
   // Files come from raw at the pinned commit, not the branch.
