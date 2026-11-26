@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   resolveCopy,
   linkChoiceOf,
-  buildContentIndex, contentIndexReader, contentKey, ensureContentIndex, keysFor, matchCopy, nameKey, namedKey, parseDescriptionHistory, partitionOf, writeContentIndex,
+  buildContentIndex, contentIndexReader, isIncompleteRead, contentKey, ensureContentIndex, keysFor, matchCopy, nameKey, namedKey, parseDescriptionHistory, partitionOf, writeContentIndex,
   type ContentIndexStore,
 } from "./catalog-content-index.js";
 
@@ -246,4 +246,12 @@ test("the fork's exact file confirmed by text doesn't link it back; a turned-dow
   const xEntries = { [xKey]: { ids: ["big/repo:x", "fork/repo:x", "new/repo:x"] } };
   const turned = resolveCopy(mine, xEntries, new Map([[xKey, { noneOf: ["big/repo:x", "fork/repo:x"] }]]));
   assert.ok(turned && "candidates" in turned && turned.candidates[0] === "new/repo:x");
+});
+
+test("a read that finds a partition not built yet is marked incomplete; an empty built one isn't", async () => {
+  const key = nameKey("solo")!;
+  const built = new Map<string, unknown>([[`p/${partitionOf(key)}.json`, {}]]);
+  const read = (data: Map<string, unknown>) => contentIndexReader({ get: async (k) => data.get(k) ?? null, set: async () => {} });
+  assert.equal(isIncompleteRead(await read(built)([key])), false);
+  assert.equal(isIncompleteRead(await read(new Map())([key])), true);
 });

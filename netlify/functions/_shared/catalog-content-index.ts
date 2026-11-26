@@ -216,17 +216,24 @@ export async function contentIndexIsCurrent(store: ContentIndexStore, catalogKey
   return meta?.version === CONTENT_INDEX_VERSION && meta.catalogKey === catalogKey;
 }
 
+/** Reads that found a partition not built yet: a key missing from them may still be a library skill. */
+const incompleteReads = new WeakSet<object>();
+export function isIncompleteRead(entries: object): boolean {
+  return incompleteReads.has(entries);
+}
+
 /** Reads only the partitions these keys fall in; each partition is cached for a few minutes. */
 export function contentIndexReader(store: ContentIndexStore, now: () => number = Date.now, cacheMs = 10 * 60_000) {
   const cache = new Map<string, { at: number; value: Promise<ContentIndexPartition> }>();
   return async (keys: readonly string[]): Promise<Record<string, ContentIndexEntry>> => {
     const names = [...new Set(keys.map(partitionOf))];
+    let missing = false;
     const parts = await Promise.all(names.map((name) => {
       const hit = cache.get(name);
       if (hit && now() - hit.at < cacheMs) return hit.value;
       const value = store.get(`p/${name}.json`).then((data) => {
         // Not built yet: don't remember that, so the index is used as soon as it's written.
-        if (!data || typeof data !== "object") { cache.delete(name); return {}; }
+        if (!data || typeof data !== "object") { cache.delete(name); missing = true; return {}; }
         return data as ContentIndexPartition;
       });
       value.catch(() => cache.delete(name));
@@ -235,6 +242,7 @@ export function contentIndexReader(store: ContentIndexStore, now: () => number =
     }));
     const entries: Record<string, ContentIndexEntry> = {};
     for (const part of parts) for (const key of keys) if (part[key] && Array.isArray(part[key].ids)) entries[key] = part[key];
+    if (missing) incompleteReads.add(entries);
     return entries;
   };
 }

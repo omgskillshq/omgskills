@@ -3,7 +3,7 @@ import { listUserDevices } from "./device-auth.js";
 import { cloudSkillKeys } from "./cloud-skill-keys.js";
 import { readCloudRecordNames } from "./cloud-save.js";
 import { verifiedCatalogHint } from "./github-skill-resolution.js";
-import { keysFor, linkChoiceOf, nameKey, readBlobContentIndex, resolveCopy, type ContentIndexEntry, type LinkChoice } from "./catalog-content-index.js";
+import { isIncompleteRead, keysFor, linkChoiceOf, nameKey, readBlobContentIndex, resolveCopy, type ContentIndexEntry, type LinkChoice } from "./catalog-content-index.js";
 import { readTextMatches, type TextMatch } from "./content-match.js";
 import { withTimeout } from "./http.js";
 import { loadCatalogHintIdentity, type PublishedCatalogIdentity } from "./published-catalog.js";
@@ -75,6 +75,8 @@ export async function readSyncInventory(
       : null,
     keys.length ? withTimeout(readContentIndex(keys), 3_000).catch(() => { indexFailed = true; return {}; }) : {},
   ]);
+  // An index not built yet (a partition missing) is no answer either.
+  if (isIncompleteRead(index)) indexFailed = true;
   for (const skill of hinted) {
     const catalogSkillId = verifiedCatalogHint(skill.catalogSkillIdHint, skill.skillMdSha, hintIdentity);
     if (catalogSkillId) Object.assign(skill, { catalogSkillId, identityStatus: "resolved", isLocalOnly: false });
@@ -99,6 +101,8 @@ export async function readSyncInventory(
       Object.assign(skill, { catalogMatchKey: resolved.matchKey, catalogCandidates: resolved.candidates, catalogNameKey: resolved.nameKey, catalogAlsoByName: resolved.alsoByName });
     }
   }
+  const offeredNames = new Set(skills.flatMap((skill) => "catalogMatchKey" in skill && typeof skill.name === "string"
+    ? [nameKey(skill.name)].filter((key): key is string => !!key) : []));
   // Still unknown (no library skill, nothing to choose from): "It's my own" said for any of its keys
   // marks it the person's; otherwise its name is the key to say so with ("Make it mine" under "Unavailable").
   for (const skill of skills) {
@@ -109,7 +113,8 @@ export async function readSyncInventory(
     }
     if (skill.catalogSkillIdHint ? hintFailed : indexFailed) continue;
     const key = typeof skill.name === "string" ? nameKey(skill.name) : null;
-    if (key) Object.assign(skill, { catalogOwnKey: key });
+    // A same-name copy (shown as one skill) asks which library skill it is: that's answered first.
+    if (key && !offeredNames.has(key)) Object.assign(skill, { catalogOwnKey: key });
   }
   const devices = await listUserDevices(pool, userId, now);
   const reports = await pool.query<{ deviceId: string; lastReportedAt: Date | null; scanCoverage?: RootCoverage[] | null }>(

@@ -3,7 +3,7 @@ import test from "node:test";
 import type { Pool } from "pg";
 import type { PublishedCatalogIdentity } from "./published-catalog.js";
 import { readSyncInventory } from "./sync-inventory-read.js";
-import { buildContentIndex, nameKey, partitionOf, type ContentIndexEntry } from "./catalog-content-index.js";
+import { buildContentIndex, contentIndexReader, nameKey, partitionOf, type ContentIndexEntry } from "./catalog-content-index.js";
 
 const sha = "c".repeat(40);
 const row = (overrides: Record<string, unknown>) => ({
@@ -195,7 +195,29 @@ test("a skill the library doesn't know offers 'Make it mine' by its name, and is
     return skills[0];
   };
   assert.equal((await down([])).catalogOwnKey, undefined);
+  // Nor when the index isn't built yet (its partition missing).
+  const { skills: unbuilt } = await readSyncInventory(pool(rows), "user", 2, new Date(), async () => catalog,
+    contentIndexReader({ get: async () => null, set: async () => {} })) as { skills: Array<{ catalogOwnKey?: string }> };
+  assert.equal(unbuilt[0].catalogOwnKey, undefined);
   assert.equal((await down([{ matchKey: unknown.catalogOwnKey!, catalogSkillId: null }])).markedOwn, true);
+});
+
+test("a same-name copy asking which library skill it is: no Make it mine on the other", async () => {
+  const read = index([
+    skill("a/x:twin", { name: "twin", description: "Same words." }),
+    skill("b/y:twin", { name: "twin", description: "Same words." }),
+  ], {});
+  const rows = [
+    row({ id: "asks", catalogSkillIdHint: null, skillMdSha: "9".repeat(40), name: "twin", description: "Same words." }),
+    row({ id: "edited", catalogSkillIdHint: null, skillMdSha: "7".repeat(40), name: "twin", description: "Rewritten." }),
+  ];
+  const { skills } = await readSyncInventory(pool(rows), "user", 2, new Date(), async () => catalog, read) as {
+    skills: Array<{ id: string; catalogMatchKey?: string; catalogOwnKey?: string }>
+  };
+  const byId = Object.fromEntries(skills.map((s) => [s.id, s]));
+  assert.ok(byId.asks.catalogMatchKey);
+  assert.equal(byId.edited.catalogMatchKey, undefined);
+  assert.equal(byId.edited.catalogOwnKey, undefined);
 });
 
 test("a mirror counts for its original when that's listed, and never on its own", async () => {

@@ -898,8 +898,10 @@ export function UnifiedApp({
   // Not in the library: the GitHub repo it came from names its creator.
   const detailGithubOwner = detail?.githubUrl?.match(/^https:\/\/github\.com\/([A-Za-z0-9-]+)\//)?.[1] ?? "";
   // Unknown: the key to make it theirs with (its name), from the server.
-  const detailOwnKey = detail?.installed?.sourceSkills.map(copy => copy.catalogOwnKey)
-    .find((key): key is string => typeof key === "string" && /^n:[0-9a-f]{64}$/.test(key));
+  // Not while the picker asks which library skill one of its copies is.
+  const detailOwnKey = detail?.installed && !libraryMatchOf(detail.installed.sourceSkills.filter(copy => !copy.catalogSkillId?.trim()))
+    ? detail.installed.sourceSkills.map(copy => copy.catalogOwnKey)
+      .find((key): key is string => typeof key === "string" && /^n:[0-9a-f]{64}$/.test(key)) : undefined;
   // The skill whose "Make it mine" is saving: another skill opened meanwhile has its button ready.
   const [makingMine, setMakingMine] = useState("");
   async function makeMine(skillKey: string, key: string) {
