@@ -1984,6 +1984,26 @@
   font-size: 11px;
   color: var(--ua-muted);
 }
+/* The person's own skill: their name where the creator goes, in blue (not a link). */
+.ua-detail-meta > .ua-detail-own {
+  color: var(--ua-blue);
+}
+.ua-detail-meta > .ua-detail-unknown {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.ua-detail-make-mine {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.ua-detail-make-mine:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 .ua-detail-meta > span {
   display: inline-flex;
   align-items: center;

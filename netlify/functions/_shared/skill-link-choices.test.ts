@@ -61,3 +61,13 @@ test("none of these: saved with the library skills listed now, never with a skil
   assert.equal((await call({ matchKey: key, catalogSkillId: null, noneOf: "yes" })).status, 400);
   assert.equal((await call({ matchKey: `sha:${"b".repeat(40)}`, catalogSkillId: null, noneOf: true })).status, 404);
 });
+
+test("make it mine: 'my own' for a name the library has nothing for, without asking the index", async () => {
+  const byName = `n:${"d".repeat(64)}`;
+  const queries: unknown[][] = [];
+  assert.equal((await call({ matchKey: byName, catalogSkillId: null }, { entries: {}, unavailable: true, queries })).status, 200);
+  assert.deepEqual(queries.map((params) => params.slice(0, 3)), [["user-1", byName, null]]);
+  // Only "my own": a library skill or "none of these" for that name still needs the index.
+  assert.equal((await call({ matchKey: byName, catalogSkillId: "a/b:x" }, { entries: {} })).status, 404);
+  assert.equal((await call({ matchKey: byName, catalogSkillId: null, noneOf: true }, { entries: {} })).status, 404);
+});

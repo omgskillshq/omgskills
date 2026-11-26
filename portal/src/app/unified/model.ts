@@ -184,7 +184,8 @@ export function notInstalledSkills(rows: { key: string; name: string; descriptio
   return rows.filter(row => row.savedAt && !listed.has(row.key)).map(row => {
     const last = everMine.find(skill => keysOf(skill).includes(row.key));
     const stillInstalled = last && mine.some(skill => skill.key === last.key);
-    return { ...(last && !stillInstalled ? last : { name: row.name, description: row.description ?? "", author: "", githubUrl: null, tags: [] }),
+    return { ...(last && !stillInstalled ? last : { name: row.name, description: row.description ?? "", author: "", githubUrl: null, tags: [],
+      ...(last?.own ? { own: true } : {}) }),
       key: `cloud:${row.key}`, installed: undefined, cloudKey: row.key };
   });
 }

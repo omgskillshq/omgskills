@@ -895,6 +895,24 @@ export function UnifiedApp({
   const detailHeadingKnown = !!detail && !(panelPending && !detail.author);
   // A skill the person said is their own (signed in, with a name to show).
   const detailOwn = !!detail?.own && !detail.catalogId && signedIn && !!(data.profile.handle || data.profile.name);
+  // Not in the library: the GitHub repo it came from names its creator.
+  const detailGithubOwner = detail?.githubUrl?.match(/^https:\/\/github\.com\/([A-Za-z0-9-]+)\//)?.[1] ?? "";
+  // Unknown: the key to make it theirs with (its name), from the server.
+  const detailOwnKey = detail?.installed?.sourceSkills.map(copy => copy.catalogOwnKey)
+    .find((key): key is string => typeof key === "string" && /^n:[0-9a-f]{64}$/.test(key));
+  const [makingMine, setMakingMine] = useState(false);
+  async function makeMine(key: string) {
+    if (!chooseLibraryMatch) return;
+    setMakingMine(true);
+    try {
+      await chooseLibraryMatch(key, null);
+      setSuccessNotice("Saved as your own skill");
+    } catch {
+      setNotice("Couldn't save that. Try again.");
+    } finally {
+      setMakingMine(false);
+    }
+  }
   const detailParagraphs = detail ? descriptionParagraphs(detail.description) : [];
   const detailSummary = detail ? descriptionSummary(detail.description) : null;
   const relatedSkills = detail?.author
@@ -2439,7 +2457,7 @@ export function UnifiedApp({
                     <div className="ua-detail-heading">
                       <Avatar
                         src={detail.avatar}
-                        name={detail.author || (detailOwn ? data.profile.name : detail.name)}
+                        name={detail.author || (detailOwn ? data.profile.name || data.profile.handle : detail.name)}
                         size="large"
                       />
                       <div className="ua-detail-heading-copy">
@@ -2455,10 +2473,21 @@ export function UnifiedApp({
                             </button>
                           ) : detailOwn ? (
                             // Their own skill: their name, in blue like a creator.
-                            <span className="ua-link ua-detail-own">{data.profile.handle ? `@${data.profile.handle}` : data.profile.name}</span>
-                          ) : !detail.catalogId && !detail.setItemReleaseId && (
-                            // No library skill and not theirs: the creator isn't known (a Set's shared copy is left as before).
-                            <span className="ua-muted ua-detail-unknown">Unavailable</span>
+                            <span className="ua-detail-own">{data.profile.handle ? `@${data.profile.handle}` : data.profile.name}</span>
+                          ) : detail.catalogId || detail.setItemId ? null : detailGithubOwner ? (
+                            // Not in the library, but from GitHub: that repo's owner made it.
+                            <a className="ua-link" href={`https://github.com/${encodeURIComponent(detailGithubOwner)}`} target="_blank" rel="noreferrer">
+                              @{detailGithubOwner}
+                            </a>
+                          ) : (
+                            // No library skill, no GitHub repo, not theirs: the creator isn't known. They can say it's theirs.
+                            <span className="ua-detail-unknown">
+                              <span className="ua-muted">Unavailable</span>
+                              {detailOwnKey && chooseLibraryMatch && signedIn && (
+                                <button type="button" className="ua-link ua-detail-make-mine" disabled={makingMine}
+                                  onClick={() => void makeMine(detailOwnKey)}>Make it mine</button>
+                              )}
+                            </span>
                           )}
                           {detail.stars !== undefined && (
                             <span>

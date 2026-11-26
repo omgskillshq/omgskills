@@ -3,7 +3,7 @@ import { listUserDevices } from "./device-auth.js";
 import { cloudSkillKeys } from "./cloud-skill-keys.js";
 import { readCloudRecordNames } from "./cloud-save.js";
 import { verifiedCatalogHint } from "./github-skill-resolution.js";
-import { keysFor, linkChoiceOf, readBlobContentIndex, resolveCopy, type ContentIndexEntry, type LinkChoice } from "./catalog-content-index.js";
+import { keysFor, linkChoiceOf, nameKey, readBlobContentIndex, resolveCopy, type ContentIndexEntry, type LinkChoice } from "./catalog-content-index.js";
 import { readTextMatches, type TextMatch } from "./content-match.js";
 import { withTimeout } from "./http.js";
 import { loadCatalogHintIdentity, type PublishedCatalogIdentity } from "./published-catalog.js";
@@ -78,7 +78,8 @@ export async function readSyncInventory(
     if (catalogSkillId) Object.assign(skill, { catalogSkillId, identityStatus: "resolved", isLocalOnly: false });
   }
   // A person's own choices between library skills sharing a copy's content (see skill_link_choices).
-  const choices = unhinted.length && Object.keys(index).length ? await readLinkChoices(pool, userId) : new Map<string, LinkChoice>();
+  // Read whenever a copy is unlinked: "It's my own" also applies to a skill with no library match.
+  const choices = skills.some((skill) => !skill.catalogSkillId) ? await readLinkChoices(pool, userId) : new Map<string, LinkChoice>();
   // What the background job found comparing these versions' text.
   const byText = unhinted.length && Object.keys(index).length
     ? await readTextMatches(pool, [...new Set(unhinted.flatMap((skill) => skill.skillMdSha ? [skill.skillMdSha as string] : []))])
@@ -95,6 +96,15 @@ export async function readSyncInventory(
       // Several library skills have this content: the person picks (most stars first).
       Object.assign(skill, { catalogMatchKey: resolved.matchKey, catalogCandidates: resolved.candidates, catalogNameKey: resolved.nameKey, catalogAlsoByName: resolved.alsoByName });
     }
+  }
+  // Still unknown (no library skill, nothing to choose from): "It's my own" said for its name marks
+  // it the person's; otherwise the key to say so with ("Make it mine" under "Unavailable").
+  for (const skill of skills) {
+    if (skill.catalogSkillId || "catalogMatchKey" in skill || "markedOwn" in skill) continue;
+    const key = typeof skill.name === "string" ? nameKey(skill.name) : null;
+    if (!key) continue;
+    if (choices.has(key) && choices.get(key) === null) Object.assign(skill, { markedOwn: true });
+    else Object.assign(skill, { catalogOwnKey: key });
   }
   const devices = await listUserDevices(pool, userId, now);
   const reports = await pool.query<{ deviceId: string; lastReportedAt: Date | null; scanCoverage?: RootCoverage[] | null }>(

@@ -3,7 +3,7 @@ import test from "node:test";
 import type { Pool } from "pg";
 import type { PublishedCatalogIdentity } from "./published-catalog.js";
 import { readSyncInventory } from "./sync-inventory-read.js";
-import { buildContentIndex, partitionOf, type ContentIndexEntry } from "./catalog-content-index.js";
+import { buildContentIndex, nameKey, partitionOf, type ContentIndexEntry } from "./catalog-content-index.js";
 
 const sha = "c".repeat(40);
 const row = (overrides: Record<string, unknown>) => ({
@@ -164,8 +164,28 @@ test("a copy the person said is their own is marked so; one never asked, or turn
   assert.equal(own.markedOwn, true);
   assert.equal(own.catalogMatchKey, undefined);
   assert.equal(own.catalogSkillId ?? null, null);
-  const noneOf = await read1([{ matchKey: asked.catalogMatchKey!, catalogSkillId: null, noneOf: ["a/x:twin", "b/y:twin"] }]);
+  const noneOf = await read1([{ matchKey: asked.catalogMatchKey!, catalogSkillId: null, noneOf: ["a/x:twin", "b/y:twin"] }]) as typeof asked & { catalogOwnKey?: string };
   assert.equal(noneOf.markedOwn, undefined);
+  // Unknown after "None of these": it can be made theirs, by its name.
+  assert.equal(noneOf.catalogOwnKey, nameKey("twin"));
+});
+
+test("a skill the library doesn't know offers 'Make it mine' by its name, and is theirs once they say so", async () => {
+  const read = index([], {});
+  const rows = [row({ id: "solo", catalogSkillIdHint: null, skillMdSha: "8".repeat(40), name: "Solo  Skill", description: "Mine." })];
+  const first = async (choices: { matchKey: string; catalogSkillId: string | null }[]) => {
+    const { skills } = await readSyncInventory(pool(rows, [], choices), "user", 2, new Date(), async () => catalog, read) as {
+      skills: Array<{ markedOwn?: boolean; catalogOwnKey?: string; catalogMatchKey?: string }>
+    };
+    return skills[0];
+  };
+  const unknown = await first([]);
+  assert.equal(unknown.catalogOwnKey, nameKey("solo skill"));
+  assert.equal(unknown.markedOwn, undefined);
+  assert.equal(unknown.catalogMatchKey, undefined);
+  const mine = await first([{ matchKey: unknown.catalogOwnKey!, catalogSkillId: null }]);
+  assert.equal(mine.markedOwn, true);
+  assert.equal(mine.catalogOwnKey, undefined);
 });
 
 test("a mirror counts for its original when that's listed, and never on its own", async () => {

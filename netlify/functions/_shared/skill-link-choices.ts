@@ -22,7 +22,8 @@ export type SkillLinkDependencies = typeof defaults;
  * one of the candidates the index lists for that content, or (with nameKey, the copies' name) another
  * library skill with that name, kept as the creator it's shown under. With noneOf: true (and catalogSkillId
  * null), "none of these": the library skills listed now are saved, so it's asked again only when another
- * turns up. Applies to every copy with that content.
+ * turns up. Applies to every copy with that content. "My own" (no noneOf) may also be said for a name
+ * key the library has nothing for: an unknown skill made the person's ("Make it mine").
  */
 export async function handleSkillLinkChoice(req: Request, overrides: Partial<SkillLinkDependencies> = {}): Promise<Response> {
   if (req.method === "OPTIONS") return optionsResponse(req);
@@ -39,16 +40,19 @@ export async function handleSkillLinkChoice(req: Request, overrides: Partial<Ski
     if (catalogSkillId !== null && (typeof catalogSkillId !== "string" || catalogSkillId.length < 1 || catalogSkillId.length > 500)) {
       return errorResponse(req, 400, "Invalid catalogSkillId");
     }
-    // Only for something the library suggested (one match or several), "my own" included.
+    // Only for something the library suggested (one match or several), "my own" included; and "my own"
+    // for a name the library has nothing for.
+    // "My own" for a name needs no lookup: allowed whether or not the library has that name.
+    const ownByName = catalogSkillId === null && !noneOf && /^n:[0-9a-f]{64}$/.test(body.matchKey);
     let entries: Record<string, ContentIndexEntry>;
     try {
-      entries = await deps.readContentIndex(typeof body.nameKey === "string" && /^n:[0-9a-f]{64}$/.test(body.nameKey)
+      entries = ownByName ? {} : await deps.readContentIndex(typeof body.nameKey === "string" && /^n:[0-9a-f]{64}$/.test(body.nameKey)
         ? [body.matchKey, body.nameKey] : [body.matchKey]);
     } catch {
       return errorResponse(req, 503, "Library is unavailable; try again");
     }
     const ids = entries[body.matchKey]?.ids ?? [];
-    if (!ids.length) return errorResponse(req, 404, "This skill has no library matches to choose from");
+    if (!ids.length && !ownByName) return errorResponse(req, 404, "This skill has no library matches to choose from");
     // Another skill with the copies' name: the name's list must hold it and share a candidate (same name).
     const named = typeof body.nameKey === "string" ? entries[body.nameKey]?.ids ?? [] : [];
     const keptByName = typeof catalogSkillId === "string" && named.includes(catalogSkillId) && ids.some((id) => named.includes(id));
