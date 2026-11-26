@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
-import { byStars, LibraryMatchPicker, libraryMatchOf, potentialMatch } from "../src/app/unified/LibraryMatchPicker";
+import { byStars, choiceMessage, LibraryMatchPicker, libraryMatchOf, potentialMatch } from "../src/app/unified/LibraryMatchPicker";
 
 const key = `sha:${"a".repeat(40)}`;
 
@@ -64,4 +64,14 @@ test("shown under a library skill that isn't a candidate: offered to keep that c
   assert.doesNotMatch(renderToStaticMarkup(picker({ catalogId: "garrytan/gstack:pair-agent", author: "garrytan" })), /Keep/);
   assert.doesNotMatch(renderToStaticMarkup(picker()), /Keep/);
   assert.doesNotMatch(renderToStaticMarkup(picker({ catalogId: "howdeploy/NekoFree:pair-agent", author: "howdeploy" }, [])), /Keep/);
+});
+
+test("each choice confirms what was saved", () => {
+  const qa = { name: "qa", author: "garrytan" } as never;
+  assert.equal(choiceMessage({ kind: "this", id: "garrytan/gstack:qa", skill: qa }), "Linked to qa by @garrytan");
+  assert.equal(choiceMessage({ kind: "this", id: "garrytan/gstack:qa", skill: null }), "Linked to qa");
+  assert.equal(choiceMessage({ kind: "keep", author: "howdeploy" }), "Kept @howdeploy");
+  assert.equal(choiceMessage({ kind: "none", count: 1, id: "garrytan/gstack:qa", skill: qa }), "Saved: not qa by @garrytan");
+  assert.equal(choiceMessage({ kind: "none", count: 3, id: "garrytan/gstack:qa", skill: qa }), "Saved: none of these");
+  assert.equal(choiceMessage({ kind: "own" }), "Saved as your own skill");
 });

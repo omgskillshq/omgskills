@@ -710,12 +710,12 @@ export function UnifiedApp({
   const [notice, setNotice] = useState(initialNotice);
   // The agent picker opens from the Install button and closes when another skill is shown.
   const [installOpen, setInstallOpen] = useState(false);
-  const [installedNotice, setInstalledNotice] = useState("");
+  const [successNotice, setSuccessNotice] = useState("");
   useEffect(() => {
-    if (!installedNotice) return;
-    const timer = setTimeout(() => setInstalledNotice(""), 3000);
+    if (!successNotice) return;
+    const timer = setTimeout(() => setSuccessNotice(""), 3000);
     return () => clearTimeout(timer);
-  }, [installedNotice]);
+  }, [successNotice]);
   // Red confirmation, like the install one: removed from My skills, or gone from the Mac after the app deletes it.
   const [deletedNotice, setDeletedNotice] = useState("");
   useEffect(() => {
@@ -884,7 +884,7 @@ export function UnifiedApp({
     // Installed from this card: the same skill is on a new agent now, so say so.
     if (installOpen && detail && before.key === installSkillId
       && installedAgents.split(",").some(agent => agent && !before.agents.split(",").includes(agent))) {
-      setInstalledNotice(`Installed ${detail.name}`);
+      setSuccessNotice(`Installed ${detail.name}`);
     }
     if (before.agents === installedAgents) return;
     if (installOpen) onInstallCancel?.();
@@ -1046,7 +1046,7 @@ export function UnifiedApp({
   const setToast = management?.toast?.id;
   useEffect(() => {
     if (!setToast) return;
-    setNotice(""); setInstalledNotice(""); setDeletedNotice("");
+    setNotice(""); setSuccessNotice(""); setDeletedNotice("");
   }, [setToast]);
   useEffect(() => {
     if (!notice) return;
@@ -2673,7 +2673,7 @@ export function UnifiedApp({
                   const match = libraryMatchOf(detail.installed.sourceSkills.filter(copy => !copy.catalogSkillId?.trim()));
                   return match ? <LibraryMatchPicker key={match.matchKey} match={match}
                     current={detail.catalogId ? { catalogId: detail.catalogId, author: detail.author } : undefined}
-                    load={libraryMatchDetails} choose={chooseLibraryMatch} /> : null;
+                    load={libraryMatchDetails} choose={chooseLibraryMatch} chosen={setSuccessNotice} /> : null;
                 })()}
                 <SkillReadme skill={detail} />
                 {detail.setItemReleaseId && sharedSkillMd
@@ -2966,9 +2966,9 @@ export function UnifiedApp({
           </button>
         </Modal>
       )}
-      {installedNotice && (
+      {successNotice && (
         <div className="ua-toast ua-toast-success" role="status">
-          <Check aria-hidden="true" /> {installedNotice}
+          <Check aria-hidden="true" /> {successNotice}
         </div>
       )}
       {deletedNotice && (
