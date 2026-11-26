@@ -4,6 +4,11 @@ All notable changes to omgskills are documented here.
 
 ## [Unreleased]
 
+## [0.0.46] - 2026-11-26
+
+### App
+- Removing a skill from My skills and this Mac now shows a shorter warning.
+
 ## [0.0.45] - 2026-11-16
 
 ### App
