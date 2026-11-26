@@ -88,6 +88,9 @@ export async function readSyncInventory(
     const resolved = resolveCopy(skill, index, choices, text?.confirmed, text?.related);
     if (resolved && "catalogSkillId" in resolved) {
       Object.assign(skill, { catalogSkillId: resolved.catalogSkillId, identityStatus: "resolved", isLocalOnly: false });
+    } else if (resolved && "own" in resolved) {
+      // The person said "It's my own": their name shows as its creator.
+      Object.assign(skill, { markedOwn: true });
     } else if (resolved) {
       // Several library skills have this content: the person picks (most stars first).
       Object.assign(skill, { catalogMatchKey: resolved.matchKey, catalogCandidates: resolved.candidates, catalogNameKey: resolved.nameKey, catalogAlsoByName: resolved.alsoByName });

@@ -83,7 +83,7 @@ test("forks are offered most stars first; a choice decides, and 'my own' keeps i
   const copy = { skillMdSha: sha, name: "x", description: "X." };
   assert.deepEqual(resolveCopy(copy, entries), { matchKey: `sha:${sha}`, candidates: ["big/repo:x", "small/repo:x"], nameKey: nameKey("x"), alsoByName: [] });
   assert.deepEqual(resolveCopy(copy, entries, new Map([[`sha:${sha}`, "small/repo:x"]])), { catalogSkillId: "small/repo:x" });
-  assert.equal(resolveCopy(copy, entries, new Map([[`sha:${sha}`, null]])), null);
+  assert.deepEqual(resolveCopy(copy, entries, new Map([[`sha:${sha}`, null]])), { own: true });
   // A choice never overrides a copy's own evidence: one from a candidate's repo keeps that repo's skill.
   const fromRepo = { ...copy, githubUrl: "https://github.com/small/repo" };
   assert.deepEqual(resolveCopy(fromRepo, entries, new Map([[`sha:${sha}`, null]])), { catalogSkillId: "small/repo:x" });
@@ -105,7 +105,7 @@ test("a text match links only a current candidate, and never over the person's o
   // Removed from the library (no longer a candidate): not linked.
   assert.deepEqual(resolveCopy(copy, entries, new Map(), "gone/r:notes"), suggested);
   // "It's my own" stays their own; a pick of the other skill stays that pick.
-  assert.equal(resolveCopy(copy, entries, new Map([[suggested.matchKey, null]]), "a/r:notes"), null);
+  assert.deepEqual(resolveCopy(copy, entries, new Map([[suggested.matchKey, null]]), "a/r:notes"), { own: true });
   assert.deepEqual(resolveCopy(copy, entries, new Map([[suggested.matchKey, "b/r:notes"]]), "a/r:notes"), { catalogSkillId: "b/r:notes" });
   // "My own", said under the name alone (maybe for another copy with that name): asked again, not linked.
   const byName = keysFor(copy).find((key) => key.startsWith("n:"))!;

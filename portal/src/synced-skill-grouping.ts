@@ -23,6 +23,8 @@ export type SyncedSkill = {
   catalogCandidates?: string[] | null;
   catalogNameKey?: string | null;
   catalogAlsoByName?: string[] | null;
+  /** The person said this copy is their own (not a library skill); older responses leave it out. */
+  markedOwn?: boolean | null;
   id: string;
   name: string;
   description: string | null;

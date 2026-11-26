@@ -57,6 +57,8 @@ export type SkillDisplay = Omit<CatalogSummary, "id" | "githubUrl"> & {
   setItemScan?: CloudScan | null;
   /** In My skills but on none of your Macs: its saved copy's key. */
   cloudKey?: string;
+  /** Not a library skill and the person said it's their own: their name shows as its creator. */
+  own?: boolean;
   /** A library skill added to My skills and not installed. */
   added?: boolean;
 };
@@ -467,6 +469,7 @@ export function skillDisplays(data: PortalData, catalog: CatalogDisplay) {
       tags: publicSkill?.tags || [],
       installCommand: publicSkill?.installCommand,
       installed: skill,
+      ...(!skill.catalogSkillId && skill.sourceSkills.some((copy) => copy.markedOwn === true) ? { own: true } : {}),
     };
   });
   const library: SkillDisplay[] = catalog.skills.map(({ id, ...skill }) => ({
@@ -504,6 +507,7 @@ export function setSkillDisplays(set: PortalSet, mine: SkillDisplay[], catalog: 
       githubUrl: publicSkill?.githubUrl || item.githubUrl || installed?.githubUrl || null,
       author: publicSkill?.author || installed?.author || "", tags: publicSkill?.tags || [],
       avatar: publicSkill?.avatar || installed?.avatar, stars: publicSkill?.stars, installCommand: publicSkill?.installCommand,
+      ...(installed?.own && !item.catalogSkillId ? { own: true } : {}),
       installed: setItemInstallation(installation, installed, now) };
   });
 }

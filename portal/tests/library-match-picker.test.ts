@@ -3,6 +3,7 @@ import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
 import { byStars, choiceMessage, LibraryMatchPicker, libraryMatchOf, potentialMatch } from "../src/app/unified/LibraryMatchPicker";
+import { skillDisplays } from "../src/app/unified/model";
 
 const key = `sha:${"a".repeat(40)}`;
 
@@ -74,4 +75,13 @@ test("each choice confirms what was saved", () => {
   assert.equal(choiceMessage({ kind: "none", count: 1, id: "garrytan/gstack:qa", skill: qa }), "Saved: not qa by @garrytan");
   assert.equal(choiceMessage({ kind: "none", count: 3, id: "garrytan/gstack:qa", skill: qa }), "Saved: none of these");
   assert.equal(choiceMessage({ kind: "own" }), "Saved as your own skill");
+});
+
+test("a skill the person said is their own is marked own; a linked or unknown one isn't", () => {
+  const copy = (id: string, extra = {}) => ({ id, name: id, description: null, githubUrl: null, isLocalOnly: true, source: "claude",
+    lastSeenAt: "2026-11-26T00:00:00Z", ...extra });
+  const { mine } = skillDisplays({ skills: [copy("mine", { markedOwn: true }), copy("unknown"),
+    copy("linked", { markedOwn: true, catalogSkillId: "a/b:linked" })] } as never, { skills: [] } as never);
+  const own = Object.fromEntries(mine.map(skill => [skill.name, skill.own ?? false]));
+  assert.deepEqual(own, { mine: true, unknown: false, linked: false });
 });

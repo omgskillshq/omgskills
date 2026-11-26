@@ -893,6 +893,8 @@ export function UnifiedApp({
   const panelPending = selected ? detailPending : !!closingDetail.current?.pending;
   // List rows already carry the name and avatar; only the direct-link placeholder (no author) waits.
   const detailHeadingKnown = !!detail && !(panelPending && !detail.author);
+  // A skill the person said is their own (signed in, with a name to show).
+  const detailOwn = !!detail?.own && !detail.catalogId && signedIn && !!(data.profile.handle || data.profile.name);
   const detailParagraphs = detail ? descriptionParagraphs(detail.description) : [];
   const detailSummary = detail ? descriptionSummary(detail.description) : null;
   const relatedSkills = detail?.author
@@ -2437,13 +2439,13 @@ export function UnifiedApp({
                     <div className="ua-detail-heading">
                       <Avatar
                         src={detail.avatar}
-                        name={detail.author || detail.name}
+                        name={detail.author || (detailOwn ? data.profile.name : detail.name)}
                         size="large"
                       />
                       <div className="ua-detail-heading-copy">
                         <Dialog.Title>{detail.name}</Dialog.Title>
                         <div className="ua-detail-meta">
-                          {detail.author && (
+                          {detail.author ? (
                             <button
                               type="button"
                               className="ua-link"
@@ -2451,6 +2453,12 @@ export function UnifiedApp({
                             >
                               @{detail.author}
                             </button>
+                          ) : detailOwn ? (
+                            // Their own skill: their name, in blue like a creator.
+                            <span className="ua-link ua-detail-own">{data.profile.handle ? `@${data.profile.handle}` : data.profile.name}</span>
+                          ) : !detail.catalogId && !detail.setItemReleaseId && (
+                            // No library skill and not theirs: the creator isn't known (a Set's shared copy is left as before).
+                            <span className="ua-muted ua-detail-unknown">Unavailable</span>
                           )}
                           {detail.stars !== undefined && (
                             <span>

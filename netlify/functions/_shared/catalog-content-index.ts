@@ -295,7 +295,7 @@ export function resolveCopy(
   confirmed?: string | null,
   /** Library skills the copy's text was compared with and shares real text with (closest first). */
   related: readonly string[] = [],
-): { catalogSkillId: string } | { matchKey: string; candidates: string[]; nameKey: string | null; alsoByName: string[] } | null {
+): { catalogSkillId: string } | { own: true } | { matchKey: string; candidates: string[]; nameKey: string | null; alsoByName: string[] } | null {
   // The same content, or the copy's own repo among the deciding candidates, decides on its own; then
   // the person's choice, which nothing weaker overrides ("It's my own" stays their own); then the
   // copy's repo among its other candidates, or a confirmed text match.
@@ -328,8 +328,9 @@ export function resolveCopy(
   const nameIds = listed.some((id) => entry.ids.includes(id)) ? listed : [];
   if (choices.has(key)) {
     const chosen = choices.get(key);
-    // A choice of a skill that's no longer a candidate (removed, changed) is asked again.
-    if (chosen === null) return null;
+    // "It's my own": kept personal, and marked so the person's name shows as its creator.
+    // (A choice of a skill that's no longer a candidate, removed or changed, is asked again.)
+    if (chosen === null) return { own: true };
     // Left unlinked, and not asked again until a library skill not listed then turns up.
     if (typeof chosen === "object" && chosen) {
       if (entry.ids.every((id) => chosen.noneOf.includes(id))) return null;
