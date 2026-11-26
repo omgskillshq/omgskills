@@ -167,8 +167,8 @@ export type Navigation = {
   /** Which of my skills to show: own ones, library ones, or both split by origin. */
   show?: SkillShow;
 };
-export type SkillShow = "installed" | "not-installed" | "personal" | "public" | "origin";
-const skillShows: SkillShow[] = ["installed", "not-installed", "personal", "public", "origin"];
+export type SkillShow = "installed" | "not-installed" | "personal" | "public" | "origin" | "creator";
+const skillShows: SkillShow[] = ["installed", "not-installed", "personal", "public", "origin", "creator"];
 export const byName = (a: SkillDisplay, b: SkillDisplay) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
 /** Personal skills are your own; public ones were installed from the library. Each part sorted by name. */
 /**
@@ -215,6 +215,23 @@ export function skillsByOrigin(skills: SkillDisplay[]) {
     personal: skills.filter(skill => !skill.catalogId).sort(byName),
     public: skills.filter(skill => !!skill.catalogId).sort(byName),
   };
+}
+/** Library skills under their creator (A to Z), then personal ones; each group by name. */
+export function skillsByCreator(skills: SkillDisplay[]): { creator: string | null; skills: SkillDisplay[] }[] {
+  const groups = new Map<string, { creator: string; skills: SkillDisplay[] }>();
+  for (const skill of skills.filter(skill => !!skill.catalogId)) {
+    const creator = skill.author || skill.catalogId!.split("/")[0] || skill.catalogId!;
+    const key = creator.toLowerCase();
+    const group = groups.get(key) ?? { creator, skills: [] };
+    group.skills.push(skill);
+    groups.set(key, group);
+  }
+  const personal = skills.filter(skill => !skill.catalogId).sort(byName);
+  return [
+    ...[...groups.values()].sort((a, b) => a.creator.localeCompare(b.creator, undefined, { sensitivity: "base" }))
+      .map(group => ({ creator: group.creator, skills: group.skills.sort(byName) })),
+    ...(personal.length ? [{ creator: null, skills: personal }] : []),
+  ];
 }
 export const initialNavigation: Navigation = {
   view: "all",

@@ -118,6 +118,7 @@ import {
   inventorySummary,
   cloudSharedLabel,
   skillsByOrigin,
+  skillsByCreator,
   notInstalledSkills,
   addedSkills,
   byInstalled,
@@ -1625,8 +1626,9 @@ export function UnifiedApp({
   // My own lists are in name order, so a letter index can jump through them.
   const nameOrdered = !discovery && !setPage && ["all", "favorites", "set"].includes(nav.view) && listState === "ready";
   if (nameOrdered) visible = [...visible].sort(byName);
-  // The letter index needs one A–Z list on screen: not search results, and not the two By origin groups.
-  const railList = nameOrdered && !nav.query.trim() && nav.show !== "origin";
+  const creators = !isDiscovery(nav.view) && !setPage && nav.show === "creator" ? skillsByCreator(visible) : null;
+  // The letter index needs one A–Z list on screen: not search results, and not By origin or By creator groups.
+  const railList = nameOrdered && !nav.query.trim() && nav.show !== "origin" && nav.show !== "creator";
   const attentionView = nav.view === "all" && nav.id === "attention";
   const titles: Record<View, string> = {
     all: attentionView ? "can't sync" : "my skills",
@@ -1709,6 +1711,7 @@ export function UnifiedApp({
           <option value="personal">Personal</option>
           <option value="public">Public</option>
           <option value="origin">By origin</option>
+          <option value="creator">By creator</option>
         </select>
       </label>}
       {/* Last in the row, in blue. */}
@@ -2297,7 +2300,10 @@ export function UnifiedApp({
                           {origin.personal.length > 0 && <section className="ua-origin-group"><SectionHeading title="Personal" />{rows(origin.personal)}</section>}
                           {origin.public.length > 0 && <section className="ua-origin-group"><SectionHeading title="Public" />{rows(origin.public)}</section>}
                         </>
-                      : rows(visible, nav.view === "top")
+                      : creators && visible.length
+                        ? creators.map(group => <section key={group.creator ?? ""} className="ua-origin-group">
+                            <SectionHeading title={group.creator ? `@${group.creator}` : "Personal"} />{rows(group.skills)}</section>)
+                        : rows(visible, nav.view === "top")
                     : null}
                   {!management && nav.view === "set" &&
                     activeSet &&
