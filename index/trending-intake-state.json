@@ -201,6 +201,12 @@
       "reason": "verified-trending"
     },
     {
+      "sourceId": "coreyhaines31/marketingskills:copywriting",
+      "checkedAt": "2026-11-26T21:26:51.128Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
       "sourceId": "designed-by-ai/skills:design-mobile-apps",
       "checkedAt": "2026-11-22T19:31:05.026Z",
       "outcome": "blocked",
@@ -289,6 +295,12 @@
       "checkedAt": "2026-11-25T21:38:14.722Z",
       "outcome": "blocked",
       "reason": "confirmed-upstream-copy"
+    },
+    {
+      "sourceId": "juliusbrussee/caveman:caveman-compress",
+      "checkedAt": "2026-11-26T21:26:51.128Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
     },
     {
       "sourceId": "leonxlnx/taste-skill:design-taste-frontend",
@@ -477,6 +489,12 @@
       "reason": "verified-trending"
     },
     {
+      "sourceId": "qu-skills/superpowers:agent-browser",
+      "checkedAt": "2026-11-26T21:26:51.128Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
       "sourceId": "qu-skills/superpowers:ai-avatar-video",
       "checkedAt": "2026-11-22T19:31:05.026Z",
       "outcome": "blocked",
@@ -513,6 +531,12 @@
       "reason": "verified-trending"
     },
     {
+      "sourceId": "sentry/dev:sentry-cli",
+      "checkedAt": "2026-11-26T21:26:51.128Z",
+      "outcome": "unresolved",
+      "reason": "source-not-found"
+    },
+    {
       "sourceId": "skills-shell/superpowers:ai-avatar-video",
       "checkedAt": "2026-11-25T21:38:14.722Z",
       "outcome": "blocked",
@@ -537,6 +561,72 @@
       "reason": "non-original-provenance"
     },
     {
+      "sourceId": "squirrelscan/skills:accessibility-audit",
+      "checkedAt": "2026-11-26T21:26:51.128Z",
+      "outcome": "added",
+      "reason": "verified-trending"
+    },
+    {
+      "sourceId": "squirrelscan/skills:agent-experience-audit",
+      "checkedAt": "2026-11-26T21:26:51.128Z",
+      "outcome": "added",
+      "reason": "verified-trending"
+    },
+    {
+      "sourceId": "squirrelscan/skills:broken-link-checker",
+      "checkedAt": "2026-11-26T21:26:51.128Z",
+      "outcome": "added",
+      "reason": "verified-trending"
+    },
+    {
+      "sourceId": "squirrelscan/skills:launch-checklist",
+      "checkedAt": "2026-11-26T21:26:51.128Z",
+      "outcome": "added",
+      "reason": "verified-trending"
+    },
+    {
+      "sourceId": "squirrelscan/skills:performance-audit",
+      "checkedAt": "2026-11-26T21:26:51.128Z",
+      "outcome": "added",
+      "reason": "verified-trending"
+    },
+    {
+      "sourceId": "squirrelscan/skills:security-audit",
+      "checkedAt": "2026-11-26T21:26:51.128Z",
+      "outcome": "added",
+      "reason": "verified-trending"
+    },
+    {
+      "sourceId": "squirrelscan/skills:security-headers",
+      "checkedAt": "2026-11-26T21:26:51.128Z",
+      "outcome": "added",
+      "reason": "verified-trending"
+    },
+    {
+      "sourceId": "squirrelscan/skills:seo-audit",
+      "checkedAt": "2026-11-26T21:26:51.128Z",
+      "outcome": "added",
+      "reason": "verified-trending"
+    },
+    {
+      "sourceId": "squirrelscan/skills:structured-data-audit",
+      "checkedAt": "2026-11-26T21:26:51.128Z",
+      "outcome": "added",
+      "reason": "verified-trending"
+    },
+    {
+      "sourceId": "squirrelscan/skills:supabase-security-audit",
+      "checkedAt": "2026-11-26T21:26:51.128Z",
+      "outcome": "added",
+      "reason": "verified-trending"
+    },
+    {
+      "sourceId": "squirrelscan/skills:website-ci-gate",
+      "checkedAt": "2026-11-26T21:26:51.128Z",
+      "outcome": "added",
+      "reason": "verified-trending"
+    },
+    {
       "sourceId": "stripe/link-cli:link-balance",
       "checkedAt": "2026-11-22T19:31:05.026Z",
       "outcome": "added",
@@ -549,10 +639,22 @@
       "reason": "verified-trending"
     },
     {
+      "sourceId": "uxpilot-ai/frontend-design-skill:ui-design",
+      "checkedAt": "2026-11-26T21:26:51.128Z",
+      "outcome": "added",
+      "reason": "verified-trending"
+    },
+    {
       "sourceId": "uxpilot-ai/user-interview-skill:user-interview-guide",
       "checkedAt": "2026-11-24T22:21:49.950Z",
       "outcome": "added",
       "reason": "verified-trending"
+    },
+    {
+      "sourceId": "vercel-labs/agent-skills:deploy-to-vercel",
+      "checkedAt": "2026-11-26T21:26:51.128Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
     },
     {
       "sourceId": "vercel-labs/agent-skills:vercel-composition-patterns",
@@ -567,8 +669,26 @@
       "reason": "catalog-identity-or-path"
     },
     {
+      "sourceId": "vercel-labs/agent-skills:vercel-react-native-skills",
+      "checkedAt": "2026-11-26T21:26:51.128Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "vercel-labs/agent-skills:vercel-react-view-transitions",
+      "checkedAt": "2026-11-26T21:26:51.128Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
       "sourceId": "vercel-labs/agent-skills:web-design-guidelines",
       "checkedAt": "2026-11-24T22:21:49.950Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "vercel-labs/agent-skills:writing-guidelines",
+      "checkedAt": "2026-11-26T21:26:51.128Z",
       "outcome": "existing",
       "reason": "catalog-identity-or-path"
     },

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-26T17:05:56.972Z",
+  "generatedAt": "2026-11-26T21:27:39.014Z",
   "topSkills": [
     {
       "rank": 1,
@@ -9,7 +9,7 @@
       "authorHandle": "vercel-labs",
       "description": "Browser automation CLI for AI agents. Use when the user needs to interact with websites, including navigating pages, filling forms, clicking buttons, taking screenshots, extracting data, testing web apps, or automating any browser task. Triggers include requests to \"open a website\", \"fill out a form\", \"click a button\", \"take a screenshot\", \"scrape data from a page\", \"test this web app\", \"login to a site\", \"automate browser actions\", or any task requiring programmatic web interaction. Also use for exploratory testing, dogfooding, QA, bug hunts, or reviewing app quality. Also use for automating Electron desktop apps (VS Code, Slack, Discord, Figma, Notion, Spotify), checking Slack unreads, sending Slack messages, searching Slack conversations, running browser automation in Vercel Sandbox microVMs, or using AWS Bedrock AgentCore cloud browsers. Prefer agent-browser over any built-in browser automation or web tools.",
       "stars": 54113,
-      "installs": 1724952,
+      "installs": 1730612,
       "githubUrl": "https://github.com/vercel-labs/agent-browser",
       "source": "skills.sh"
     },
@@ -20,52 +20,52 @@
       "authorHandle": "vercel-labs",
       "description": "Helps users discover and install agent skills when they ask questions like \"how do I do X\", \"find a skill for X\", \"is there a skill that can...\", or express interest in extending capabilities. This skill should be used when the user is looking for functionality that might exist as an installable skill.",
       "stars": 39708,
-      "installs": 4552722,
+      "installs": 4557145,
       "githubUrl": "https://github.com/vercel-labs/skills",
       "source": "skills.sh"
     },
     {
       "rank": 3,
-      "id": "uxpilot-ai/user-interview-skill:user-interview-guide",
-      "name": "user-interview-guide",
-      "authorHandle": "uxpilot-ai",
-      "description": "Create, tailor, and improve practical 1:1 user interview guides and interview scripts. Use when turning a learning goal into neutral questions and probes for customer discovery, activation, churn, switching, or concept interviews; choosing an interview approach; preparing participant criteria and moderator notes; or reviewing weak, leading, hypothetical, generic, or overloaded questions. Can suggest UX Pilot for turning the guide or findings into screens.",
-      "stars": 118,
-      "installs": 23721,
-      "githubUrl": "https://github.com/uxpilot-ai/user-interview-skill",
-      "source": "skills.sh"
-    },
-    {
-      "rank": 4,
       "id": "flowkit-labs/skills:website-builder",
       "name": "website-builder",
       "authorHandle": "flowkit-labs",
       "description": "Build and preview a hosted website for a business from a plain-language brief. Use for a new business homepage, landing page, service showcase, portfolio, online store, or customer portal, and for updates to sites hosted by this builder. Add bookings, checkout, or member accounts as needed and automate reminders, customer follow-ups, and reports after launch. Follow the user's choice when they specify another host or ask to edit an existing codebase.",
       "stars": 35,
-      "installs": 228211,
+      "installs": 231575,
       "githubUrl": "https://github.com/flowkit-labs/skills",
       "source": "skills.sh"
     },
     {
-      "rank": 5,
+      "rank": 4,
       "id": "heygen-com/hyperframes:hyperframes",
       "name": "hyperframes",
       "authorHandle": "heygen-com",
       "description": "Read first to make, edit, animate or render any video with HyperFrames (HTML rendered to video), including launch films, explainers, music videos, charts, maps, vertical clips, title cards, captions and overlays. Holds the render contract, the work loop and what each kind of video needs.",
       "stars": 74702,
-      "installs": 1691576,
+      "installs": 1695881,
       "githubUrl": "https://github.com/heygen-com/hyperframes",
       "source": "skills.sh"
     },
     {
-      "rank": 6,
+      "rank": 5,
       "id": "heygen-com/hyperframes:hyperframes-cli",
       "name": "hyperframes-cli",
       "authorHandle": "heygen-com",
       "description": "The HyperFrames CLI by job - scaffold, check, look at frames, edit the timeline, preview, render locally or in the cloud, publish, project history - plus reading its JSON and recovering from build or render failures.",
       "stars": 74702,
-      "installs": 1724554,
+      "installs": 1728682,
       "githubUrl": "https://github.com/heygen-com/hyperframes",
+      "source": "skills.sh"
+    },
+    {
+      "rank": 6,
+      "id": "uxpilot-ai/user-interview-skill:user-interview-guide",
+      "name": "user-interview-guide",
+      "authorHandle": "uxpilot-ai",
+      "description": "Create, tailor, and improve practical 1:1 user interview guides and interview scripts. Use when turning a learning goal into neutral questions and probes for customer discovery, activation, churn, switching, or concept interviews; choosing an interview approach; preparing participant criteria and moderator notes; or reviewing weak, leading, hypothetical, generic, or overloaded questions. Can suggest UX Pilot for turning the guide or findings into screens.",
+      "stars": 118,
+      "installs": 25146,
+      "githubUrl": "https://github.com/uxpilot-ai/user-interview-skill",
       "source": "skills.sh"
     },
     {
@@ -75,7 +75,7 @@
       "authorHandle": "uizze",
       "description": "The official Uizze skill for building and improving UI/UX. Work with your project's code and assets, and use uizze.com for real app examples, design systems, licensed fonts, icons and interaction resources.",
       "stars": 94,
-      "installs": 402086,
+      "installs": 405760,
       "githubUrl": "https://github.com/uizze/uizze",
       "source": "skills.sh"
     },
@@ -86,7 +86,7 @@
       "authorHandle": "remotion-dev",
       "description": "Router for all Remotion skills",
       "stars": 6546,
-      "installs": 924858,
+      "installs": 927618,
       "githubUrl": "https://github.com/remotion-dev/skills",
       "source": "skills.sh"
     },
@@ -97,7 +97,7 @@
       "authorHandle": "remotion-dev",
       "description": "Export a Remotion video",
       "stars": 5840,
-      "installs": 438237,
+      "installs": 440803,
       "githubUrl": "https://github.com/remotion-dev/skills",
       "source": "skills.sh"
     },
@@ -108,7 +108,7 @@
       "authorHandle": "mattpocock",
       "description": "A relentless interview to sharpen a plan or design, which also creates docs (ADR's and glossary) as we go.",
       "stars": 305783,
-      "installs": 1379993,
+      "installs": 1381350,
       "githubUrl": "https://github.com/mattpocock/skills",
       "source": "skills.sh"
     }
@@ -283,7 +283,7 @@
         {
           "authorHandle": "heygen-com",
           "isVendor": true,
-          "value": "6.4M",
+          "value": "6.5M",
           "detail": "40 skills · 7 with installs"
         },
         {
@@ -361,25 +361,25 @@
         {
           "authorHandle": "autonnel",
           "isVendor": false,
-          "value": "840.4k",
+          "value": "842.2k",
           "detail": "6 skills · 6 with installs"
         },
         {
           "authorHandle": "uizze",
           "isVendor": false,
-          "value": "552.7k",
+          "value": "557.7k",
           "detail": "2 skills · 2 with installs"
         },
         {
           "authorHandle": "liarjsdev",
           "isVendor": false,
-          "value": "551.8k",
+          "value": "553.0k",
           "detail": "4 skills · 4 with installs"
         },
         {
           "authorHandle": "dietrichgebert",
           "isVendor": false,
-          "value": "476.4k",
+          "value": "477.7k",
           "detail": "6 skills · 6 with installs"
         }
       ]
@@ -805,91 +805,91 @@
         {
           "authorHandle": "lllllllama",
           "isVendor": false,
-          "value": "417.8k installs/skill",
+          "value": "418.0k installs/skill",
           "detail": "11 skills with installs"
         },
         {
           "authorHandle": "larksuite",
           "isVendor": true,
-          "value": "353.8k",
+          "value": "353.9k",
           "detail": "25 skills with installs"
         },
         {
           "authorHandle": "mattpocock",
           "isVendor": false,
-          "value": "215.2k",
+          "value": "215.5k",
           "detail": "19 skills with installs"
         },
         {
           "authorHandle": "emilkowalski",
           "isVendor": false,
-          "value": "202.6k",
+          "value": "203.5k",
           "detail": "20 skills with installs"
         },
         {
           "authorHandle": "higgsfield-ai",
           "isVendor": false,
-          "value": "188.5k",
+          "value": "189.1k",
           "detail": "9 skills with installs"
         },
         {
           "authorHandle": "heygen-com",
           "isVendor": true,
-          "value": "161.2k",
+          "value": "161.8k",
           "detail": "7 skills with installs"
         },
         {
           "authorHandle": "antibrow",
           "isVendor": false,
-          "value": "153.7k",
+          "value": "154.0k",
           "detail": "3 skills with installs"
         },
         {
           "authorHandle": "juliusbrussee",
           "isVendor": false,
-          "value": "141.1k",
+          "value": "141.3k",
           "detail": "21 skills with installs"
         },
         {
           "authorHandle": "autonnel",
           "isVendor": false,
-          "value": "140.1k",
+          "value": "140.4k",
           "detail": "6 skills with installs"
         },
         {
           "authorHandle": "liarjsdev",
           "isVendor": false,
-          "value": "138.0k",
+          "value": "138.2k",
           "detail": "4 skills with installs"
         },
         {
           "authorHandle": "remotion-dev",
           "isVendor": false,
-          "value": "120.5k",
+          "value": "121.2k",
           "detail": "13 skills with installs"
         },
         {
           "authorHandle": "prisma",
           "isVendor": false,
-          "value": "111.1k",
+          "value": "111.3k",
           "detail": "11 skills with installs"
         },
         {
           "authorHandle": "dietrichgebert",
           "isVendor": false,
-          "value": "79.4k",
+          "value": "79.6k",
           "detail": "6 skills with installs"
         },
         {
           "authorHandle": "obra",
           "isVendor": false,
-          "value": "69.7k",
+          "value": "69.8k",
           "detail": "15 skills with installs"
         },
         {
           "authorHandle": "cloudflare",
           "isVendor": true,
-          "value": "33.2k",
+          "value": "33.3k",
           "detail": "24 skills with installs"
         },
         {
@@ -907,7 +907,7 @@
         {
           "authorHandle": "nextlevelbuilder",
           "isVendor": false,
-          "value": "24.2k",
+          "value": "24.3k",
           "detail": "3 skills with installs"
         },
         {
@@ -919,8 +919,8 @@
         {
           "authorHandle": "addyosmani",
           "isVendor": false,
-          "value": "7.7k",
-          "detail": "3 skills with installs"
+          "value": "12.4k",
+          "detail": "5 skills with installs"
         }
       ]
     }
@@ -931,7 +931,7 @@
       "isVendor": true,
       "skillCount": 681,
       "totalStars": 13219836,
-      "totalInstalls": 17356019,
+      "totalInstalls": 17368884,
       "trophies": [
         "🏆 Most Influential",
         "⚡ Most Used",
@@ -945,7 +945,7 @@
       "isVendor": false,
       "skillCount": 61,
       "totalStars": 12799434,
-      "totalInstalls": 13129888,
+      "totalInstalls": 13147017,
       "trophies": [
         "🏆 Most Influential",
         "⚡ Most Used",
@@ -959,7 +959,7 @@
       "isVendor": false,
       "skillCount": 59,
       "totalStars": 4569439,
-      "totalInstalls": 4111470,
+      "totalInstalls": 4115343,
       "trophies": [
         "🏆 Most Influential",
         "⚡ Most Used",
@@ -986,7 +986,7 @@
       "isVendor": true,
       "skillCount": 371,
       "totalStars": 13983377,
-      "totalInstalls": 1291927,
+      "totalInstalls": 1293216,
       "trophies": [
         "🏆 Most Influential",
         "⚡ Most Used",
@@ -999,7 +999,7 @@
       "isVendor": false,
       "skillCount": 170,
       "totalStars": 3056099,
-      "totalInstalls": 4178459,
+      "totalInstalls": 4182765,
       "trophies": [
         "🏆 Most Influential",
         "⚡ Most Used",
@@ -1012,7 +1012,7 @@
       "isVendor": false,
       "skillCount": 33,
       "totalStars": 2520073,
-      "totalInstalls": 4655593,
+      "totalInstalls": 4661486,
       "trophies": [
         "🏆 Most Influential",
         "⚡ Most Used",
@@ -1025,7 +1025,7 @@
       "isVendor": false,
       "skillCount": 6,
       "totalStars": 1029187,
-      "totalInstalls": 476436,
+      "totalInstalls": 477695,
       "trophies": [
         "⚡ Most Used",
         "💎 Peak Achiever",
@@ -1074,7 +1074,7 @@
       "isVendor": true,
       "skillCount": 40,
       "totalStars": 1934905,
-      "totalInstalls": 6447820,
+      "totalInstalls": 6471355,
       "trophies": [
         "🏆 Most Influential",
         "⚡ Most Used",
@@ -1086,7 +1086,7 @@
       "isVendor": true,
       "skillCount": 131,
       "totalStars": 1569930,
-      "totalInstalls": 6277674,
+      "totalInstalls": 6287757,
       "trophies": [
         "🏆 Most Influential",
         "⚡ Most Used",
@@ -1098,7 +1098,7 @@
       "isVendor": false,
       "skillCount": 44,
       "totalStars": 1153439,
-      "totalInstalls": 5301577,
+      "totalInstalls": 5334599,
       "trophies": [
         "🏆 Most Influential",
         "⚡ Most Used",
@@ -1110,7 +1110,7 @@
       "isVendor": false,
       "skillCount": 7,
       "totalStars": 953448,
-      "totalInstalls": 169527,
+      "totalInstalls": 170064,
       "trophies": [
         "💎 Peak Achiever",
         "🎯 Most Consistent",
@@ -1155,7 +1155,7 @@
       "isVendor": false,
       "skillCount": 74,
       "totalStars": 3021716,
-      "totalInstalls": 1141100,
+      "totalInstalls": 1143259,
       "trophies": [
         "⚡ Most Used",
         "🚀 Install Efficiency"
@@ -1166,7 +1166,7 @@
       "isVendor": false,
       "skillCount": 36,
       "totalStars": 2963356,
-      "totalInstalls": 277870,
+      "totalInstalls": 447567,
       "trophies": [
         "🎯 Most Consistent",
         "🚀 Install Efficiency"
@@ -1177,7 +1177,7 @@
       "isVendor": true,
       "skillCount": 22,
       "totalStars": 2154635,
-      "totalInstalls": 376085,
+      "totalInstalls": 376335,
       "trophies": [
         "🏆 Most Influential",
         "🎯 Most Consistent"
@@ -1210,7 +1210,7 @@
       "isVendor": false,
       "skillCount": 20,
       "totalStars": 948379,
-      "totalInstalls": 4051584,
+      "totalInstalls": 4069094,
       "trophies": [
         "⚡ Most Used",
         "🚀 Install Efficiency"
@@ -1232,7 +1232,7 @@
       "isVendor": true,
       "skillCount": 32,
       "totalStars": 478761,
-      "totalInstalls": 11321115,
+      "totalInstalls": 11323853,
       "trophies": [
         "⚡ Most Used",
         "🚀 Install Efficiency"
@@ -1243,7 +1243,7 @@
       "isVendor": true,
       "skillCount": 60,
       "totalStars": 375918,
-      "totalInstalls": 1989630,
+      "totalInstalls": 1996077,
       "trophies": [
         "⚡ Most Used",
         "🚀 Install Efficiency"
@@ -1254,7 +1254,7 @@
       "isVendor": false,
       "skillCount": 9,
       "totalStars": 16106,
-      "totalInstalls": 1696160,
+      "totalInstalls": 1701486,
       "trophies": [
         "⚡ Most Used",
         "🚀 Install Efficiency"
@@ -1265,7 +1265,7 @@
       "isVendor": false,
       "skillCount": 37,
       "totalStars": 11537,
-      "totalInstalls": 4111896,
+      "totalInstalls": 4116995,
       "trophies": [
         "⚡ Most Used",
         "🚀 Install Efficiency"
@@ -1276,7 +1276,7 @@
       "isVendor": false,
       "skillCount": 11,
       "totalStars": 5392,
-      "totalInstalls": 4595476,
+      "totalInstalls": 4598143,
       "trophies": [
         "⚡ Most Used",
         "🚀 Install Efficiency"
@@ -1287,7 +1287,7 @@
       "isVendor": false,
       "skillCount": 6,
       "totalStars": 955,
-      "totalInstalls": 840391,
+      "totalInstalls": 842151,
       "trophies": [
         "⚡ Most Used",
         "🚀 Install Efficiency"
@@ -1298,7 +1298,7 @@
       "isVendor": false,
       "skillCount": 4,
       "totalStars": 20,
-      "totalInstalls": 551835,
+      "totalInstalls": 552972,
       "trophies": [
         "⚡ Most Used",
         "🚀 Install Efficiency"
@@ -1539,7 +1539,7 @@
       "isVendor": false,
       "skillCount": 2,
       "totalStars": 255000,
-      "totalInstalls": 161375,
+      "totalInstalls": 161849,
       "trophies": [
         "💎 Peak Achiever"
       ]
@@ -1589,7 +1589,7 @@
       "isVendor": false,
       "skillCount": 3,
       "totalStars": 555,
-      "totalInstalls": 461097,
+      "totalInstalls": 461991,
       "trophies": [
         "🚀 Install Efficiency"
       ]
@@ -1599,7 +1599,7 @@
       "isVendor": false,
       "skillCount": 2,
       "totalStars": 230,
-      "totalInstalls": 552661,
+      "totalInstalls": 557668,
       "trophies": [
         "⚡ Most Used"
       ]
