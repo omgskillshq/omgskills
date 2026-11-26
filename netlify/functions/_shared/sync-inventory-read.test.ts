@@ -3,7 +3,7 @@ import test from "node:test";
 import type { Pool } from "pg";
 import type { PublishedCatalogIdentity } from "./published-catalog.js";
 import { readSyncInventory } from "./sync-inventory-read.js";
-import { buildContentIndex, partitionOf, type ContentIndexEntry } from "./catalog-content-index.js";
+import { buildContentIndex, contentIndexReader, nameKey, partitionOf, type ContentIndexEntry } from "./catalog-content-index.js";
 
 const sha = "c".repeat(40);
 const row = (overrides: Record<string, unknown>) => ({
@@ -13,9 +13,10 @@ const row = (overrides: Record<string, unknown>) => ({
   gitRelativePath: null, catalogSkillIdHint: "remotion-dev/skills:remotion-render", ...overrides,
 });
 
-function pool(rows: unknown[], confirmed: { sha: string; catalogSkillId: string | null; relatedIds?: string[] }[] = []): Pool {
+function pool(rows: unknown[], confirmed: { sha: string; catalogSkillId: string | null; relatedIds?: string[] }[] = [],
+  choices: { matchKey: string; catalogSkillId: string | null; noneOf?: string[] | null }[] = []): Pool {
   return { query: async (sql: string) => ({ rows: sql.includes("FROM synced_skills") ? rows
-    : sql.includes("FROM content_match_results") ? confirmed : [] }) } as unknown as Pool;
+    : sql.includes("FROM content_match_results") ? confirmed : sql.includes("FROM skill_link_choices") ? choices : [] }) } as unknown as Pool;
 }
 
 const catalog: PublishedCatalogIdentity = {
@@ -142,6 +143,81 @@ test("another version is suggested by name and description, by name only with sh
   assert.equal((await offeredWith([{ sha: "9".repeat(40), catalogSkillId: null, relatedIds: [] }])).renamed, undefined);
   assert.deepEqual((await offeredWith([{ sha: "9".repeat(40), catalogSkillId: null, relatedIds: ["exiao/skills:app-store-screenshots"] }])).renamed,
     ["exiao/skills:app-store-screenshots", "inference-sh/skills:app-store-screenshots"]);
+});
+
+test("a copy the person said is their own is marked so; one never asked, or turned down, isn't", async () => {
+  const read = index([
+    skill("a/x:twin", { name: "twin", description: "Same words." }),
+    skill("b/y:twin", { name: "twin", description: "Same words." }),
+  ], {});
+  const rows = [row({ id: "twin", catalogSkillIdHint: null, skillMdSha: "9".repeat(40), name: "twin", description: "Same words." })];
+  const read1 = async (choices: { matchKey: string; catalogSkillId: string | null; noneOf?: string[] | null }[]) => {
+    const { skills } = await readSyncInventory(pool(rows, [], choices), "user", 2, new Date(), async () => catalog, read) as {
+      skills: Array<{ catalogMatchKey?: string; markedOwn?: boolean; catalogSkillId?: string | null }>
+    };
+    return skills[0];
+  };
+  const asked = await read1([]);
+  assert.ok(asked.catalogMatchKey);
+  assert.equal(asked.markedOwn, undefined);
+  const own = await read1([{ matchKey: asked.catalogMatchKey!, catalogSkillId: null }]);
+  assert.equal(own.markedOwn, true);
+  assert.equal(own.catalogMatchKey, undefined);
+  assert.equal(own.catalogSkillId ?? null, null);
+  const noneOf = await read1([{ matchKey: asked.catalogMatchKey!, catalogSkillId: null, noneOf: ["a/x:twin", "b/y:twin"] }]) as typeof asked & { catalogOwnKey?: string };
+  assert.equal(noneOf.markedOwn, undefined);
+  // Unknown after "None of these": it can be made theirs, by its name.
+  assert.equal(noneOf.catalogOwnKey, nameKey("twin"));
+});
+
+test("a skill the library doesn't know offers 'Make it mine' by its name, and is theirs once they say so", async () => {
+  const read = index([], {});
+  const rows = [row({ id: "solo", catalogSkillIdHint: null, skillMdSha: "8".repeat(40), name: "Solo  Skill", description: "Mine." })];
+  const first = async (choices: { matchKey: string; catalogSkillId: string | null }[]) => {
+    const { skills } = await readSyncInventory(pool(rows, [], choices), "user", 2, new Date(), async () => catalog, read) as {
+      skills: Array<{ markedOwn?: boolean; catalogOwnKey?: string; catalogMatchKey?: string }>
+    };
+    return skills[0];
+  };
+  const unknown = await first([]);
+  assert.equal(unknown.catalogOwnKey, nameKey("solo skill"));
+  assert.equal(unknown.markedOwn, undefined);
+  assert.equal(unknown.catalogMatchKey, undefined);
+  const mine = await first([{ matchKey: unknown.catalogOwnKey!, catalogSkillId: null }]);
+  assert.equal(mine.markedOwn, true);
+  assert.equal(mine.catalogOwnKey, undefined);
+  // "My own" saved under its content key, once the library dropped that entry: still theirs.
+  assert.equal((await first([{ matchKey: `sha:${"8".repeat(40)}`, catalogSkillId: null }])).markedOwn, true);
+  // The library couldn't be read: it may be a library skill, so it isn't offered (a saved "mine" still shows).
+  const down = async (choices: { matchKey: string; catalogSkillId: string | null }[]) => {
+    const { skills } = await readSyncInventory(pool(rows, [], choices), "user", 2, new Date(), async () => catalog,
+      async () => { throw new Error("down"); }) as { skills: Array<{ markedOwn?: boolean; catalogOwnKey?: string }> };
+    return skills[0];
+  };
+  assert.equal((await down([])).catalogOwnKey, undefined);
+  // Nor when the index isn't built yet (its partition missing).
+  const { skills: unbuilt } = await readSyncInventory(pool(rows), "user", 2, new Date(), async () => catalog,
+    contentIndexReader({ get: async () => null, set: async () => {} })) as { skills: Array<{ catalogOwnKey?: string }> };
+  assert.equal(unbuilt[0].catalogOwnKey, undefined);
+  assert.equal((await down([{ matchKey: unknown.catalogOwnKey!, catalogSkillId: null }])).markedOwn, true);
+});
+
+test("a same-name copy asking which library skill it is: no Make it mine on the other", async () => {
+  const read = index([
+    skill("a/x:twin", { name: "twin", description: "Same words." }),
+    skill("b/y:twin", { name: "twin", description: "Same words." }),
+  ], {});
+  const rows = [
+    row({ id: "asks", catalogSkillIdHint: null, skillMdSha: "9".repeat(40), name: "twin", description: "Same words." }),
+    row({ id: "edited", catalogSkillIdHint: null, skillMdSha: "7".repeat(40), name: "twin", description: "Rewritten." }),
+  ];
+  const { skills } = await readSyncInventory(pool(rows), "user", 2, new Date(), async () => catalog, read) as {
+    skills: Array<{ id: string; catalogMatchKey?: string; catalogOwnKey?: string }>
+  };
+  const byId = Object.fromEntries(skills.map((s) => [s.id, s]));
+  assert.ok(byId.asks.catalogMatchKey);
+  assert.equal(byId.edited.catalogMatchKey, undefined);
+  assert.equal(byId.edited.catalogOwnKey, undefined);
 });
 
 test("a mirror counts for its original when that's listed, and never on its own", async () => {

@@ -710,12 +710,12 @@ export function UnifiedApp({
   const [notice, setNotice] = useState(initialNotice);
   // The agent picker opens from the Install button and closes when another skill is shown.
   const [installOpen, setInstallOpen] = useState(false);
-  const [installedNotice, setInstalledNotice] = useState("");
+  const [successNotice, setSuccessNotice] = useState("");
   useEffect(() => {
-    if (!installedNotice) return;
-    const timer = setTimeout(() => setInstalledNotice(""), 3000);
+    if (!successNotice) return;
+    const timer = setTimeout(() => setSuccessNotice(""), 3000);
     return () => clearTimeout(timer);
-  }, [installedNotice]);
+  }, [successNotice]);
   // Red confirmation, like the install one: removed from My skills, or gone from the Mac after the app deletes it.
   const [deletedNotice, setDeletedNotice] = useState("");
   useEffect(() => {
@@ -884,7 +884,7 @@ export function UnifiedApp({
     // Installed from this card: the same skill is on a new agent now, so say so.
     if (installOpen && detail && before.key === installSkillId
       && installedAgents.split(",").some(agent => agent && !before.agents.split(",").includes(agent))) {
-      setInstalledNotice(`Installed ${detail.name}`);
+      setSuccessNotice(`Installed ${detail.name}`);
     }
     if (before.agents === installedAgents) return;
     if (installOpen) onInstallCancel?.();
@@ -893,6 +893,29 @@ export function UnifiedApp({
   const panelPending = selected ? detailPending : !!closingDetail.current?.pending;
   // List rows already carry the name and avatar; only the direct-link placeholder (no author) waits.
   const detailHeadingKnown = !!detail && !(panelPending && !detail.author);
+  // A skill the person said is their own (signed in, with a name to show).
+  const detailOwn = !!detail?.own && !detail.catalogId && signedIn && !!(data.profile.handle || data.profile.name);
+  // Not in the library: the GitHub repo it came from names its creator.
+  const detailGithubOwner = detail?.githubUrl?.match(/^https:\/\/github\.com\/([A-Za-z0-9-]+)\//)?.[1] ?? "";
+  // Unknown: the key to make it theirs with (its name), from the server.
+  // Not while the picker asks which library skill one of its copies is.
+  const detailOwnKey = detail?.installed && !libraryMatchOf(detail.installed.sourceSkills.filter(copy => !copy.catalogSkillId?.trim()))
+    ? detail.installed.sourceSkills.map(copy => copy.catalogOwnKey)
+      .find((key): key is string => typeof key === "string" && /^n:[0-9a-f]{64}$/.test(key)) : undefined;
+  // The skill whose "Make it mine" is saving: another skill opened meanwhile has its button ready.
+  const [makingMine, setMakingMine] = useState("");
+  async function makeMine(skillKey: string, key: string) {
+    if (!chooseLibraryMatch) return;
+    setMakingMine(skillKey);
+    try {
+      await chooseLibraryMatch(key, null);
+      setSuccessNotice("Saved as your own skill");
+    } catch {
+      setNotice("Couldn't save that. Try again.");
+    } finally {
+      setMakingMine(current => current === skillKey ? "" : current);
+    }
+  }
   const detailParagraphs = detail ? descriptionParagraphs(detail.description) : [];
   const detailSummary = detail ? descriptionSummary(detail.description) : null;
   const relatedSkills = detail?.author
@@ -1046,7 +1069,7 @@ export function UnifiedApp({
   const setToast = management?.toast?.id;
   useEffect(() => {
     if (!setToast) return;
-    setNotice(""); setInstalledNotice(""); setDeletedNotice("");
+    setNotice(""); setSuccessNotice(""); setDeletedNotice("");
   }, [setToast]);
   useEffect(() => {
     if (!notice) return;
@@ -2437,13 +2460,13 @@ export function UnifiedApp({
                     <div className="ua-detail-heading">
                       <Avatar
                         src={detail.avatar}
-                        name={detail.author || detail.name}
+                        name={detail.author || (detailOwn ? data.profile.name || data.profile.handle : detail.name)}
                         size="large"
                       />
                       <div className="ua-detail-heading-copy">
                         <Dialog.Title>{detail.name}</Dialog.Title>
                         <div className="ua-detail-meta">
-                          {detail.author && (
+                          {detail.author ? (
                             <button
                               type="button"
                               className="ua-link"
@@ -2451,6 +2474,23 @@ export function UnifiedApp({
                             >
                               @{detail.author}
                             </button>
+                          ) : detailOwn ? (
+                            // Their own skill: their name, in blue like a creator.
+                            <span className="ua-detail-own">{data.profile.handle ? `@${data.profile.handle}` : data.profile.name}</span>
+                          ) : detail.catalogId || detail.setItemId ? null : detailGithubOwner ? (
+                            // Not in the library, but from GitHub: that repo's owner made it.
+                            <a className="ua-link" href={`https://github.com/${encodeURIComponent(detailGithubOwner)}`} target="_blank" rel="noreferrer">
+                              @{detailGithubOwner}
+                            </a>
+                          ) : (
+                            // No library skill, no GitHub repo, not theirs: the creator isn't known. They can say it's theirs.
+                            <span className="ua-detail-unknown">
+                              <span className="ua-muted">Unavailable</span>
+                              {detailOwnKey && chooseLibraryMatch && signedIn && (
+                                <button type="button" className="ua-link ua-detail-make-mine" disabled={makingMine === detail.key}
+                                  onClick={() => void makeMine(detail.key, detailOwnKey)}>Make it mine</button>
+                              )}
+                            </span>
                           )}
                           {detail.stars !== undefined && (
                             <span>
@@ -2673,7 +2713,7 @@ export function UnifiedApp({
                   const match = libraryMatchOf(detail.installed.sourceSkills.filter(copy => !copy.catalogSkillId?.trim()));
                   return match ? <LibraryMatchPicker key={match.matchKey} match={match}
                     current={detail.catalogId ? { catalogId: detail.catalogId, author: detail.author } : undefined}
-                    load={libraryMatchDetails} choose={chooseLibraryMatch} /> : null;
+                    load={libraryMatchDetails} choose={chooseLibraryMatch} chosen={setSuccessNotice} /> : null;
                 })()}
                 <SkillReadme skill={detail} />
                 {detail.setItemReleaseId && sharedSkillMd
@@ -2966,9 +3006,9 @@ export function UnifiedApp({
           </button>
         </Modal>
       )}
-      {installedNotice && (
+      {successNotice && (
         <div className="ua-toast ua-toast-success" role="status">
-          <Check aria-hidden="true" /> {installedNotice}
+          <Check aria-hidden="true" /> {successNotice}
         </div>
       )}
       {deletedNotice && (

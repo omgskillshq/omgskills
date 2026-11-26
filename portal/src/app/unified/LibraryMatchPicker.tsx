@@ -33,11 +33,22 @@ export function potentialMatch(skill: { installed?: { sourceSkills: readonly { c
   return !!skill.installed && !!libraryMatchOf(skill.installed.sourceSkills.filter(copy => !copy.catalogSkillId?.trim()));
 }
 
+/** What the green toast says once a choice is saved and the list reloaded with it. */
+export function choiceMessage(choice: { kind: "this"; skill: CatalogSummary | null; id: string } | { kind: "keep"; author: string }
+  | { kind: "none"; count: number; skill?: CatalogSummary | null; id?: string } | { kind: "own" }): string {
+  const named = (skill: CatalogSummary | null | undefined, id: string) =>
+    `${skill?.name ?? id.split(":").pop()}${skill?.author ? ` by @${skill.author}` : ""}`;
+  if (choice.kind === "this") return `Linked to ${named(choice.skill, choice.id)}`;
+  if (choice.kind === "keep") return choice.author ? `Kept @${choice.author}` : "Kept this library skill";
+  if (choice.kind === "none") return choice.count === 1 && choice.id ? `Saved: not ${named(choice.skill, choice.id)}` : "Saved: none of these";
+  return "Saved as your own skill";
+}
+
 function starCount(stars?: number) {
   return stars === undefined ? "" : stars >= 1000 ? `${(stars / 1000).toFixed(stars >= 10_000 ? 0 : 1)}K` : String(stars);
 }
 
-export function LibraryMatchPicker({ match, current, load, choose }: {
+export function LibraryMatchPicker({ match, current, load, choose, chosen }: {
   match: LibraryMatch;
   /** The library skill this is shown under, when it isn't one of the candidates: offered to keep. */
   current?: { catalogId: string; author: string };
@@ -45,6 +56,8 @@ export function LibraryMatchPicker({ match, current, load, choose }: {
   load: (ids: string[], signal: AbortSignal) => Promise<(CatalogSummary | null)[]>;
   /** noneOf: "None of these", asked again only when another library skill turns up. */
   choose: (matchKey: string, catalogSkillId: string | null, nameKey?: string, noneOf?: boolean) => Promise<void>;
+  /** Called with the confirmation once the choice is saved (choose resolves after the list reloads). */
+  chosen?: (message: string) => void;
 }) {
   const [details, setDetails] = useState<(CatalogSummary | null)[]>([]);
   const [selected, setSelected] = useState(match.candidates[0]);
@@ -71,11 +84,16 @@ export function LibraryMatchPicker({ match, current, load, choose }: {
   const headingId = `library-match-${match.matchKey}`;
   // Only a library skill the server listed for the copy's name: saving any other would be refused.
   const keep = current && match.nameKey && match.alsoByName?.includes(current.catalogId) ? current : null;
+  const detailOf = (id: string) => details[match.candidates.indexOf(id)] ?? null;
   const save = async (catalogSkillId: string | null, nameKey?: string, noneOf?: boolean) => {
     setBusy(true);
     setError("");
     try {
       await choose(match.matchKey, catalogSkillId, nameKey, noneOf);
+      chosen?.(choiceMessage(noneOf ? { kind: "none", count: match.candidates.length, id: match.candidates[0], skill: detailOf(match.candidates[0]) }
+        : catalogSkillId === null ? { kind: "own" }
+        : nameKey ? { kind: "keep", author: keep?.author ?? "" }
+        : { kind: "this", id: catalogSkillId, skill: detailOf(catalogSkillId) }));
     } catch {
       setError("Couldn't save that. Try again.");
     } finally {
@@ -90,7 +108,7 @@ export function LibraryMatchPicker({ match, current, load, choose }: {
         : `It may be one of these ${match.candidates.length} library skills. Which one is it?`}</p>
       <ul role="radiogroup" aria-labelledby={headingId}>
         {byStars(match.candidates, details).map(id => {
-          const skill = details[match.candidates.indexOf(id)];
+          const skill = detailOf(id);
           return (
             <li key={id}>
               <label>

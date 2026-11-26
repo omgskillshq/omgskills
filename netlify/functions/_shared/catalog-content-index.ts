@@ -216,17 +216,24 @@ export async function contentIndexIsCurrent(store: ContentIndexStore, catalogKey
   return meta?.version === CONTENT_INDEX_VERSION && meta.catalogKey === catalogKey;
 }
 
+/** Reads that found a partition not built yet: a key missing from them may still be a library skill. */
+const incompleteReads = new WeakSet<object>();
+export function isIncompleteRead(entries: object): boolean {
+  return incompleteReads.has(entries);
+}
+
 /** Reads only the partitions these keys fall in; each partition is cached for a few minutes. */
 export function contentIndexReader(store: ContentIndexStore, now: () => number = Date.now, cacheMs = 10 * 60_000) {
   const cache = new Map<string, { at: number; value: Promise<ContentIndexPartition> }>();
   return async (keys: readonly string[]): Promise<Record<string, ContentIndexEntry>> => {
     const names = [...new Set(keys.map(partitionOf))];
+    let missing = false;
     const parts = await Promise.all(names.map((name) => {
       const hit = cache.get(name);
       if (hit && now() - hit.at < cacheMs) return hit.value;
       const value = store.get(`p/${name}.json`).then((data) => {
         // Not built yet: don't remember that, so the index is used as soon as it's written.
-        if (!data || typeof data !== "object") { cache.delete(name); return {}; }
+        if (!data || typeof data !== "object") { cache.delete(name); missing = true; return {}; }
         return data as ContentIndexPartition;
       });
       value.catch(() => cache.delete(name));
@@ -235,6 +242,7 @@ export function contentIndexReader(store: ContentIndexStore, now: () => number =
     }));
     const entries: Record<string, ContentIndexEntry> = {};
     for (const part of parts) for (const key of keys) if (part[key] && Array.isArray(part[key].ids)) entries[key] = part[key];
+    if (missing) incompleteReads.add(entries);
     return entries;
   };
 }
@@ -295,7 +303,7 @@ export function resolveCopy(
   confirmed?: string | null,
   /** Library skills the copy's text was compared with and shares real text with (closest first). */
   related: readonly string[] = [],
-): { catalogSkillId: string } | { matchKey: string; candidates: string[]; nameKey: string | null; alsoByName: string[] } | null {
+): { catalogSkillId: string } | { own: true } | { matchKey: string; candidates: string[]; nameKey: string | null; alsoByName: string[] } | null {
   // The same content, or the copy's own repo among the deciding candidates, decides on its own; then
   // the person's choice, which nothing weaker overrides ("It's my own" stays their own); then the
   // copy's repo among its other candidates, or a confirmed text match.
@@ -328,8 +336,9 @@ export function resolveCopy(
   const nameIds = listed.some((id) => entry.ids.includes(id)) ? listed : [];
   if (choices.has(key)) {
     const chosen = choices.get(key);
-    // A choice of a skill that's no longer a candidate (removed, changed) is asked again.
-    if (chosen === null) return null;
+    // "It's my own": kept personal, and marked so the person's name shows as its creator.
+    // (A choice of a skill that's no longer a candidate, removed or changed, is asked again.)
+    if (chosen === null) return { own: true };
     // Left unlinked, and not asked again until a library skill not listed then turns up.
     if (typeof chosen === "object" && chosen) {
       if (entry.ids.every((id) => chosen.noneOf.includes(id))) return null;

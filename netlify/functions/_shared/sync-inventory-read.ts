@@ -3,7 +3,7 @@ import { listUserDevices } from "./device-auth.js";
 import { cloudSkillKeys } from "./cloud-skill-keys.js";
 import { readCloudRecordNames } from "./cloud-save.js";
 import { verifiedCatalogHint } from "./github-skill-resolution.js";
-import { keysFor, linkChoiceOf, readBlobContentIndex, resolveCopy, type ContentIndexEntry, type LinkChoice } from "./catalog-content-index.js";
+import { isIncompleteRead, keysFor, linkChoiceOf, nameKey, readBlobContentIndex, resolveCopy, type ContentIndexEntry, type LinkChoice } from "./catalog-content-index.js";
 import { readTextMatches, type TextMatch } from "./content-match.js";
 import { withTimeout } from "./http.js";
 import { loadCatalogHintIdentity, type PublishedCatalogIdentity } from "./published-catalog.js";
@@ -67,18 +67,23 @@ export async function readSyncInventory(
   const hinted = skills.filter((skill) => !skill.catalogSkillId && skill.catalogSkillIdHint && skill.skillMdSha);
   const unhinted = skills.filter((skill) => !skill.catalogSkillId && !skill.catalogSkillIdHint);
   const keys = [...new Set(unhinted.flatMap((skill) => keysFor(skill)))];
+  // A lookup that failed or timed out: its copies may be library skills, so none is offered "Make it mine".
+  let hintFailed = false, indexFailed = false;
   const [hintIdentity, index] = await Promise.all([
     hinted.length
-      ? withTimeout(loadCatalogIdentity(hinted.map((skill) => skill.catalogSkillIdHint as string)), 4_000).catch(() => null)
+      ? withTimeout(loadCatalogIdentity(hinted.map((skill) => skill.catalogSkillIdHint as string)), 4_000).catch(() => { hintFailed = true; return null; })
       : null,
-    keys.length ? withTimeout(readContentIndex(keys), 3_000).catch(() => ({})) : {},
+    keys.length ? withTimeout(readContentIndex(keys), 3_000).catch(() => { indexFailed = true; return {}; }) : {},
   ]);
+  // An index not built yet (a partition missing) is no answer either.
+  if (isIncompleteRead(index)) indexFailed = true;
   for (const skill of hinted) {
     const catalogSkillId = verifiedCatalogHint(skill.catalogSkillIdHint, skill.skillMdSha, hintIdentity);
     if (catalogSkillId) Object.assign(skill, { catalogSkillId, identityStatus: "resolved", isLocalOnly: false });
   }
   // A person's own choices between library skills sharing a copy's content (see skill_link_choices).
-  const choices = unhinted.length && Object.keys(index).length ? await readLinkChoices(pool, userId) : new Map<string, LinkChoice>();
+  // Read whenever a copy is unlinked: "It's my own" also applies to a skill with no library match.
+  const choices = skills.some((skill) => !skill.catalogSkillId) ? await readLinkChoices(pool, userId) : new Map<string, LinkChoice>();
   // What the background job found comparing these versions' text.
   const byText = unhinted.length && Object.keys(index).length
     ? await readTextMatches(pool, [...new Set(unhinted.flatMap((skill) => skill.skillMdSha ? [skill.skillMdSha as string] : []))])
@@ -88,10 +93,28 @@ export async function readSyncInventory(
     const resolved = resolveCopy(skill, index, choices, text?.confirmed, text?.related);
     if (resolved && "catalogSkillId" in resolved) {
       Object.assign(skill, { catalogSkillId: resolved.catalogSkillId, identityStatus: "resolved", isLocalOnly: false });
+    } else if (resolved && "own" in resolved) {
+      // The person said "It's my own": their name shows as its creator.
+      Object.assign(skill, { markedOwn: true });
     } else if (resolved) {
       // Several library skills have this content: the person picks (most stars first).
       Object.assign(skill, { catalogMatchKey: resolved.matchKey, catalogCandidates: resolved.candidates, catalogNameKey: resolved.nameKey, catalogAlsoByName: resolved.alsoByName });
     }
+  }
+  const offeredNames = new Set(skills.flatMap((skill) => "catalogMatchKey" in skill && typeof skill.name === "string"
+    ? [nameKey(skill.name)].filter((key): key is string => !!key) : []));
+  // Still unknown (no library skill, nothing to choose from): "It's my own" said for any of its keys
+  // marks it the person's; otherwise its name is the key to say so with ("Make it mine" under "Unavailable").
+  for (const skill of skills) {
+    if (skill.catalogSkillId || "catalogMatchKey" in skill || "markedOwn" in skill) continue;
+    if (keysFor(skill).some((key) => choices.has(key) && choices.get(key) === null)) {
+      Object.assign(skill, { markedOwn: true });
+      continue;
+    }
+    if (skill.catalogSkillIdHint ? hintFailed : indexFailed) continue;
+    const key = typeof skill.name === "string" ? nameKey(skill.name) : null;
+    // A same-name copy (shown as one skill) asks which library skill it is: that's answered first.
+    if (key && !offeredNames.has(key)) Object.assign(skill, { catalogOwnKey: key });
   }
   const devices = await listUserDevices(pool, userId, now);
   const reports = await pool.query<{ deviceId: string; lastReportedAt: Date | null; scanCoverage?: RootCoverage[] | null }>(
