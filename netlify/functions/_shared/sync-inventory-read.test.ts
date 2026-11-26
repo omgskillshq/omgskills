@@ -186,6 +186,16 @@ test("a skill the library doesn't know offers 'Make it mine' by its name, and is
   const mine = await first([{ matchKey: unknown.catalogOwnKey!, catalogSkillId: null }]);
   assert.equal(mine.markedOwn, true);
   assert.equal(mine.catalogOwnKey, undefined);
+  // "My own" saved under its content key, once the library dropped that entry: still theirs.
+  assert.equal((await first([{ matchKey: `sha:${"8".repeat(40)}`, catalogSkillId: null }])).markedOwn, true);
+  // The library couldn't be read: it may be a library skill, so it isn't offered (a saved "mine" still shows).
+  const down = async (choices: { matchKey: string; catalogSkillId: string | null }[]) => {
+    const { skills } = await readSyncInventory(pool(rows, [], choices), "user", 2, new Date(), async () => catalog,
+      async () => { throw new Error("down"); }) as { skills: Array<{ markedOwn?: boolean; catalogOwnKey?: string }> };
+    return skills[0];
+  };
+  assert.equal((await down([])).catalogOwnKey, undefined);
+  assert.equal((await down([{ matchKey: unknown.catalogOwnKey!, catalogSkillId: null }])).markedOwn, true);
 });
 
 test("a mirror counts for its original when that's listed, and never on its own", async () => {

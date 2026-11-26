@@ -67,11 +67,13 @@ export async function readSyncInventory(
   const hinted = skills.filter((skill) => !skill.catalogSkillId && skill.catalogSkillIdHint && skill.skillMdSha);
   const unhinted = skills.filter((skill) => !skill.catalogSkillId && !skill.catalogSkillIdHint);
   const keys = [...new Set(unhinted.flatMap((skill) => keysFor(skill)))];
+  // A lookup that failed or timed out: its copies may be library skills, so none is offered "Make it mine".
+  let hintFailed = false, indexFailed = false;
   const [hintIdentity, index] = await Promise.all([
     hinted.length
-      ? withTimeout(loadCatalogIdentity(hinted.map((skill) => skill.catalogSkillIdHint as string)), 4_000).catch(() => null)
+      ? withTimeout(loadCatalogIdentity(hinted.map((skill) => skill.catalogSkillIdHint as string)), 4_000).catch(() => { hintFailed = true; return null; })
       : null,
-    keys.length ? withTimeout(readContentIndex(keys), 3_000).catch(() => ({})) : {},
+    keys.length ? withTimeout(readContentIndex(keys), 3_000).catch(() => { indexFailed = true; return {}; }) : {},
   ]);
   for (const skill of hinted) {
     const catalogSkillId = verifiedCatalogHint(skill.catalogSkillIdHint, skill.skillMdSha, hintIdentity);
@@ -97,14 +99,17 @@ export async function readSyncInventory(
       Object.assign(skill, { catalogMatchKey: resolved.matchKey, catalogCandidates: resolved.candidates, catalogNameKey: resolved.nameKey, catalogAlsoByName: resolved.alsoByName });
     }
   }
-  // Still unknown (no library skill, nothing to choose from): "It's my own" said for its name marks
-  // it the person's; otherwise the key to say so with ("Make it mine" under "Unavailable").
+  // Still unknown (no library skill, nothing to choose from): "It's my own" said for any of its keys
+  // marks it the person's; otherwise its name is the key to say so with ("Make it mine" under "Unavailable").
   for (const skill of skills) {
     if (skill.catalogSkillId || "catalogMatchKey" in skill || "markedOwn" in skill) continue;
+    if (keysFor(skill).some((key) => choices.has(key) && choices.get(key) === null)) {
+      Object.assign(skill, { markedOwn: true });
+      continue;
+    }
+    if (skill.catalogSkillIdHint ? hintFailed : indexFailed) continue;
     const key = typeof skill.name === "string" ? nameKey(skill.name) : null;
-    if (!key) continue;
-    if (choices.has(key) && choices.get(key) === null) Object.assign(skill, { markedOwn: true });
-    else Object.assign(skill, { catalogOwnKey: key });
+    if (key) Object.assign(skill, { catalogOwnKey: key });
   }
   const devices = await listUserDevices(pool, userId, now);
   const reports = await pool.query<{ deviceId: string; lastReportedAt: Date | null; scanCoverage?: RootCoverage[] | null }>(

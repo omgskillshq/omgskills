@@ -900,17 +900,18 @@ export function UnifiedApp({
   // Unknown: the key to make it theirs with (its name), from the server.
   const detailOwnKey = detail?.installed?.sourceSkills.map(copy => copy.catalogOwnKey)
     .find((key): key is string => typeof key === "string" && /^n:[0-9a-f]{64}$/.test(key));
-  const [makingMine, setMakingMine] = useState(false);
-  async function makeMine(key: string) {
+  // The skill whose "Make it mine" is saving: another skill opened meanwhile has its button ready.
+  const [makingMine, setMakingMine] = useState("");
+  async function makeMine(skillKey: string, key: string) {
     if (!chooseLibraryMatch) return;
-    setMakingMine(true);
+    setMakingMine(skillKey);
     try {
       await chooseLibraryMatch(key, null);
       setSuccessNotice("Saved as your own skill");
     } catch {
       setNotice("Couldn't save that. Try again.");
     } finally {
-      setMakingMine(false);
+      setMakingMine(current => current === skillKey ? "" : current);
     }
   }
   const detailParagraphs = detail ? descriptionParagraphs(detail.description) : [];
@@ -2484,8 +2485,8 @@ export function UnifiedApp({
                             <span className="ua-detail-unknown">
                               <span className="ua-muted">Unavailable</span>
                               {detailOwnKey && chooseLibraryMatch && signedIn && (
-                                <button type="button" className="ua-link ua-detail-make-mine" disabled={makingMine}
-                                  onClick={() => void makeMine(detailOwnKey)}>Make it mine</button>
+                                <button type="button" className="ua-link ua-detail-make-mine" disabled={makingMine === detail.key}
+                                  onClick={() => void makeMine(detail.key, detailOwnKey)}>Make it mine</button>
                               )}
                             </span>
                           )}
