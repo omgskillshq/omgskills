@@ -3,6 +3,7 @@
 
 import { ShieldCheck, ShieldCogCorner, ShieldQuestionMark } from "lucide-react";
 import { useEffect, useState } from "react";
+import { fitTip } from "./tip-bounds";
 
 // One shield per state; the words show on hover, tap or focus, like the scan tip beside it.
 const ICONS = { no_issues: ShieldCheck, under_review: ShieldCogCorner, not_reviewed: ShieldQuestionMark } as const;
@@ -46,7 +47,8 @@ export function ReviewBadge({ catalogId, treeSha }: { catalogId: string; treeSha
   const label = words.title;
   return (
     <button type="button" className="ua-scan-tip ua-review-badge" data-state={current.badge} aria-label={label} data-open={open}
-      onClick={() => setOpen(value => !value)} onBlur={() => setOpen(false)}
+      onPointerEnter={event => fitTip(event.currentTarget)} onFocus={event => fitTip(event.currentTarget)}
+      onClick={event => { fitTip(event.currentTarget); setOpen(value => !value); }} onBlur={() => setOpen(false)}
       onKeyDown={event => { if (event.key === "Escape" && open) { event.stopPropagation(); setOpen(false); } }}>
       <Icon aria-hidden="true" />
       <span className="ua-scan-tip-text" aria-hidden="true">{label}</span>

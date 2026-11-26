@@ -153,6 +153,7 @@ import { AlphaRail, railLetter, railLettersOf as railLetters } from "./AlphaRail
 import { CloudStatusBadge, CloudStatusSection, type CloudInfo } from "./CloudStatus";
 import { SetItemScan } from "./SetItemScan";
 import { LibraryMatchPicker, libraryMatchOf, potentialMatch } from "./LibraryMatchPicker";
+import { fitTip } from "./tip-bounds";
 import type { CatalogSummary } from "./model";
 import { ReviewBadge } from "./ReviewBadge";
 import { looksLikeGithubLink, type MySkillAdditions } from "../my-skills-additions";
@@ -261,7 +262,8 @@ function KindTip({ label, icon: Icon }: { label: string; icon: LucideIcon }) {
   const [open, setOpen] = useState(false);
   return (
     <button type="button" className="ua-kind-tip" aria-label={label} data-open={open}
-      onClick={() => setOpen(value => !value)} onBlur={() => setOpen(false)}>
+      onPointerEnter={event => fitTip(event.currentTarget)} onFocus={event => fitTip(event.currentTarget)}
+      onClick={event => { fitTip(event.currentTarget); setOpen(value => !value); }} onBlur={() => setOpen(false)}>
       <Icon aria-hidden="true" />
       <span className="ua-kind-tip-text" aria-hidden="true">{label}</span>
     </button>
@@ -278,7 +280,8 @@ function ScanTip({ scannedAt, yourCopy }: { scannedAt: string; yourCopy: boolean
   const label = `Team-safe · ${yourCopy ? "your copy scanned" : "scanned"} ${day}: no keys, personal details, internal addresses, hidden instructions or download-and-run commands found`;
   return (
     <button type="button" className="ua-scan-tip" aria-label={label} data-open={open}
-      onClick={() => setOpen(value => !value)} onBlur={() => setOpen(false)}
+      onPointerEnter={event => fitTip(event.currentTarget)} onFocus={event => fitTip(event.currentTarget)}
+      onClick={event => { fitTip(event.currentTarget); setOpen(value => !value); }} onBlur={() => setOpen(false)}
       onKeyDown={event => { if (event.key === "Escape" && open) { event.stopPropagation(); setOpen(false); } }}>
       <ShieldUser aria-hidden="true" />
       <span className="ua-scan-tip-text" aria-hidden="true">{label}</span>

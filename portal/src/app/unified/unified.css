@@ -2024,7 +2024,7 @@
   color: var(--ua-muted) !important;
 }
 .ua-scan-tip-text {
-  /* Starts at the icon and runs right: the panel clips anything past its left edge. */
+  /* Starts at the icon and runs right; near the panel's right edge it's shifted back in (tip-bounds.ts). */
   position: absolute; top: calc(100% + 4px); left: -6px; z-index: 5;
   width: max-content; max-width: 220px; padding: 4px 8px; border-radius: 6px;
   background: var(--ua-ink); color: var(--ua-bg);
