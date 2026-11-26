@@ -936,12 +936,14 @@ export function UnifiedApp({
   const statusLabel = !detail || canInstall || savedInstall || (detail.installCommand && !canInstall) ? undefined
     : detail.setItemCloudShared ? cloudSharedLabel(detail, activeSet?.role)
     : detail.cloudKey || detail.added ? "Not installed" : detail.catalogId || detail.setItemKind === "catalog" ? "Library skill"
-    : detail.own ? "Personal skill" : "Source unavailable";
+    : detail.own ? "Personal skill" : detailGithubOwner ? "From GitHub" : "Source unavailable";
   // Every skill says what kind it is, as a quiet icon at the end: from the public library (globe) or personal.
   // A skill that's neither (its source can't be found) gets a package-with-question-mark icon instead of a label.
   const kindLabel = !detail ? undefined : detail.catalogId || detail.setItemKind === "catalog" ? "Library skill"
-    : detail.own ? "Personal skill" : statusLabel === "Source unavailable" ? "Source unavailable" : undefined;
-  const KindIcon = kindLabel === "Library skill" ? Globe : kindLabel === "Personal skill" ? User
+    : detail.own ? "Personal skill" : detailGithubOwner ? "From GitHub"
+    : statusLabel === "Source unavailable" ? "Source unavailable" : undefined;
+  // From a GitHub repo but not the library: public (its creator is known), so the same globe.
+  const KindIcon = kindLabel === "Library skill" || kindLabel === "From GitHub" ? Globe : kindLabel === "Personal skill" ? User
     : kindLabel === "Source unavailable" ? PackageQuestionMark : null;
   const collection = catalog.collections.find((item) => item.id === nav.id);
   const detailCollections = detail?.catalogId
