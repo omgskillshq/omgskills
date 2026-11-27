@@ -7,8 +7,9 @@ import { savedSkillKeys } from "../src/app/unified/SkillReadme";
 import { notInstalledSkills } from "../src/app/unified/model";
 import { agentReviewPrompt, skillFolder } from "../src/cloud-save/scan-findings";
 
+// A Mac's report (tagged with its device), so it counts whatever today's date; old-app copies pass deviceId: null.
 const installed = (name: string, extra: Partial<SyncedSkill> = {}): SyncedSkill => ({
-  id: name, name, description: null, githubUrl: null, isLocalOnly: true, source: "claude", lastSeenAt: "2026-11-01", ...extra,
+  id: name, name, description: null, githubUrl: null, isLocalOnly: true, source: "claude", lastSeenAt: "2026-11-01", deviceId: "mac", ...extra,
 });
 
 const state = (overrides: Partial<CloudSaveState> = {}): CloudSaveState => ({
@@ -432,8 +433,8 @@ test("only copies some Mac has now count: an old app's copies stop counting afte
   const rows = cloudSkillRows(state({ skills: [saved("kept"), saved("pptx")], skipped: { pptx: "links" }, skippedBy: { pptx: "mac" } }), [
     installed("here", { deviceId: "mac" }),
     installed("pptx", { deviceId: "mac", catalogSkillId: "a/b:pptx", isLocalOnly: false }),
-    installed("recent-old-app", { lastSeenAt: "2026-11-20T00:00:00Z" }),
-    installed("stale-old-app", { lastSeenAt: "2026-09-28T00:00:00Z" }),
+    installed("recent-old-app", { deviceId: null, lastSeenAt: "2026-11-20T00:00:00Z" }),
+    installed("stale-old-app", { deviceId: null, lastSeenAt: "2026-09-28T00:00:00Z" }),
   ], now);
   assert.deepEqual(rows.map(row => [row.key, row.status, row.onMac]).sort(), [
     ["here", "waiting", true], ["kept", "saved", false], ["pptx", "links", true], ["recent-old-app", "waiting", true],
