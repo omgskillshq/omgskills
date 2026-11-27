@@ -197,6 +197,9 @@ function Preview() {
         needsReview: state.needsReview.map(review => review.key === key ? { ...review, confirmed: true } : review) })),
         remove: async key => setCloudState(state => ({ ...state, skills: state.skills.filter(skill => skill.key !== key),
           settings: { ...state.settings, excludedSkillKeys: [...new Set([...state.settings.excludedSkillKeys, key])] } })),
+        deleteSynced: async (saved, others) => setCloudState(state => ({ ...state,
+          skills: state.skills.filter(skill => !saved.includes(skill.key)),
+          settings: { ...state.settings, excludedSkillKeys: [...new Set([...state.settings.excludedSkillKeys, ...saved, ...others])] } })),
         leaveOut: async (keys, leftOut) => setCloudState(state => ({ ...state, settings: { ...state.settings,
           excludedSkillKeys: leftOut ? [...new Set([...state.settings.excludedSkillKeys, ...keys])]
             : state.settings.excludedSkillKeys.filter(key => !keys.includes(key)) } })) }}

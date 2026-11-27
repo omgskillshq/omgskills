@@ -8,7 +8,9 @@ export type CloudInfo = { state: CloudSaveState; confirm: (key: string) => Promi
   /** Deletes a saved skill and stops syncing it; for one no Mac has, that takes it out of My skills. */
   remove?: (key: string) => Promise<void>;
   /** A skill's own switch: leaves its folders' keys out of sync, or syncs them again. */
-  leaveOut?: (keys: string[], leftOut: boolean) => Promise<void> };
+  leaveOut?: (keys: string[], leftOut: boolean) => Promise<void>;
+  /** "Delete synced copy": deletes the saved folders and leaves the skill's other folders out, then reloads once. */
+  deleteSynced?: (saved: string[], others: string[]) => Promise<void> };
 
 /**
  * A skill's sync, at the bottom of its panel: how it syncs (versions, last synced), what the scan found, what
@@ -68,16 +70,15 @@ export function SkillSyncSection({ row: shown, keys, cloud, installed, editable,
       <button type="button" role="switch" className="ua-switch" aria-label="Sync this skill" aria-checked={!leftOut} disabled={!!busy || keys.length === 0}
         onClick={() => run("switch", () => cloud.leaveOut!(keys, !leftOut), "Sync couldn't be changed. Try again.")}><span /></button>
     </label>}
-    {editable && installed && cloud.remove && savedCopies.length > 0 && (deleting
+    {editable && installed && cloud.deleteSynced && savedCopies.length > 0 && (deleting
       ? <div className="ua-skill-sync-confirm" role="group" aria-label="Delete synced copy">
         <p>{savedVersions === 1 ? "Delete its synced version" : `Delete all ${savedVersions} synced versions`} and stop
           syncing it? It stays on your Mac.{setsNote(inSets)}</p>
         <div>
           <button type="button" className="ua-pill ua-pill-danger" disabled={!!busy} onClick={() => run("delete", async () => {
-            for (const skill of savedCopies) await cloud.remove!(skill.key);
             // Its other folders (not synced yet, or held for review) stop syncing too.
-            const rest = keys.filter(key => !excluded.has(key) && !savedCopies.some(skill => skill.key === key));
-            if (rest.length && cloud.leaveOut) await cloud.leaveOut(rest, true);
+            await cloud.deleteSynced!(savedCopies.map(skill => skill.key),
+              keys.filter(key => !excluded.has(key) && !savedCopies.some(skill => skill.key === key)));
             setDeleting(false);
           }, "The synced copy couldn't be deleted. Try again.")}>{busy === "delete" ? "Deleting..." : "Delete"}</button>
           <button type="button" className="ua-pill" autoFocus disabled={!!busy} onClick={() => setDeleting(false)}>Cancel</button>

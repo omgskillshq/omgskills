@@ -77,8 +77,9 @@ function useCloudStatus(api: PortalApi, enabled: boolean, revision: unknown, sav
   // Whether the last answer was real, so a failed load is never saved for the next visit.
   const [ok, setOk] = useState(false);
   const [reload, setReload] = useState(0);
-  // Changes waiting for the next finished load.
-  const waiting = useRef<(() => void)[]>([]);
+  // Changes waiting for a load that started after them (never one already running when they asked).
+  const waiting = useRef<{ after: number; done: () => void }[]>([]);
+  const requested = useRef(0);
   useEffect(() => {
     if (!enabled) { setState(null); setStatus(null); setLoaded(false); setOk(false); return; }
     const controller = new AbortController();
@@ -90,15 +91,33 @@ function useCloudStatus(api: PortalApi, enabled: boolean, revision: unknown, sav
         setState(null); setStatus("error"); setOk(false);
         if (cause instanceof PortalApiError && cause.status === 401) deniedRef.current?.();
       })
-      .finally(() => { if (!controller.signal.aborted) { setLoaded(true); for (const done of waiting.current.splice(0)) done(); } });
+      .finally(() => {
+        if (controller.signal.aborted) return;
+        setLoaded(true);
+        const ready = waiting.current.filter(wait => wait.after <= reload);
+        waiting.current = waiting.current.filter(wait => wait.after > reload);
+        for (const wait of ready) wait.done();
+      });
     return () => controller.abort();
   }, [enabled, revision, reload]);
-  const reloadCloud = useCallback(() => new Promise<void>(resolve => { waiting.current.push(resolve); setReload(value => value + 1); }), []);
+  const reloadCloud = useCallback(() => new Promise<void>(done => {
+    const after = ++requested.current;
+    waiting.current.push({ after, done });
+    setReload(after);
+  }), []);
   const info = useMemo(() => state ? {
     state,
     confirm: async (key: string) => { await confirmCloudReview(apiRef.current, key); await reloadCloud(); },
     remove: async (key: string) => { await deleteCloudSaved(apiRef.current, key); await reloadCloud(); },
     leaveOut: async (keys: string[], leftOut: boolean) => { await setSkillLeftOut(apiRef.current, keys, leftOut); await reloadCloud(); },
+    // Leaves the folders not synced yet out first, then deletes the saved ones, then reloads once: the panel never
+    // shows a half-done delete, and a failure leaves nothing deleted that the message says wasn't.
+    deleteSynced: async (saved: string[], others: string[]) => {
+      try {
+        if (others.length) await setSkillLeftOut(apiRef.current, others, true);
+        for (const key of saved) await deleteCloudSaved(apiRef.current, key);
+      } finally { await reloadCloud(); }
+    },
   } : undefined, [state, reloadCloud]);
   return { info, state, status, loaded, ok, reload: reloadCloud };
 }

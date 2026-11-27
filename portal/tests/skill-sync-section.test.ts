@@ -19,7 +19,7 @@ const installed = (name: string, folder = name, source = "claude"): SyncedSkill 
   id: `${source}:${folder}`, name, description: null, githubUrl: null, isLocalOnly: true, source, lastSeenAt: "2026-11-01",
   deviceId: "mac", installationFolder: folder,
 }) as SyncedSkill;
-const info = (cloudState: CloudSaveState): CloudInfo => ({ state: cloudState, confirm: async () => {}, remove: async () => {}, leaveOut: async () => {} });
+const info = (cloudState: CloudSaveState): CloudInfo => ({ state: cloudState, confirm: async () => {}, remove: async () => {}, leaveOut: async () => {}, deleteSynced: async () => {} });
 const render = (cloudState: CloudSaveState, keys: string[], props: { installed?: boolean; editable?: boolean } = {}) => {
   const row = cloudSkillRows(cloudState, [installed("notes")]).find(item => item.key === keys[0]) ?? null;
   return renderToStaticMarkup(createElement(SkillSyncSection, { row, keys, cloud: info(cloudState),
