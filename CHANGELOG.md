@@ -4,6 +4,11 @@ All notable changes to omgskills are documented here.
 
 ## [Unreleased]
 
+## [0.0.47] - 2026-11-27
+
+### App
+- The Mac menu now uses the same My skills total and sync counts as the website.
+
 ## [0.0.46] - 2026-11-26
 
 ### App
