@@ -391,8 +391,7 @@ function AccountView({ identity, signedIn, accountKey, base, local, connectedInv
     accountPages={available && !snapshot.accessDenied ? (view, theme) => view === "profile" && !composition?.readOnly ? <ProfilePanel profile={data.profile} theme={theme}
       busy={snapshot.profileSaving || snapshot.setSaving || snapshot.refreshing}
       blocked={!!snapshot.error || !snapshot.data || snapshot.accessDenied}
-      error={snapshot.profileError || snapshot.error} save={account.saveProfile} settings={() => clerk.openUserProfile()}
- />
+      error={snapshot.profileError || snapshot.error} save={account.saveProfile} settings={() => clerk.openUserProfile()} />
       : view === "cloud" && !composition?.readOnly && !local ? <div className="ua-account-page"><SyncSettings state={cloudState}
         status={cloudLoaded ? cloudStatus : null} skills={data.skills}
         retry={() => void reloadCloud()} find={name => navigate({ ...initialNavigation, view: "all", query: name })}

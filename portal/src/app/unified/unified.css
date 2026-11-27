@@ -2406,6 +2406,10 @@
   scroll-margin-top: 16px;
   border-bottom: 1px solid var(--ua-line);
 }
+.ua-settings-heading {
+  margin: 0;
+  font: inherit;
+}
 .ua-settings-toggle {
   display: flex;
   align-items: center;

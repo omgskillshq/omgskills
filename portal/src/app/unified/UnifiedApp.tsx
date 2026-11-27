@@ -2347,14 +2347,15 @@ export function UnifiedApp({
                   {[...settingsSections.map(view => ({ key: view as string, label: settingsLabels[view] ?? view,
                       page: accountPages?.(view, theme) ?? (view === "cloud" ? null : accountFallback(view)) })),
                     // Deleting the account is last, apart from everything else.
-                    { key: "delete", label: "Delete account", page: accountDeletion?.(theme) ?? null }].map(({ key, label, page }) => {
+                    { key: "delete", label: "Delete account", page: supportsView("profile") ? accountDeletion?.(theme) ?? null : null }].map(({ key, label, page }) => {
                     const open = settingsOpen.includes(key);
                     // Closed by default, so the page is a short list; a section loads when it's opened.
                     return page && <section key={key} id={`settings-${key}`} className="ua-settings-section" data-open={open || undefined}>
-                      <button type="button" className="ua-settings-toggle" aria-expanded={open} aria-controls={`settings-${key}-body`}
+                      <h2 className="ua-settings-heading"><button type="button" className="ua-settings-toggle" aria-expanded={open}
+                        aria-controls={open ? `settings-${key}-body` : undefined}
                         onClick={() => setSettingsOpen(list => open ? list.filter(item => item !== key) : [...list, key])}>
                         <span>{label}{key === "profile" && data.profile.email && <small>{data.profile.email}</small>}</span><ChevronDown aria-hidden="true" />
-                      </button>
+                      </button></h2>
                       {open && <div id={`settings-${key}-body`} className="ua-settings-body">{page}</div>}
                     </section>;
                   })}
