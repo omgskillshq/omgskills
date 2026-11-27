@@ -1,25 +1,25 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-27T16:51:14Z",
+  "generatedAt": "2026-11-27T21:09:25.557Z",
   "skills": {
     "path": "skills-c755a8fa14a0.json",
     "sha256": "c755a8fa14a0d63fa365d107b51ba8d61ebf0abbe2a94b99b20323db24abf464",
     "bytes": 87164345
   },
   "trending": {
-    "path": "trending-9c7affd1a315.json",
-    "sha256": "9c7affd1a315c0bf3fb0f67c3c9a3ebbdd7dc5741cbceb954d9b62308ff3a323",
-    "bytes": 54825
+    "path": "trending-47af14957edd.json",
+    "sha256": "47af14957eddce36747b326f2b8ea7d36655262c3b9ce8933ce354b3a4192d78",
+    "bytes": 53824
   },
   "trendingLeaderboard": {
-    "path": "trending-leaderboard-0353a8f5f987.json",
-    "sha256": "0353a8f5f98720e68a5bb329049078aa0b2ff95f064e996255ffcd0945ccd6c1",
-    "bytes": 194820
+    "path": "trending-leaderboard-f8dce78b1262.json",
+    "sha256": "f8dce78b1262a80741a9bca67b6488e8ee4583edc6cd03b592548fd90291701a",
+    "bytes": 191700
   },
   "leaderboardViewData": {
-    "path": "leaderboard-view-data-bab95a853ce8.json",
-    "sha256": "bab95a853ce875ed577eb6f452a9c7bddafc3dab6df1435e11f453f1fc4f3084",
-    "bytes": 43876
+    "path": "leaderboard-view-data-b7b1c243b93b.json",
+    "sha256": "b7b1c243b93b4900dd108381a9c15643dda54f686e4d5cc6bb0e89d310d8bfdb",
+    "bytes": 43832
   },
   "xTrending": {
     "path": "x-trending-c2ec558d316a.json",
@@ -27,19 +27,19 @@
     "bytes": 82126
   },
   "skillSignals": {
-    "path": "skill-signals-7ad0863118f4.json",
-    "sha256": "7ad0863118f4203632d8b202de25db883a70229c08d387c5cd74cfd79f7bc9a5",
-    "bytes": 7227943
+    "path": "skill-signals-bfc745612ed3.json",
+    "sha256": "bfc745612ed3c5912cb306406993e6f99f6679d71d60f0951b0858851039b840",
+    "bytes": 7227823
   },
   "authorSignals": {
-    "path": "author-signals-1bf63f2d8408.json",
-    "sha256": "1bf63f2d8408a7bea3b1731addf28825076c0ca8e3003943b8199d8a1d6f0c25",
-    "bytes": 2917291
+    "path": "author-signals-bea5b15f67af.json",
+    "sha256": "bea5b15f67af4907deb54baa2bd01e9a6e5bea9c76fc502729ffab1a0b7dea9e",
+    "bytes": 2917290
   },
   "authorLeaderboards": {
-    "path": "author-leaderboards-b535e450ad1f.json",
-    "sha256": "b535e450ad1f8c968d266244a3dcb51b1b5627eb07adf3c450d965521733a259",
-    "bytes": 6607195
+    "path": "author-leaderboards-ac22c0aeceae.json",
+    "sha256": "ac22c0aeceae83537f55224aed120c63a92b40f8566eb59559aafccd289b8880",
+    "bytes": 6607193
   },
   "collections": {
     "path": "collections-04091f15c788.json",
@@ -57,9 +57,9 @@
     "bytes": 18837
   },
   "sourceTrending": {
-    "path": "source-trending-84bddbb80232.json",
-    "sha256": "84bddbb80232f8c5b3fe0522b89897532e60925887946d437b514beab54f9dd4",
-    "bytes": 130583
+    "path": "source-trending-a439e51089e8.json",
+    "sha256": "a439e51089e8864b1dc40fd2b736752fd938e53d9e8c0345793d6bc73bfe4707",
+    "bytes": 128821
   },
   "descriptionHistory": {
     "path": "description-history-0e3d16af2fff.json",

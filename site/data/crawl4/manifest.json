@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-27T16:36:41.509Z",
+  "generatedAt": "2026-11-27T21:09:26.852Z",
   "skills": {
     "path": "skills-a96a9c9c05ef.json",
     "sha256": "a96a9c9c05ef1a4d07aa19599da8177ec78c074bf6eb2916e455b629a202e4af",
     "bytes": 88489654
   },
   "trending": {
-    "path": "trending-9c7affd1a315.json",
-    "sha256": "9c7affd1a315c0bf3fb0f67c3c9a3ebbdd7dc5741cbceb954d9b62308ff3a323",
-    "bytes": 54825
+    "path": "trending-47af14957edd.json",
+    "sha256": "47af14957eddce36747b326f2b8ea7d36655262c3b9ce8933ce354b3a4192d78",
+    "bytes": 53824
   },
   "xTrending": {
     "path": "x-trending-c2ec558d316a.json",
@@ -37,9 +37,9 @@
     "bytes": 813
   },
   "sourceTrending": {
-    "path": "source-trending-84bddbb80232.json",
-    "sha256": "84bddbb80232f8c5b3fe0522b89897532e60925887946d437b514beab54f9dd4",
-    "bytes": 130583
+    "path": "source-trending-a439e51089e8.json",
+    "sha256": "a439e51089e8864b1dc40fd2b736752fd938e53d9e8c0345793d6bc73bfe4707",
+    "bytes": 128821
   },
   "descriptionHistory": {
     "path": "description-history-0e3d16af2fff.json",

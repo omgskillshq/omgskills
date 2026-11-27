@@ -3,6 +3,12 @@
   "policyDigest": "sha256:d550400d0b058ae3d5b642b570bc59e2f98ec1ecab6cb60ece9f34a5b7939538",
   "reviews": [
     {
+      "sourceId": "101-skills/superpowers:agent-browser",
+      "checkedAt": "2026-11-27T21:09:02.583Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
       "sourceId": "101-skills/superpowers:ai-avatar-video",
       "checkedAt": "2026-11-23T23:49:20.889Z",
       "outcome": "blocked",
@@ -35,6 +41,12 @@
     {
       "sourceId": "anthropics/skills:frontend-design",
       "checkedAt": "2026-11-23T23:49:20.889Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "anthropics/skills:skill-creator",
+      "checkedAt": "2026-11-27T21:09:02.583Z",
       "outcome": "existing",
       "reason": "catalog-identity-or-path"
     },
@@ -201,8 +213,44 @@
       "reason": "verified-trending"
     },
     {
+      "sourceId": "coreyhaines31/marketingskills:ai-seo",
+      "checkedAt": "2026-11-27T21:09:02.583Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "coreyhaines31/marketingskills:content-strategy",
+      "checkedAt": "2026-11-27T21:09:02.583Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
       "sourceId": "coreyhaines31/marketingskills:copywriting",
       "checkedAt": "2026-11-26T21:26:51.128Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "coreyhaines31/marketingskills:cro",
+      "checkedAt": "2026-11-27T21:09:02.583Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "coreyhaines31/marketingskills:marketing-psychology",
+      "checkedAt": "2026-11-27T21:09:02.583Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "coreyhaines31/marketingskills:seo-audit",
+      "checkedAt": "2026-11-27T21:09:02.583Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "coreyhaines31/marketingskills:social",
+      "checkedAt": "2026-11-27T21:09:02.583Z",
       "outcome": "existing",
       "reason": "catalog-identity-or-path"
     },
@@ -253,6 +301,30 @@
       "checkedAt": "2026-11-24T22:21:49.950Z",
       "outcome": "added",
       "reason": "verified-trending"
+    },
+    {
+      "sourceId": "greensock/gsap-skills:gsap-core",
+      "checkedAt": "2026-11-27T21:09:02.583Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "greensock/gsap-skills:gsap-performance",
+      "checkedAt": "2026-11-27T21:09:02.583Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "greensock/gsap-skills:gsap-scrolltrigger",
+      "checkedAt": "2026-11-27T21:09:02.583Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "greensock/gsap-skills:gsap-timeline",
+      "checkedAt": "2026-11-27T21:09:02.583Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
     },
     {
       "sourceId": "heygen-com/hyperframes:media-use",
@@ -453,6 +525,12 @@
       "reason": "catalog-identity-or-path"
     },
     {
+      "sourceId": "mcollina/skills:fastify-best-practices",
+      "checkedAt": "2026-11-27T21:09:02.583Z",
+      "outcome": "unresolved",
+      "reason": "path-unresolved"
+    },
+    {
       "sourceId": "microsoft/azure-skills:azure-app-onboard",
       "checkedAt": "2026-11-23T23:49:20.889Z",
       "outcome": "existing",
@@ -477,6 +555,12 @@
       "reason": "catalog-identity-or-path"
     },
     {
+      "sourceId": "neondatabase/agent-skills:neon",
+      "checkedAt": "2026-11-27T21:09:02.583Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
       "sourceId": "nextlevelbuilder/ui-ux-pro-max-skill:ui-ux-pro-max",
       "checkedAt": "2026-11-25T21:38:14.722Z",
       "outcome": "existing",
@@ -491,6 +575,12 @@
     {
       "sourceId": "qu-skills/superpowers:agent-browser",
       "checkedAt": "2026-11-26T21:26:51.128Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
+      "sourceId": "qu-skills/superpowers:agent-tools",
+      "checkedAt": "2026-11-27T21:09:02.583Z",
       "outcome": "blocked",
       "reason": "confirmed-upstream-copy"
     },
@@ -513,8 +603,32 @@
       "reason": "confirmed-upstream-copy"
     },
     {
+      "sourceId": "qu-skills/superpowers:infsh-cli",
+      "checkedAt": "2026-11-27T21:09:02.583Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
+      "sourceId": "qu-skills/superpowers:python-executor",
+      "checkedAt": "2026-11-27T21:09:02.583Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
+      "sourceId": "qu-skills/superpowers:remotion-render",
+      "checkedAt": "2026-11-27T21:09:02.583Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
       "sourceId": "qu-skills/superpowers:twitter-automation",
       "checkedAt": "2026-11-22T19:31:05.026Z",
+      "outcome": "blocked",
+      "reason": "confirmed-upstream-copy"
+    },
+    {
+      "sourceId": "qu-skills/superpowers:web-search",
+      "checkedAt": "2026-11-27T21:09:02.583Z",
       "outcome": "blocked",
       "reason": "confirmed-upstream-copy"
     },
@@ -659,6 +773,12 @@
     {
       "sourceId": "vercel-labs/agent-skills:vercel-composition-patterns",
       "checkedAt": "2026-11-25T21:38:14.722Z",
+      "outcome": "existing",
+      "reason": "catalog-identity-or-path"
+    },
+    {
+      "sourceId": "vercel-labs/agent-skills:vercel-optimize",
+      "checkedAt": "2026-11-27T21:09:02.583Z",
       "outcome": "existing",
       "reason": "catalog-identity-or-path"
     },

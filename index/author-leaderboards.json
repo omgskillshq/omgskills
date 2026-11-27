@@ -6326,9 +6326,9 @@
     "isVendor": false,
     "leaderboardCategories": {
       "most-used": {
-        "rank": 17,
-        "value": "1.0M installs",
-        "detail": "36 skills · 12 with installs"
+        "rank": 18,
+        "value": "705.3k installs",
+        "detail": "36 skills · 8 with installs"
       },
       "consistent": {
         "rank": 12,
@@ -6336,9 +6336,9 @@
         "detail": "36 skills · 3.0M total ⭐"
       },
       "efficient": {
-        "rank": 16,
-        "value": "28.7k installs/skill",
-        "detail": "12 skills with installs"
+        "rank": 19,
+        "value": "19.6k installs/skill",
+        "detail": "8 skills with installs"
       }
     },
     "isGoat": true,
@@ -6354,9 +6354,9 @@
       "distinctRepoCount": 3,
       "medianRepoStars": 3004,
       "bestRepoStars": 120744,
-      "totalInstalls": 1032451,
-      "skillsWithInstalls": 12,
-      "avgInstallsPerSkill": 28679,
+      "totalInstalls": 705331,
+      "skillsWithInstalls": 8,
+      "avgInstallsPerSkill": 19593,
       "goldBasketCount": 1,
       "editorialScore": 188,
       "editorialScoreReasons": [
@@ -20710,8 +20710,8 @@
       },
       "most-used": {
         "rank": 15,
-        "value": "1.4M installs",
-        "detail": "371 skills · 7 with installs"
+        "value": "1.3M installs",
+        "detail": "371 skills · 6 with installs"
       },
       "peak": {
         "rank": 7,
@@ -20737,9 +20737,9 @@
       "distinctRepoCount": 20,
       "medianRepoStars": 13882,
       "bestRepoStars": 201366,
-      "totalInstalls": 1445261,
-      "skillsWithInstalls": 7,
-      "avgInstallsPerSkill": 3896,
+      "totalInstalls": 1297733,
+      "skillsWithInstalls": 6,
+      "avgInstallsPerSkill": 3498,
       "goldBasketCount": 51,
       "editorialScore": 794,
       "editorialScoreReasons": [
@@ -20782,7 +20782,7 @@
     "leaderboardCategories": {
       "efficient": {
         "rank": 7,
-        "value": "154.9k installs/skill",
+        "value": "155.2k installs/skill",
         "detail": "3 skills with installs"
       }
     },
@@ -20799,9 +20799,9 @@
       "distinctRepoCount": 1,
       "medianRepoStars": 513,
       "bestRepoStars": 513,
-      "totalInstalls": 464631,
+      "totalInstalls": 465523,
       "skillsWithInstalls": 3,
-      "avgInstallsPerSkill": 154877,
+      "avgInstallsPerSkill": 155174,
       "goldBasketCount": 0,
       "editorialScore": 63,
       "editorialScoreReasons": [
@@ -28119,13 +28119,13 @@
     "isVendor": false,
     "leaderboardCategories": {
       "most-used": {
-        "rank": 18,
-        "value": "847.5k installs",
+        "rank": 17,
+        "value": "849.3k installs",
         "detail": "6 skills · 6 with installs"
       },
       "efficient": {
         "rank": 9,
-        "value": "141.2k installs/skill",
+        "value": "141.5k installs/skill",
         "detail": "6 skills with installs"
       }
     },
@@ -28142,9 +28142,9 @@
       "distinctRepoCount": 1,
       "medianRepoStars": 190,
       "bestRepoStars": 190,
-      "totalInstalls": 847471,
+      "totalInstalls": 849274,
       "skillsWithInstalls": 6,
-      "avgInstallsPerSkill": 141245,
+      "avgInstallsPerSkill": 141546,
       "goldBasketCount": 0,
       "editorialScore": 55,
       "editorialScoreReasons": [
@@ -45512,9 +45512,9 @@
       "distinctRepoCount": 3,
       "medianRepoStars": 59,
       "bestRepoStars": 73871,
-      "totalInstalls": 34787,
+      "totalInstalls": 34896,
       "skillsWithInstalls": 1,
-      "avgInstallsPerSkill": 11596,
+      "avgInstallsPerSkill": 11632,
       "goldBasketCount": 0,
       "editorialScore": 61,
       "editorialScoreReasons": [
@@ -52792,7 +52792,7 @@
       },
       "efficient": {
         "rank": 15,
-        "value": "33.5k installs/skill",
+        "value": "33.6k installs/skill",
         "detail": "24 skills with installs"
       }
     },
@@ -52809,9 +52809,9 @@
       "distinctRepoCount": 11,
       "medianRepoStars": 6030,
       "bestRepoStars": 26775,
-      "totalInstalls": 2009128,
+      "totalInstalls": 2015318,
       "skillsWithInstalls": 24,
-      "avgInstallsPerSkill": 33485,
+      "avgInstallsPerSkill": 33589,
       "goldBasketCount": 0,
       "editorialScore": 102,
       "editorialScoreReasons": [
@@ -56546,7 +56546,7 @@
     "leaderboardCategories": {
       "most-used": {
         "rank": 16,
-        "value": "1.1M installs",
+        "value": "1.2M installs",
         "detail": "74 skills · 12 with installs"
       },
       "efficient": {
@@ -56568,9 +56568,9 @@
       "distinctRepoCount": 2,
       "medianRepoStars": 31868,
       "bestRepoStars": 62861,
-      "totalInstalls": 1148318,
+      "totalInstalls": 1150355,
       "skillsWithInstalls": 12,
-      "avgInstallsPerSkill": 15518,
+      "avgInstallsPerSkill": 15545,
       "goldBasketCount": 0,
       "editorialScore": 90,
       "editorialScoreReasons": [
@@ -59091,9 +59091,9 @@
       "distinctRepoCount": 2,
       "medianRepoStars": 11858,
       "bestRepoStars": 19715,
-      "totalInstalls": 41681,
+      "totalInstalls": 41818,
       "skillsWithInstalls": 1,
-      "avgInstallsPerSkill": 502,
+      "avgInstallsPerSkill": 504,
       "goldBasketCount": 0,
       "editorialScore": 75,
       "editorialScoreReasons": [
@@ -68438,7 +68438,7 @@
       },
       "efficient": {
         "rank": 13,
-        "value": "80.2k installs/skill",
+        "value": "80.4k installs/skill",
         "detail": "6 skills with installs"
       }
     },
@@ -68455,9 +68455,9 @@
       "distinctRepoCount": 1,
       "medianRepoStars": 196682,
       "bestRepoStars": 196682,
-      "totalInstalls": 481145,
+      "totalInstalls": 482401,
       "skillsWithInstalls": 6,
-      "avgInstallsPerSkill": 80191,
+      "avgInstallsPerSkill": 80400,
       "goldBasketCount": 0,
       "editorialScore": 90,
       "editorialScoreReasons": [
@@ -77685,7 +77685,7 @@
       },
       "efficient": {
         "rank": 4,
-        "value": "205.2k installs/skill",
+        "value": "205.9k installs/skill",
         "detail": "20 skills with installs"
       }
     },
@@ -77702,9 +77702,9 @@
       "distinctRepoCount": 1,
       "medianRepoStars": 60412,
       "bestRepoStars": 60412,
-      "totalInstalls": 4103827,
+      "totalInstalls": 4118861,
       "skillsWithInstalls": 20,
-      "avgInstallsPerSkill": 205191,
+      "avgInstallsPerSkill": 205943,
       "goldBasketCount": 0,
       "editorialScore": 90,
       "editorialScoreReasons": [
@@ -86078,9 +86078,9 @@
       "distinctRepoCount": 1,
       "medianRepoStars": 35,
       "bestRepoStars": 35,
-      "totalInstalls": 243416,
+      "totalInstalls": 246384,
       "skillsWithInstalls": 1,
-      "avgInstallsPerSkill": 121708,
+      "avgInstallsPerSkill": 123192,
       "goldBasketCount": 0,
       "editorialScore": 45,
       "editorialScoreReasons": [
@@ -95510,7 +95510,7 @@
         "detail": "avg 18.0k ⭐ per skill"
       },
       "efficient": {
-        "rank": 18,
+        "rank": 17,
         "value": "24.7k installs/skill",
         "detail": "7 skills with installs"
       }
@@ -95528,9 +95528,9 @@
       "distinctRepoCount": 8,
       "medianRepoStars": 2065,
       "bestRepoStars": 24747,
-      "totalInstalls": 4196322,
+      "totalInstalls": 4199571,
       "skillsWithInstalls": 7,
-      "avgInstallsPerSkill": 24684,
+      "avgInstallsPerSkill": 24703,
       "goldBasketCount": 1,
       "editorialScore": 188,
       "editorialScoreReasons": [
@@ -95677,9 +95677,9 @@
       "distinctRepoCount": 1,
       "medianRepoStars": 25442,
       "bestRepoStars": 25442,
-      "totalInstalls": 92237,
+      "totalInstalls": 92635,
       "skillsWithInstalls": 1,
-      "avgInstallsPerSkill": 46119,
+      "avgInstallsPerSkill": 46318,
       "goldBasketCount": 0,
       "editorialScore": 75,
       "editorialScoreReasons": [
@@ -102873,7 +102873,7 @@
       },
       "efficient": {
         "rank": 6,
-        "value": "163.0k installs/skill",
+        "value": "163.5k installs/skill",
         "detail": "7 skills with installs"
       }
     },
@@ -102890,9 +102890,9 @@
       "distinctRepoCount": 6,
       "medianRepoStars": 310,
       "bestRepoStars": 91343,
-      "totalInstalls": 6518973,
+      "totalInstalls": 6538582,
       "skillsWithInstalls": 7,
-      "avgInstallsPerSkill": 162974,
+      "avgInstallsPerSkill": 163465,
       "goldBasketCount": 7,
       "editorialScore": 250,
       "editorialScoreReasons": [
@@ -103546,7 +103546,7 @@
       },
       "efficient": {
         "rank": 5,
-        "value": "190.3k installs/skill",
+        "value": "190.9k installs/skill",
         "detail": "9 skills with installs"
       }
     },
@@ -103563,9 +103563,9 @@
       "distinctRepoCount": 1,
       "medianRepoStars": 1954,
       "bestRepoStars": 1954,
-      "totalInstalls": 1712650,
+      "totalInstalls": 1718229,
       "skillsWithInstalls": 9,
-      "avgInstallsPerSkill": 190294,
+      "avgInstallsPerSkill": 190914,
       "goldBasketCount": 0,
       "editorialScore": 80,
       "editorialScoreReasons": [
@@ -109024,9 +109024,9 @@
       "distinctRepoCount": 1,
       "medianRepoStars": 601,
       "bestRepoStars": 601,
-      "totalInstalls": 44036,
+      "totalInstalls": 44303,
       "skillsWithInstalls": 1,
-      "avgInstallsPerSkill": 44036,
+      "avgInstallsPerSkill": 44303,
       "goldBasketCount": 0,
       "editorialScore": 48,
       "editorialScoreReasons": [
@@ -112636,9 +112636,9 @@
       "distinctRepoCount": 4,
       "medianRepoStars": 10,
       "bestRepoStars": 281,
-      "totalInstalls": 114950,
+      "totalInstalls": 115192,
       "skillsWithInstalls": 1,
-      "avgInstallsPerSkill": 3964,
+      "avgInstallsPerSkill": 3972,
       "goldBasketCount": 0,
       "editorialScore": 51,
       "editorialScoreReasons": [
@@ -127037,7 +127037,7 @@
       },
       "efficient": {
         "rank": 8,
-        "value": "141.8k installs/skill",
+        "value": "142.0k installs/skill",
         "detail": "21 skills with installs"
       }
     },
@@ -127054,9 +127054,9 @@
       "distinctRepoCount": 3,
       "medianRepoStars": 1156,
       "bestRepoStars": 123256,
-      "totalInstalls": 4678508,
+      "totalInstalls": 4684563,
       "skillsWithInstalls": 21,
-      "avgInstallsPerSkill": 141773,
+      "avgInstallsPerSkill": 141956,
       "goldBasketCount": 12,
       "editorialScore": 320,
       "editorialScoreReasons": [
@@ -138900,7 +138900,7 @@
       },
       "efficient": {
         "rank": 2,
-        "value": "354.5k installs/skill",
+        "value": "354.6k installs/skill",
         "detail": "25 skills with installs"
       }
     },
@@ -138917,9 +138917,9 @@
       "distinctRepoCount": 4,
       "medianRepoStars": 1400,
       "bestRepoStars": 18213,
-      "totalInstalls": 11343636,
+      "totalInstalls": 11346007,
       "skillsWithInstalls": 25,
-      "avgInstallsPerSkill": 354489,
+      "avgInstallsPerSkill": 354563,
       "goldBasketCount": 0,
       "editorialScore": 96,
       "editorialScoreReasons": [
@@ -142451,12 +142451,12 @@
     "leaderboardCategories": {
       "most-used": {
         "rank": 20,
-        "value": "556.4k installs",
+        "value": "557.5k installs",
         "detail": "4 skills · 4 with installs"
       },
       "efficient": {
         "rank": 10,
-        "value": "139.1k installs/skill",
+        "value": "139.4k installs/skill",
         "detail": "4 skills with installs"
       }
     },
@@ -142473,9 +142473,9 @@
       "distinctRepoCount": 1,
       "medianRepoStars": 5,
       "bestRepoStars": 5,
-      "totalInstalls": 556363,
+      "totalInstalls": 557516,
       "skillsWithInstalls": 4,
-      "avgInstallsPerSkill": 139091,
+      "avgInstallsPerSkill": 139379,
       "goldBasketCount": 0,
       "editorialScore": 45,
       "editorialScoreReasons": [
@@ -145220,7 +145220,7 @@
       },
       "efficient": {
         "rank": 1,
-        "value": "418.5k installs/skill",
+        "value": "418.7k installs/skill",
         "detail": "11 skills with installs"
       }
     },
@@ -145237,9 +145237,9 @@
       "distinctRepoCount": 1,
       "medianRepoStars": 516,
       "bestRepoStars": 516,
-      "totalInstalls": 4603299,
+      "totalInstalls": 4605961,
       "skillsWithInstalls": 11,
-      "avgInstallsPerSkill": 418482,
+      "avgInstallsPerSkill": 418724,
       "goldBasketCount": 0,
       "editorialScore": 63,
       "editorialScoreReasons": [
@@ -154930,9 +154930,9 @@
       "distinctRepoCount": 3,
       "medianRepoStars": 99,
       "bestRepoStars": 29858,
-      "totalInstalls": 114719,
+      "totalInstalls": 114997,
       "skillsWithInstalls": 1,
-      "avgInstallsPerSkill": 8194,
+      "avgInstallsPerSkill": 8214,
       "goldBasketCount": 0,
       "editorialScore": 76,
       "editorialScoreReasons": [
@@ -155979,7 +155979,7 @@
       },
       "efficient": {
         "rank": 3,
-        "value": "216.3k installs/skill",
+        "value": "216.5k installs/skill",
         "detail": "19 skills with installs"
       }
     },
@@ -155996,9 +155996,9 @@
       "distinctRepoCount": 7,
       "medianRepoStars": 856,
       "bestRepoStars": 334109,
-      "totalInstalls": 13191494,
+      "totalInstalls": 13205728,
       "skillsWithInstalls": 19,
-      "avgInstallsPerSkill": 216254,
+      "avgInstallsPerSkill": 216487,
       "goldBasketCount": 44,
       "editorialScore": 694,
       "editorialScoreReasons": [
@@ -160704,7 +160704,7 @@
         "detail": "avg 19.4k ⭐ per skill"
       },
       "efficient": {
-        "rank": 17,
+        "rank": 16,
         "value": "25.6k installs/skill",
         "detail": "25 skills with installs"
       }
@@ -160722,9 +160722,9 @@
       "distinctRepoCount": 53,
       "medianRepoStars": 1644,
       "bestRepoStars": 195865,
-      "totalInstalls": 17402364,
+      "totalInstalls": 17411740,
       "skillsWithInstalls": 25,
-      "avgInstallsPerSkill": 25554,
+      "avgInstallsPerSkill": 25568,
       "goldBasketCount": 64,
       "editorialScore": 950,
       "editorialScoreReasons": [
@@ -172044,9 +172044,9 @@
       "distinctRepoCount": 7,
       "medianRepoStars": 52,
       "bestRepoStars": 654,
-      "totalInstalls": 321742,
+      "totalInstalls": 321979,
       "skillsWithInstalls": 1,
-      "avgInstallsPerSkill": 13989,
+      "avgInstallsPerSkill": 13999,
       "goldBasketCount": 0,
       "editorialScore": 59,
       "editorialScoreReasons": [
@@ -173062,8 +173062,8 @@
         "detail": "7 skills · 953.9k total ⭐"
       },
       "efficient": {
-        "rank": 19,
-        "value": "24.5k installs/skill",
+        "rank": 18,
+        "value": "24.6k installs/skill",
         "detail": "3 skills with installs"
       }
     },
@@ -173080,9 +173080,9 @@
       "distinctRepoCount": 1,
       "medianRepoStars": 155001,
       "bestRepoStars": 155001,
-      "totalInstalls": 171368,
+      "totalInstalls": 171888,
       "skillsWithInstalls": 3,
-      "avgInstallsPerSkill": 24481,
+      "avgInstallsPerSkill": 24555,
       "goldBasketCount": 1,
       "editorialScore": 182,
       "editorialScoreReasons": [
@@ -177193,9 +177193,9 @@
       "distinctRepoCount": 3,
       "medianRepoStars": 218,
       "bestRepoStars": 29498,
-      "totalInstalls": 105622,
+      "totalInstalls": 105879,
       "skillsWithInstalls": 1,
-      "avgInstallsPerSkill": 35207,
+      "avgInstallsPerSkill": 35293,
       "goldBasketCount": 0,
       "editorialScore": 86,
       "editorialScoreReasons": [
@@ -177605,9 +177605,9 @@
       "distinctRepoCount": 1,
       "medianRepoStars": 53110,
       "bestRepoStars": 53110,
-      "totalInstalls": 126835,
+      "totalInstalls": 127192,
       "skillsWithInstalls": 1,
-      "avgInstallsPerSkill": 126835,
+      "avgInstallsPerSkill": 127192,
       "goldBasketCount": 0,
       "editorialScore": 90,
       "editorialScoreReasons": [
@@ -178537,7 +178537,7 @@
       },
       "efficient": {
         "rank": 14,
-        "value": "70.0k installs/skill",
+        "value": "70.1k installs/skill",
         "detail": "15 skills with installs"
       }
     },
@@ -178554,9 +178554,9 @@
       "distinctRepoCount": 6,
       "medianRepoStars": 452,
       "bestRepoStars": 328103,
-      "totalInstalls": 4129763,
+      "totalInstalls": 4135086,
       "skillsWithInstalls": 15,
-      "avgInstallsPerSkill": 69996,
+      "avgInstallsPerSkill": 70086,
       "goldBasketCount": 15,
       "editorialScore": 346,
       "editorialScoreReasons": [
@@ -186235,9 +186235,9 @@
       "distinctRepoCount": 4,
       "medianRepoStars": 175,
       "bestRepoStars": 117911,
-      "totalInstalls": 440135,
+      "totalInstalls": 440860,
       "skillsWithInstalls": 1,
-      "avgInstallsPerSkill": 62876,
+      "avgInstallsPerSkill": 62980,
       "goldBasketCount": 0,
       "editorialScore": 86,
       "editorialScoreReasons": [
@@ -191992,7 +191992,7 @@
       },
       "efficient": {
         "rank": 12,
-        "value": "111.6k installs/skill",
+        "value": "111.8k installs/skill",
         "detail": "11 skills with installs"
       }
     },
@@ -192009,9 +192009,9 @@
       "distinctRepoCount": 2,
       "medianRepoStars": 247,
       "bestRepoStars": 414,
-      "totalInstalls": 4130815,
+      "totalInstalls": 4136062,
       "skillsWithInstalls": 11,
-      "avgInstallsPerSkill": 111644,
+      "avgInstallsPerSkill": 111785,
       "goldBasketCount": 0,
       "editorialScore": 55,
       "editorialScoreReasons": [
@@ -198630,7 +198630,7 @@
       },
       "efficient": {
         "rank": 11,
-        "value": "123.0k installs/skill",
+        "value": "123.7k installs/skill",
         "detail": "13 skills with installs"
       }
     },
@@ -198647,9 +198647,9 @@
       "distinctRepoCount": 5,
       "medianRepoStars": 197,
       "bestRepoStars": 76121,
-      "totalInstalls": 5411487,
+      "totalInstalls": 5442000,
       "skillsWithInstalls": 13,
-      "avgInstallsPerSkill": 122988,
+      "avgInstallsPerSkill": 123682,
       "goldBasketCount": 12,
       "editorialScore": 310,
       "editorialScoreReasons": [
@@ -211606,9 +211606,9 @@
       "distinctRepoCount": 1,
       "medianRepoStars": 129253,
       "bestRepoStars": 129253,
-      "totalInstalls": 162680,
+      "totalInstalls": 162994,
       "skillsWithInstalls": 1,
-      "avgInstallsPerSkill": 81340,
+      "avgInstallsPerSkill": 81497,
       "goldBasketCount": 0,
       "editorialScore": 90,
       "editorialScoreReasons": [
@@ -220540,9 +220540,9 @@
       "distinctRepoCount": 2,
       "medianRepoStars": 112,
       "bestRepoStars": 177,
-      "totalInstalls": 111053,
+      "totalInstalls": 111316,
       "skillsWithInstalls": 1,
-      "avgInstallsPerSkill": 37018,
+      "avgInstallsPerSkill": 37105,
       "goldBasketCount": 0,
       "editorialScore": 55,
       "editorialScoreReasons": [
@@ -221750,9 +221750,9 @@
       "distinctRepoCount": 2,
       "medianRepoStars": 71344,
       "bestRepoStars": 142129,
-      "totalInstalls": 366988,
+      "totalInstalls": 367233,
       "skillsWithInstalls": 1,
-      "avgInstallsPerSkill": 40776,
+      "avgInstallsPerSkill": 40804,
       "goldBasketCount": 0,
       "editorialScore": 90,
       "editorialScoreReasons": [
@@ -225179,9 +225179,9 @@
       "distinctRepoCount": 3,
       "medianRepoStars": 2944,
       "bestRepoStars": 115615,
-      "totalInstalls": 376879,
+      "totalInstalls": 377119,
       "skillsWithInstalls": 1,
-      "avgInstallsPerSkill": 17131,
+      "avgInstallsPerSkill": 17142,
       "goldBasketCount": 5,
       "editorialScore": 236,
       "editorialScoreReasons": [
@@ -225260,9 +225260,9 @@
       "distinctRepoCount": 1,
       "medianRepoStars": 79,
       "bestRepoStars": 79,
-      "totalInstalls": 20310,
+      "totalInstalls": 20809,
       "skillsWithInstalls": 2,
-      "avgInstallsPerSkill": 6770,
+      "avgInstallsPerSkill": 6936,
       "goldBasketCount": 0,
       "editorialScore": 30,
       "editorialScoreReasons": [
@@ -241348,7 +241348,7 @@
     "leaderboardCategories": {
       "most-used": {
         "rank": 19,
-        "value": "560.9k installs",
+        "value": "561.0k installs",
         "detail": "2 skills · 2 with installs"
       }
     },
@@ -241365,9 +241365,9 @@
       "distinctRepoCount": 1,
       "medianRepoStars": 136,
       "bestRepoStars": 136,
-      "totalInstalls": 560934,
+      "totalInstalls": 560958,
       "skillsWithInstalls": 2,
-      "avgInstallsPerSkill": 280467,
+      "avgInstallsPerSkill": 280479,
       "goldBasketCount": 0,
       "editorialScore": 55,
       "editorialScoreReasons": [
@@ -243389,9 +243389,9 @@
       "distinctRepoCount": 2,
       "medianRepoStars": 157,
       "bestRepoStars": 195,
-      "totalInstalls": 76461,
+      "totalInstalls": 83836,
       "skillsWithInstalls": 2,
-      "avgInstallsPerSkill": 38231,
+      "avgInstallsPerSkill": 41918,
       "goldBasketCount": 0,
       "editorialScore": 40,
       "editorialScoreReasons": [
@@ -245086,9 +245086,9 @@
       "distinctRepoCount": 38,
       "medianRepoStars": 888,
       "bestRepoStars": 54286,
-      "totalInstalls": 6311239,
+      "totalInstalls": 6320295,
       "skillsWithInstalls": 2,
-      "avgInstallsPerSkill": 48177,
+      "avgInstallsPerSkill": 48247,
       "goldBasketCount": 2,
       "editorialScore": 196,
       "editorialScoreReasons": [
@@ -253048,9 +253048,9 @@
       "distinctRepoCount": 1,
       "medianRepoStars": 138,
       "bestRepoStars": 138,
-      "totalInstalls": 264744,
+      "totalInstalls": 264805,
       "skillsWithInstalls": 1,
-      "avgInstallsPerSkill": 88248,
+      "avgInstallsPerSkill": 88268,
       "goldBasketCount": 1,
       "editorialScore": 147,
       "editorialScoreReasons": [
