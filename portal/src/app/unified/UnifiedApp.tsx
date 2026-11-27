@@ -29,7 +29,6 @@ import {
   ChevronRight,
   ChevronsUpDown,
   CirclePlay,
-  Code,
   Compass,
   Copy,
   Trash2,
@@ -741,10 +740,22 @@ export function UnifiedApp({
   const [historyOpen, setHistoryOpen] = useState(false);
   useEffect(() => { setInstallOpen(false); setDescriptionOpen(false); setHistoryOpen(false); }, [nav.selected]);
   // An old account page's address (Devices, GitHub sources, MCP, Sync) opens Settings at its section.
+  // The page may still be loading (or its sections above still growing): look for the section for a few
+  // seconds, and scroll to it once more after it appears.
   useEffect(() => {
     if (nav.view === "profile" || !settingsViews.includes(nav.view)) return;
-    const timer = setTimeout(() => document.getElementById(`settings-${nav.view}`)?.scrollIntoView({ block: "start" }), 60);
-    return () => clearTimeout(timer);
+    const id = `settings-${nav.view}`;
+    let again: ReturnType<typeof setTimeout> | undefined;
+    let tries = 0;
+    const look = setInterval(() => {
+      const section = document.getElementById(id);
+      if (section) {
+        clearInterval(look);
+        section.scrollIntoView({ block: "start" });
+        again = setTimeout(() => document.getElementById(id)?.scrollIntoView({ block: "start" }), 800);
+      } else if (++tries > 40) clearInterval(look);
+    }, 100);
+    return () => { clearInterval(look); clearTimeout(again); };
   }, [nav.view]);
   const [showHidden, setShowHidden] = useState(false);
   // A skill opened straight from its address (search, shared link) starts as a full-width page;
@@ -2831,7 +2842,7 @@ export function UnifiedApp({
                 {!detail.setItemReleaseId && (cloud && (detail.installed || detail.cloudKey) && cloudRow(detail)
                   ? <SkillSyncSection key={detail.key} row={cloudRow(detail)} keys={savedSkillKeys(detail)} cloud={cloud}
                     installed={!!detail.installed} editable={!readOnlyAccount || !!management}
-                    openSettings={supportsView("profile") ? () => go("profile") : undefined}
+                    openSettings={settingsSections.includes("cloud") ? () => go("cloud") : undefined}
                     versions={savedVersions && <SavedVersionsList skill={detail}
                       liveName={!readOnlyAccount || management ? detailLive?.name : undefined} load={savedVersions} />} />
                   : savedVersions && <SavedVersionsList skill={detail}
