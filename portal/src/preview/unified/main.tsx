@@ -203,8 +203,7 @@ function Preview() {
         leaveOut: async (keys, leftOut) => setCloudState(state => ({ ...state, settings: { ...state.settings,
           excludedSkillKeys: leftOut ? [...new Set([...state.settings.excludedSkillKeys, ...keys])]
             : state.settings.excludedSkillKeys.filter(key => !keys.includes(key)) } })) }}
-      accountPages={signedIn ? view => view === "profile" ? <div className="ua-account-page">
-        <h2>{data.profile.name}</h2><p>{data.profile.email}</p>
+      accountPages={signedIn ? view => view === "cloud" ? <div className="ua-account-page">
         <SyncSettings state={cloudState} status="ready" skills={data.skills}
           find={name => navigate({ ...initialNavigation, view: "all", query: name })}
           setEnabled={async enabled => setCloudState(state => ({ ...state, settings: { ...state.settings, enabled } }))}
