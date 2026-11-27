@@ -37,11 +37,20 @@ enum CloudSaveKeys {
         return "\(agent)/\(URL(fileURLWithPath: skill.installCmd).lastPathComponent)"
     }
 
+    /// A key this Mac uses for one skill folder, and the SKILL.md name of the skill in it: the web uses the key
+    /// only while that skill is still there.
+    struct Located: Encodable, Equatable, Sendable {
+        let key: String
+        let name: String
+    }
+
     /// This pass's keys (by `installCmd`) by location, for the web.
-    static func byLocation(_ keys: [String: String], installations: [Skill]) -> [String: String] {
-        var located: [String: String] = [:]
+    static func byLocation(_ keys: [String: String], installations: [Skill]) -> [String: Located] {
+        var located: [String: Located] = [:]
         for skill in installations {
-            if let key = keys[skill.installCmd], !key.isEmpty, let location = location(of: skill) { located[location] = key }
+            if let key = keys[skill.installCmd], !key.isEmpty, let location = location(of: skill) {
+                located[location] = Located(key: key, name: skill.name)
+            }
         }
         return located
     }

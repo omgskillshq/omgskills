@@ -119,7 +119,7 @@ protocol CloudSaveServing: Sendable {
     /// Tells the web why each skill wasn't saved, and the key each skill folder here uses (by
     /// `CloudSaveKeys.location`), replacing this Mac's last report. The web uses these keys rather than
     /// working them out again, so the two always agree.
-    func reportSkipped(_ skipped: [String: CloudSaveSkipReason], keys: [String: String], credential: StoredDeviceCredential) async throws
+    func reportSkipped(_ skipped: [String: CloudSaveSkipReason], keys: [String: CloudSaveKeys.Located], credential: StoredDeviceCredential) async throws
     /// Library skills added to My skills (by catalog ID), installed anywhere or not.
     func mySkillAdditions(credential: StoredDeviceCredential) async throws -> [String]
     /// The server's counts, read after a pass so they include it; nil from a server without them.
@@ -136,7 +136,7 @@ struct CloudSaveBatchUnsupported: Error {}
 extension CloudSaveServing {
     func setExcluded(_ keys: [String], credential: StoredDeviceCredential) async throws {}
 
-    func reportSkipped(_ skipped: [String: CloudSaveSkipReason], keys: [String: String], credential: StoredDeviceCredential) async throws {}
+    func reportSkipped(_ skipped: [String: CloudSaveSkipReason], keys: [String: CloudSaveKeys.Located], credential: StoredDeviceCredential) async throws {}
 
     func mySkillAdditions(credential: StoredDeviceCredential) async throws -> [String] { [] }
 
@@ -273,9 +273,10 @@ struct CloudSaveAPI: CloudSaveServing {
         _ = try await send("DELETE", path: ["skills", key, "review"], credential: credential)
     }
 
-    func reportSkipped(_ skipped: [String: CloudSaveSkipReason], keys: [String: String], credential: StoredDeviceCredential) async throws {
+    func reportSkipped(_ skipped: [String: CloudSaveSkipReason], keys: [String: CloudSaveKeys.Located], credential: StoredDeviceCredential) async throws {
         try requireUploadScope(credential)
-        _ = try await send("PUT", path: ["skipped"], json: ["skipped": skipped.mapValues(\.rawValue), "keys": keys], credential: credential)
+        _ = try await send("PUT", path: ["skipped"], json: ["skipped": skipped.mapValues(\.rawValue),
+            "keys": keys.mapValues { ["key": $0.key, "name": $0.name] }], credential: credential)
     }
 
     /// Delete everywhere: the saved copy and every version go, and the skill is left out of sync from then on.

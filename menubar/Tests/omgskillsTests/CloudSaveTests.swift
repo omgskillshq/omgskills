@@ -312,8 +312,8 @@ private actor FakeCloudSave: CloudSaveServing {
     var withdrawn: [String] = []
     func withdrawReview(key: String, credential: StoredDeviceCredential) async throws { withdrawn.append(key) }
     var reported: [[String: CloudSaveSkipReason]] = []
-    var reportedKeys: [[String: String]] = []
-    func reportSkipped(_ skipped: [String: CloudSaveSkipReason], keys: [String: String], credential: StoredDeviceCredential) async throws {
+    var reportedKeys: [[String: CloudSaveKeys.Located]] = []
+    func reportSkipped(_ skipped: [String: CloudSaveSkipReason], keys: [String: CloudSaveKeys.Located], credential: StoredDeviceCredential) async throws {
         reported.append(skipped)
         reportedKeys.append(keys)
     }
@@ -560,7 +560,7 @@ struct CloudSaveSyncTests {
             }
             func markDeletedLocally(key: String, deleted: Bool, credential: StoredDeviceCredential) async throws {}
             func withdrawReview(key: String, credential: StoredDeviceCredential) async throws {}
-            func reportSkipped(_ skipped: [String: CloudSaveSkipReason], keys: [String: String], credential: StoredDeviceCredential) async throws {
+            func reportSkipped(_ skipped: [String: CloudSaveSkipReason], keys: [String: CloudSaveKeys.Located], credential: StoredDeviceCredential) async throws {
                 Issue.record("a stopped pass must not report")
             }
         }
@@ -667,7 +667,8 @@ struct CloudSaveSyncTests {
             lastKeys: [big.path: "last30days@claude"], deviceID: "device-1", credential: credential())
         #expect(summary.keys[big.path] == "last30days@claude")
         #expect(await api.reported == [["last30days@claude": .tooLarge]])
-        #expect(await api.reportedKeys == [["claude/last30days": "last30days@claude", "codex/notes": "notes"]])
+        #expect(await api.reportedKeys == [["claude/last30days": .init(key: "last30days@claude", name: "last30days"),
+                                             "codex/notes": .init(key: "notes", name: "notes")]])
     }
 
     @Test func aSkillLeftOutUnderItsFolderNameStaysLeftOutUnderItsOwnKey() async throws {
@@ -970,13 +971,14 @@ struct CloudSaveAPITests {
     @Test func reportsWhySkillsWereNotSavedWithTheKeyEachFolderUses() async throws {
         let session = CloudSaveHTTPSession([(204, "")])
         try await CloudSaveAPI(origin: origin, session: session).reportSkipped(["last30days@claude": .tooLarge],
-            keys: ["claude/last30days": "last30days@claude"], credential: credential())
+            keys: ["claude/last30days": .init(key: "last30days@claude", name: "last30days")], credential: credential())
         let request = try #require(await session.requests.first)
         #expect(request.httpMethod == "PUT")
         #expect(request.url?.path == "/api/portal/cloud-save/skipped")
         let sent = try #require(request.httpBody)
-        let body = try #require(JSONSerialization.jsonObject(with: sent) as? [String: [String: String]])
-        #expect(body == ["skipped": ["last30days@claude": "too_large"], "keys": ["claude/last30days": "last30days@claude"]])
+        let body = try #require(JSONSerialization.jsonObject(with: sent) as? [String: Any])
+        #expect(body["skipped"] as? [String: String] == ["last30days@claude": "too_large"])
+        #expect(body["keys"] as? [String: [String: String]] == ["claude/last30days": ["key": "last30days@claude", "name": "last30days"]])
     }
 
     @Test func mapsHeldFilesAndRefusesUploadsWithoutPermission() async throws {
