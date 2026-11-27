@@ -386,9 +386,13 @@ export async function readReportedCloudKeys(db: Database, userId: string): Promi
   const result = await db.query<{ deviceId: string; keys: Record<string, unknown> }>(
     `SELECT report.device_id AS "deviceId", report.cloud_keys AS keys FROM cloud_skip_reports report
      JOIN device_tokens device ON device.id = report.device_id AND device.revoked_at IS NULL
-     WHERE report.user_id = $1 AND report.cloud_keys IS NOT NULL`,
+     WHERE report.user_id = $1 AND report.cloud_keys IS NOT NULL
+     ORDER BY report.reported_at, report.device_id`,
     [userId]
-  ).catch(() => ({ rows: [] }));
+  ).catch((error: unknown) => {
+    console.warn("Reported cloud keys unread; working keys out", error instanceof Error ? error.message : error);
+    return { rows: [] as { deviceId: string; keys: Record<string, unknown> }[] };
+  });
   return new Map(result.rows.map((row) => [row.deviceId, Object.fromEntries(Object.entries(row.keys).flatMap(([location, value]) => {
     const { key, name } = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
     return typeof key === "string" && typeof name === "string" ? [[location, { key, name }]] : [];
@@ -433,7 +437,8 @@ export async function readCloudRecordNames(db: Database, userId: string): Promis
   const reported = await reportedNames(db, userId, result.rows.filter((row) => !row.name));
   return result.rows.map((row) => {
     const githubSource = parseGithubSource(row.githubSource);
-    return { key: row.key, name: row.name ?? reported.get(row.key) ?? null, ...(githubSource ? { githubSource } : {}) };
+    return { key: row.key, name: row.name ?? reported.get(row.key) ?? null, deviceId: row.deviceId,
+      ...(githubSource ? { githubSource } : {}) };
   });
 }
 

@@ -56,7 +56,7 @@ type SyncedSkill = {
  * saved skills decide.
  */
 async function cloudKeyOf(client: QueryClient, userId: string, skill: SyncedSkill,
-  known: Promise<KeyInputs> = keyInputs(client, userId)): Promise<string | null> {
+  known: () => Promise<KeyInputs> = () => keyInputs(client, userId)): Promise<string | null> {
   const rows = await client.query<{ id: string; name: string; source: string; stableKey: string; deviceId: string | null;
     isCurrent: boolean }>(
     `SELECT id, name, source, stable_key AS "stableKey", device_id AS "deviceId", is_current AS "isCurrent"
@@ -69,7 +69,7 @@ async function cloudKeyOf(client: QueryClient, userId: string, skill: SyncedSkil
   const copies = rows.rows.map(row => ({ ...row, installationFolder: installationFolderFromKey(row.stableKey, row.source) }));
   const own = copies.find(copy => copy.id === skill.id);
   if (!own) return null;
-  const { records, reported } = await known;
+  const { records, reported } = await known();
   const key = cloudSkillKeys(copies, records, reported).get(own);
   try {
     return key ? normalizeSkillKey(key) : null;
@@ -83,7 +83,8 @@ type QueryClient = Pick<ReturnType<typeof getPgPool>, "query">;
 /** What decides keys besides the copies: the saved skills' names and each Mac's reported keys. Read once per request. */
 type KeyInputs = { records: Awaited<ReturnType<typeof readCloudRecordNames>>; reported: Awaited<ReturnType<typeof readReportedCloudKeys>> };
 async function keyInputs(client: QueryClient, userId: string): Promise<KeyInputs> {
-  return { records: await readCloudRecordNames(client, userId), reported: await readReportedCloudKeys(client, userId) };
+  const [records, reported] = await Promise.all([readCloudRecordNames(client, userId), readReportedCloudKeys(client, userId)]);
+  return { records, reported };
 }
 
 /**
@@ -97,11 +98,12 @@ export async function savedSkillInSetFromMac(client: QueryClient, userId: string
      WHERE group_id = $1 AND kind = 'synced' AND source_id IS NULL AND synced_skill_id IS NOT NULL`,
     [groupId]
   );
-  let known: Promise<KeyInputs> | undefined;
+  // Read once, only when a copy needs it (and awaited right then, so a failure is never left unhandled).
+  let read: Promise<KeyInputs> | undefined;
+  const known = () => (read ??= keyInputs(client, userId));
   for (const { syncedSkillId } of items.rows) {
     const skill = await getSyncedSkill(client, userId, syncedSkillId);
     if (skill) {
-      known ??= keyInputs(client, userId);
       if (await cloudKeyOf(client, userId, skill, known) === skillKey) return true;
       continue;
     }

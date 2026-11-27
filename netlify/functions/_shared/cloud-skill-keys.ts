@@ -12,8 +12,11 @@ const MAX_KEY_LENGTH = 200;
 export type KeyedInstallation = { deviceId?: string | null; isCurrent?: boolean; source: string; name: string;
   installationFolder?: string | null };
 
-/** A saved skill: its key, and its SKILL.md name as cloud save compares it (null when saved before names were kept). */
-export type CloudRecordName = { key: string; name: string | null };
+/**
+ * A saved skill: its key, its SKILL.md name as cloud save compares it (null when saved before names were kept),
+ * and the Mac that saved its current version, when known.
+ */
+export type CloudRecordName = { key: string; name: string | null; deviceId?: string | null };
 
 /** The keys a skill in this folder may use, in order: the folder name, then "<folder>@<agent>", "<folder>@<agent>-2", … */
 export function candidateKey(folder: string, agent: string, index: number) {
@@ -62,11 +65,16 @@ export function cloudSkillKeys<T extends KeyedInstallation>(installations: T[], 
   for (const record of records) if (record.name) taken.set(record.key, record.name);
   // A Mac's current copies take the keys it reported, unless another skill has since replaced the one that was
   // in the folder (the report is from the Mac's last finished pass). The rest are worked out around them.
+  // As on the Mac, a key saved since with another skill is that skill's, unless this Mac saved it (a rename).
   const claimed = new Map<string, string>();
+  const savedBy = new Map(records.map(record => [record.key, record]));
   const fromMac = (skill: T) => {
     if (skill.isCurrent === false || !skill.deviceId || !skill.installationFolder) return undefined;
     const entry = reported.get(skill.deviceId)?.[cloudKeyLocation(skill.source, skill.installationFolder)];
-    return entry && cloudNameKey(entry.name) === cloudNameKey(skill.name) ? entry.key : undefined;
+    const name = cloudNameKey(skill.name);
+    if (!entry || cloudNameKey(entry.name) !== name || !belongsToFolder(entry.key, cloudNameKey(skill.installationFolder))) return undefined;
+    const saved = savedBy.get(entry.key);
+    return !saved?.name || saved.name === name || saved.deviceId === skill.deviceId ? entry.key : undefined;
   };
   for (const skill of installations) {
     const key = fromMac(skill);
