@@ -29,7 +29,6 @@ import {
   ChevronRight,
   ChevronsUpDown,
   CirclePlay,
-  Code,
   Compass,
   Copy,
   Trash2,
@@ -81,6 +80,7 @@ import {
   Users,
   X,
   type LucideIcon,
+  Settings,
 } from "lucide-react";
 import {
   isMember,
@@ -689,6 +689,10 @@ export function UnifiedApp({
   // The Mac companion installs skills; elsewhere the copy command is the way to install.
   const [onMac] = useState(() => isMacDevice());
   const supportsView = (view: View) => !supportedAccountViews || isDiscovery(view) || supportedAccountViews.includes(view);
+  // The Settings page's sections, in order; each old account page's address opens it at its section.
+  const settingsViews: View[] = ["profile", "cloud", "devices", "github", "mcp"];
+  const settingsSections = settingsViews.filter(view => supportsView(view)
+    && (view === "profile" || view === "cloud" || !readOnlyAccount || !!accountPages));
   const [rail, setRail] = useState(false);
   const [trendingUpdated, setTrendingUpdated] = useState("");
   const [theme, setTheme] = useState<Theme>(() => storedTheme());
@@ -735,6 +739,24 @@ export function UnifiedApp({
   // Per-Mac scan history stays behind "Show history" at the bottom of the panel.
   const [historyOpen, setHistoryOpen] = useState(false);
   useEffect(() => { setInstallOpen(false); setDescriptionOpen(false); setHistoryOpen(false); }, [nav.selected]);
+  // An old account page's address (Devices, GitHub sources, MCP, Sync) opens Settings at its section.
+  // The page may still be loading (or its sections above still growing): look for the section for a few
+  // seconds, and scroll to it once more after it appears.
+  useEffect(() => {
+    if (nav.view === "profile" || !settingsViews.includes(nav.view)) return;
+    const id = `settings-${nav.view}`;
+    let again: ReturnType<typeof setTimeout> | undefined;
+    let tries = 0;
+    const look = setInterval(() => {
+      const section = document.getElementById(id);
+      if (section) {
+        clearInterval(look);
+        section.scrollIntoView({ block: "start" });
+        again = setTimeout(() => document.getElementById(id)?.scrollIntoView({ block: "start" }), 800);
+      } else if (++tries > 40) clearInterval(look);
+    }, 100);
+    return () => { clearInterval(look); clearTimeout(again); };
+  }, [nav.view]);
   const [showHidden, setShowHidden] = useState(false);
   // A skill opened straight from its address (search, shared link) starts as a full-width page;
   // one opened by a click in the app starts as the side panel. Either can switch with the expand button.
@@ -1285,25 +1307,16 @@ export function UnifiedApp({
         <strong>{data.profile.name}</strong>
         <small>{data.profile.email}</small>
       </div>
-      {supportsView("profile") && <MenuItem icon={User} onSelect={() => goFromAccount("profile")}>
-        Profile
+      {/* Settings holds the account, its sync, Devices, GitHub sources and MCP; Agents and Safety scan stay apart. */}
+      {settingsSections.length > 0 && <MenuItem icon={Settings} onSelect={() => goFromAccount(settingsSections[0])}>
+        Settings
       </MenuItem>}
       {supportsView("agents") && <MenuItem icon={Bot} onSelect={() => goFromAccount("agents")}>
         Agents <small>{sources.length}</small>
       </MenuItem>}
-      {(!readOnlyAccount || accountPages) && <>{supportsView("devices") && <MenuItem icon={Monitor} onSelect={() => goFromAccount("devices")}>
-        Devices {!readOnlyAccount && <small>{data.devices.length}</small>}
-      </MenuItem>}
-      {supportsView("github") && <MenuItem icon={Code} onSelect={() => goFromAccount("github")}>
-        GitHub sources
-      </MenuItem>}
-      {supportsView("safety") && cloud && signedIn && <MenuItem icon={ShieldCheck} onSelect={() => goFromAccount("safety")}>
+      {(!readOnlyAccount || accountPages) && supportsView("safety") && cloud && signedIn && <MenuItem icon={ShieldCheck} onSelect={() => goFromAccount("safety")}>
         Safety scan
       </MenuItem>}
-      {supportsView("mcp") && <MenuItem icon={Server} onSelect={() => goFromAccount("mcp")}>
-        MCP server
-      </MenuItem>}
-      </>}
       <DropdownMenu.Separator className="ua-separator" />
       <MenuItem
         icon={theme === "light" ? Moon : Sun}
@@ -1320,6 +1333,93 @@ export function UnifiedApp({
   function goFromAccount(view: View) {
     accountNavigating.current = nav.view !== view || !!nav.id || !!nav.query || !!nav.selected;
     go(view);
+  }
+
+  /** What an account page shows when the host has no panel for it (previews, signed out). */
+  function accountFallback(view: View) {
+    return <div className="ua-account-page">
+{view === "agents" && (
+                    <>
+                      {sources.map((source) => (
+                        <div className="ua-account-row" key={source}>
+                          <Bot />
+                          <strong>{source}</strong>
+                          <span>
+                            {
+                              mine.filter((s) =>
+                                s.installed?.sources.includes(source),
+                              ).length
+                            }{" "}
+                            skills
+                          </span>
+                        </div>
+                      ))}
+                      <p className="ua-muted">
+                        Agents your skills are installed in on your Macs. Remote
+                        installation is not available here.
+                      </p>
+                    </>
+                  )}
+                  {view === "devices" && <h2>Devices</h2>}
+                  {view === "devices" &&
+                    data.devices.map((device) => (
+                      <div className="ua-account-row" key={device.id}>
+                        <Monitor />
+                        <span>
+                          <strong>{device.name}</strong>
+                          <small>Last activity: {device.lastActive}</small>
+                        </span>
+                        <span>{device.status}</span>
+                      </div>
+                    ))}
+                  {view === "profile" && (
+                    <>
+                      <Avatar name={data.profile.name} size="large" />
+                      <h2>{data.profile.name}</h2>
+                      {data.profile.handle && <p>@{data.profile.handle}</p>}
+                      <p>{data.profile.email}</p>
+                      <p className="ua-muted">
+                        {data.profile.published
+                          ? "Public profile"
+                          : "Unpublished profile"}
+                      </p>
+                    </>
+                  )}
+                  {view === "github" && (
+                    <Empty
+                      title={
+                        data.privateSourceConnected
+                          ? "GitHub source connected"
+                          : "No private sources connected"
+                      }
+                    >
+                      Connect a private GitHub source to add its skills to My skills.
+                    </Empty>
+                  )}
+                  {view === "mcp" && (
+                    <>
+                      <Server />
+                      <h2>My skills MCP</h2>
+                      <code>https://omgskills.com/my/mcp</code>
+                      <p className="ua-muted">
+                        Your own skills for your agents, read only. Sign in to omgskills when your agent asks.
+                      </p>
+                      <h2>Library MCP</h2>
+                      <code>https://omgskills.com/mcp</code>
+                      <p className="ua-muted">
+                        Search the open library from any agent. No account needed.
+                      </p>
+                      <a
+                        className="ua-link"
+                        href="https://omgskills.com/developers/"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Connection instructions <ArrowUpRight />
+                      </a>
+                    </>
+                  )}
+                    </div>;
   }
 
   function renderRow(skill: SkillDisplay, rank?: number, compact = false) {
@@ -1674,12 +1774,12 @@ export function UnifiedApp({
     collection: collection?.name || (listState === "loading" ? "Collection" : "Collection not found"),
     category: nav.id,
     agents: "agents",
-    devices: "devices",
-    profile: "profile",
-    github: "GitHub sources",
-    cloud: "Sync",
+    devices: "settings",
+    profile: "settings",
+    github: "settings",
+    cloud: "settings",
     safety: "Safety scan",
-    mcp: "MCP server",
+    mcp: "settings",
   };
   const title = nav.query
     ? submittedQuery === nav.query ? `\u201c${nav.query.trim()}\u201d` : "Search results"
@@ -2232,90 +2332,16 @@ export function UnifiedApp({
                   skill.cloudKey ? [skill.cloudKey] : scanCopyKeys(skill.installed?.sourceSkills ?? []))}
                   ready={myCountReady} available={!!cloud} open={skill => navigate(openSkillNavigation({ ...nav, view: "all", id: "", query: "" }, skill))}
                   copy={copyAgentNote} />
-              ) : ["agents", "devices", "profile", "github", "cloud", "mcp"].includes(
-                  nav.view,
-                ) ? (
-                accountPages?.(nav.view, theme) ?? <div className="ua-account-page">
-                  {nav.view === "agents" && (
-                    <>
-                      {sources.map((source) => (
-                        <div className="ua-account-row" key={source}>
-                          <Bot />
-                          <strong>{source}</strong>
-                          <span>
-                            {
-                              mine.filter((s) =>
-                                s.installed?.sources.includes(source),
-                              ).length
-                            }{" "}
-                            skills
-                          </span>
-                        </div>
-                      ))}
-                      <p className="ua-muted">
-                        Agents your skills are installed in on your Macs. Remote
-                        installation is not available here.
-                      </p>
-                    </>
-                  )}
-                  {nav.view === "devices" &&
-                    data.devices.map((device) => (
-                      <div className="ua-account-row" key={device.id}>
-                        <Monitor />
-                        <span>
-                          <strong>{device.name}</strong>
-                          <small>Last activity: {device.lastActive}</small>
-                        </span>
-                        <span>{device.status}</span>
-                      </div>
-                    ))}
-                  {nav.view === "profile" && (
-                    <>
-                      <Avatar name={data.profile.name} size="large" />
-                      <h2>{data.profile.name}</h2>
-                      {data.profile.handle && <p>@{data.profile.handle}</p>}
-                      <p>{data.profile.email}</p>
-                      <p className="ua-muted">
-                        {data.profile.published
-                          ? "Public profile"
-                          : "Unpublished profile"}
-                      </p>
-                    </>
-                  )}
-                  {nav.view === "github" && (
-                    <Empty
-                      title={
-                        data.privateSourceConnected
-                          ? "GitHub source connected"
-                          : "No private sources connected"
-                      }
-                    >
-                      Connect a private GitHub source to add its skills to My skills.
-                    </Empty>
-                  )}
-                  {nav.view === "mcp" && (
-                    <>
-                      <Server />
-                      <h2>My skills MCP</h2>
-                      <code>https://omgskills.com/my/mcp</code>
-                      <p className="ua-muted">
-                        Your own skills for your agents, read only. Sign in to omgskills when your agent asks.
-                      </p>
-                      <h2>Library MCP</h2>
-                      <code>https://omgskills.com/mcp</code>
-                      <p className="ua-muted">
-                        Search the open library from any agent. No account needed.
-                      </p>
-                      <a
-                        className="ua-link"
-                        href="https://omgskills.com/developers/"
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Connection instructions <ArrowUpRight />
-                      </a>
-                    </>
-                  )}
+              ) : nav.view === "agents" ? (
+                accountPages?.("agents", theme) ?? accountFallback("agents")
+              ) : settingsViews.includes(nav.view) ? (
+                // One Settings page: the account, its sync, then its connections. The old pages' addresses open it
+                // at their section.
+                <div className="ua-settings">
+                  {settingsSections.map(view => {
+                    const page = accountPages?.(view, theme) ?? (view === "cloud" ? null : accountFallback(view));
+                    return page && <div key={view} id={`settings-${view}`} className="ua-settings-section">{page}</div>;
+                  })}
                 </div>
               ) : (
                 <>
@@ -2816,7 +2842,7 @@ export function UnifiedApp({
                 {!detail.setItemReleaseId && (cloud && (detail.installed || detail.cloudKey) && cloudRow(detail)
                   ? <SkillSyncSection key={detail.key} row={cloudRow(detail)} keys={savedSkillKeys(detail)} cloud={cloud}
                     installed={!!detail.installed} editable={!readOnlyAccount || !!management}
-                    openSettings={supportsView("profile") ? () => go("profile") : undefined}
+                    openSettings={settingsSections.includes("cloud") ? () => go("cloud") : undefined}
                     versions={savedVersions && <SavedVersionsList skill={detail}
                       liveName={!readOnlyAccount || management ? detailLive?.name : undefined} load={savedVersions} />} />
                   : savedVersions && <SavedVersionsList skill={detail}

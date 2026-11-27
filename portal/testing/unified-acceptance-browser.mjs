@@ -72,7 +72,7 @@ try {
         assert.equal(await drawer.locator(".ua-drawer-logo").count(), 0);
         assert.equal(await header.getByRole("button", { name: "Account menu", exact: true }).count(), 0);
         await drawer.getByRole("button", { name: "Account menu", exact: true }).click();
-        await page.getByRole("menuitem", { name: "Profile", exact: true }).waitFor();
+        await page.getByRole("menuitem", { name: "Settings", exact: true }).waitFor();
         await page.keyboard.press("Escape");
         await focused("Account menu");
         assert.deepEqual(await drawer.getByRole("navigation").getByRole("button").allTextContents(),

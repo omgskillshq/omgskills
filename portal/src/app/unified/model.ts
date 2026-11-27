@@ -289,8 +289,6 @@ export function parseNavigation(search: string): Navigation {
     nav.id = "";
   }
   if (nav.view === "creators" && nav.id !== "companies") nav.id = "";
-  // The Sync page moved: the account's sync is in the profile, each skill's in its panel.
-  if (nav.view === "cloud") nav.view = "profile";
   const sort = params.get("sort");
   if (validPublicSort(sort) && sort !== "relevance" && publicPageRequest(nav)?.name !== "list_trending" && publicPageRequest(nav)) nav.sort = sort;
   return nav;

@@ -2397,12 +2397,24 @@
 @media (prefers-reduced-motion: reduce) {
   .ua-switch > span { transition: none; }
 }
-/* The account's sync, in the profile. */
+/* One Settings page: the account, its sync, then Devices, GitHub sources and MCP. */
+.ua-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.ua-settings-section {
+  scroll-margin-top: 16px;
+}
+.ua-settings-section + .ua-settings-section {
+  padding-top: 24px;
+  border-top: 1px solid var(--ua-line);
+}
+/* The account's sync, in Settings. */
 .ua-sync-settings {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: 18px;
 }
 .ua-sync-settings > p.ua-muted {
   font-size: 13px;

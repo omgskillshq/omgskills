@@ -1,12 +1,10 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { Copy, Pencil, Settings, Trash2 } from "lucide-react";
 import type { PortalData } from "../../app/model";
 import { Modal } from "../../app/unified/UnifiedApp";
 
-export function ProfilePanel({ profile, busy, blocked, error, save, settings, deleteAccount, theme, sync }: {
+export function ProfilePanel({ profile, busy, blocked, error, save, settings, deleteAccount, theme }: {
   profile: PortalData["profile"]; busy: boolean; blocked: boolean; error: string; theme: string;
-  /** Sync for the whole account (SyncSettings), under the profile. */
-  sync?: ReactNode;
   save: (changes: { handle?: string; published?: boolean }) => Promise<void>;
   settings: () => void;
   /** Deletes the account and signs out; rejects with a message to show. */
@@ -33,7 +31,6 @@ export function ProfilePanel({ profile, busy, blocked, error, save, settings, de
       void navigator.clipboard.writeText(profile.publicUrl!).then(() => setNotice("Profile link copied."), () => setNotice("Could not copy the link."));
     }}><Copy />Copy profile link</button>}
     <button className="ua-pill" disabled={busy} onClick={settings}><Settings />Account settings</button>
-    {sync}
     {deleteAccount && <div className="ua-account-row"><div><strong>Delete account</strong><p className="ua-muted">Removes your account and everything in it.</p></div>
       <button className="ua-pill ua-pill-danger" disabled={busy} onClick={() => { setNotice(""); setDialog("delete"); }}><Trash2 />Delete account</button>
     </div>}

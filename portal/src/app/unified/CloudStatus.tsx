@@ -51,7 +51,7 @@ export function SkillSyncSection({ row: shown, keys, cloud, installed, editable,
     <h3>Sync</h3>
     {settings.enabled ? <p className="ua-skill-sync-line">
       {attention ? <span className="ua-local-dot" aria-hidden="true" /> : <Cloud aria-hidden="true" />}{line}
-    </p> : <p className="ua-muted">Sync is off.{openSettings && <> <button type="button" className="ua-link" onClick={openSettings}>Turn it on in your profile</button></>}</p>}
+    </p> : <p className="ua-muted">Sync is off.{openSettings && <> <button type="button" className="ua-link" onClick={openSettings}>Turn it on in Settings</button></>}</p>}
     {settings.enabled && !leftOut && leftOutKeys.length > 0 && <p className="ua-muted">
       Left out in {leftOutKeys.length} of its {keys.length} folders.</p>}
     {row.labels.length > 0 && <p className="ua-cloud-labels">{row.labels.map(label => <span key={label}>{labelText[label]}</span>)}</p>}

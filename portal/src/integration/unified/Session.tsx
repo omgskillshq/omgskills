@@ -390,11 +390,12 @@ function AccountView({ identity, signedIn, accountKey, base, local, connectedInv
       busy={snapshot.profileSaving || snapshot.setSaving || snapshot.refreshing}
       blocked={!!snapshot.error || !snapshot.data || snapshot.accessDenied}
       error={snapshot.profileError || snapshot.error} save={account.saveProfile} settings={() => clerk.openUserProfile()}
-      deleteAccount={local ? undefined : deleteAccount}
-      sync={local ? undefined : <SyncSettings state={cloudState} status={cloudLoaded ? cloudStatus : null} skills={data.skills}
+      deleteAccount={local ? undefined : deleteAccount} />
+      : view === "cloud" && !composition?.readOnly && !local ? <div className="ua-account-page"><SyncSettings state={cloudState}
+        status={cloudLoaded ? cloudStatus : null} skills={data.skills}
         retry={() => void reloadCloud()} find={name => navigate({ ...initialNavigation, view: "all", query: name })}
         setEnabled={async enabled => { await saveCloudSettings(api, { enabled }); await reloadCloud(); }}
-        deleteAll={async () => { await deleteCloudSaved(api); await reloadCloud(); }} />} />
+        deleteAll={async () => { await deleteCloudSaved(api); await reloadCloud(); }} /></div>
       : view === "devices" ? <div className="portal-design ua-connected-panel"><DevicesPanel key={accountKey} sessionKey={accountKey} api={api} local={local} readOnly={composition?.readOnly} browserConnection={productionInstall} denied={account.invalidate} theme={theme} inventoryDevices={connectedInventory ? data.devices : undefined} /></div>
       : view === "github" && !composition?.readOnly ? <div className="portal-design ua-connected-panel"><PrivateSourcesPanel api={api} local={local} denied={account.invalidate} /></div>
       : view === "mcp" && !composition?.readOnly && !local ? <div className="portal-design ua-connected-panel"><McpPanel key={accountKey} api={api} denied={account.invalidate} /></div> : undefined : undefined}

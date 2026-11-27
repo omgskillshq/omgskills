@@ -3,8 +3,8 @@ import type { CatalogDisplay, Navigation } from "./model";
 // Document title and head metadata for the app (urls.md step 2, item 4).
 const viewTitles: Partial<Record<Navigation["view"], string>> = {
   all: "My skills", favorites: "Favorites", sets: "Sets", discover: "Discover", data: "Data", developers: "Developers & Agents",
-  top: "Trending skills", collections: "Collections", agents: "Agents", devices: "Devices",
-  profile: "Profile", github: "GitHub sources", cloud: "Sync", safety: "Safety scan", mcp: "MCP server",
+  top: "Trending skills", collections: "Collections", agents: "Agents", devices: "Settings",
+  profile: "Settings", github: "Settings", cloud: "Settings", safety: "Safety scan", mcp: "Settings",
 };
 
 export function pageTitle(nav: Navigation, catalog: Pick<CatalogDisplay, "skills" | "creators" | "collections">) {

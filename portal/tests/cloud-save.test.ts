@@ -124,8 +124,8 @@ test("a skill's own switch adds or removes only its keys", async () => {
   ]);
 });
 
-test("the old Sync page address opens the profile, where the account's sync is", () => {
-  assert.equal(parseNavigation("?view=cloud").view, "profile");
+test("the old Sync page address still opens (at Settings' Sync section)", () => {
+  assert.equal(parseNavigation("?view=cloud").view, "cloud");
 });
 
 test("a local skill's instructions come from the first folder with a saved copy", async () => {
