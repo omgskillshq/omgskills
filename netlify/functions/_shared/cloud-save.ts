@@ -553,6 +553,10 @@ export function parseCloudSaveSettingsUpdate(body: Record<string, unknown>): Clo
     }
     update.removeExcludedSkillKeys = [...new Set(body.removeExcludedSkillKeys.map(normalizeSkillKey))].sort();
   }
+  // One kind of list change per request, so a change is one statement and never half done.
+  if ([update.excludedSkillKeys, update.addExcludedSkillKeys, update.removeExcludedSkillKeys].filter(Boolean).length > 1) {
+    throw new CloudSaveError("invalid_request", "Change the left-out list one way at a time");
+  }
   if (update.enabled === undefined && update.excludedSkillKeys === undefined && update.addExcludedSkillKeys === undefined
     && update.removeExcludedSkillKeys === undefined) {
     throw new CloudSaveError("invalid_request", "Nothing to update");

@@ -202,7 +202,8 @@ function Preview() {
             : state.settings.excludedSkillKeys.filter(key => !keys.includes(key)) } })) }}
       accountPages={signedIn ? view => view === "profile" ? <div className="ua-account-page">
         <h2>{data.profile.name}</h2><p>{data.profile.email}</p>
-        <SyncSettings state={cloudState} skills={data.skills}
+        <SyncSettings state={cloudState} status="ready" skills={data.skills}
+          find={name => navigate({ ...initialNavigation, view: "all", query: name })}
           setEnabled={async enabled => setCloudState(state => ({ ...state, settings: { ...state.settings, enabled } }))}
           deleteAll={async () => setCloudState(state => ({ ...state, skills: [], usage: { ...state.usage, bytes: 0 },
             settings: { ...state.settings, enabled: false } }))} />

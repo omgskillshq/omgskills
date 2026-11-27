@@ -551,6 +551,9 @@ test("skills saved before names were kept take the name their Mac reports, and M
     const fresh = await createUser(pool);
     const first = await updateCloudSaveSettings(pool, fresh.userId, parseCloudSaveSettingsUpdate({ addExcludedSkillKeys: ["notes@codex"] }));
     assert.deepEqual([first.enabled, first.excludedSkillKeys], [false, ["notes@codex"]]);
+    const none = await createUser(pool);
+    const removed = await updateCloudSaveSettings(pool, none.userId, parseCloudSaveSettingsUpdate({ removeExcludedSkillKeys: ["notes"] }));
+    assert.deepEqual([removed.enabled, removed.excludedSkillKeys], [false, []], "Syncing a skill again changes nothing else");
   });
 });
 

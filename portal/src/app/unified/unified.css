@@ -2407,6 +2407,22 @@
 .ua-sync-settings > p.ua-muted {
   font-size: 13px;
 }
+.ua-sync-left-out {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 13px;
+}
+.ua-sync-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ua-sync-confirm > div {
+  display: flex;
+  gap: 8px;
+}
 .ua-sync-settings .ua-account-row > button {
   margin-left: auto;
   flex-shrink: 0;

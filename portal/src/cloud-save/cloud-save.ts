@@ -122,16 +122,6 @@ export function confirmCloudReview(api: PortalApi, key: string) {
 }
 
 
-export type CloudDeleteSelection = { kind: "skill"; key: string } | { kind: "all" } | null;
-
-export function isDeletingCloudSkill(selection: CloudDeleteSelection, key: string): boolean {
-  return selection?.kind === "skill" && selection.key === key;
-}
-
-export function isDeletingAllCloudSkills(selection: CloudDeleteSelection): boolean {
-  return selection?.kind === "all";
-}
-
 export const statusText: Record<CloudSkillRow["status"], string> = {
   saved: "Synced",
   deleted: "Synced · deleted on a Mac",
