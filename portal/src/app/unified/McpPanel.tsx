@@ -84,8 +84,8 @@ export function McpPanel({ api, denied }: { api: PortalApi; denied: () => void }
       <h3>My skills</h3>
       <code>{MY_SKILLS_MCP_URL}</code>
       <p className="rd-muted">Your own library for your agents, read only. Add this address as a custom connector or
-        MCP server (Grok, Claude, ChatGPT, Cursor, Codex), then sign in to omgskills. Skills that can't sync, or that
-        contain a key or password, are never shared.</p>
+        MCP server (Grok, Claude, ChatGPT, Cursor, Codex), then sign in to omgskills. Local-only skills, and skills
+        that contain a key or password, are never shared.</p>
     </div>
 
     <div className="mcp-panel-agents">

@@ -91,9 +91,9 @@ export function CloudSavePanel({ api, skills, denied }: { api: PortalApi; skills
     </p>}
 
     {reviews.length > 0 && <div className="cloud-save-reviews">
-      <h3>Can't sync: needs review</h3>
-      <p className="rd-muted">These files look like they contain a key or password, so they weren't synced. Remove the
-        key on your Mac and the skill syncs by itself, or confirm it's safe to sync as it is.</p>
+      <h3>Local only: needs review</h3>
+      <p className="rd-muted">These files look like they contain a key or password, so they stay on your Mac. Remove the
+        key there and the skill syncs by itself, or confirm it's safe to sync as it is.</p>
       {reviews.map(row => <div className="rd-source-release" key={row.key}>
         <div className="rd-grow"><strong>{row.name}</strong>
           {row.findings.map(file => <p className="rd-muted" key={file.path}>

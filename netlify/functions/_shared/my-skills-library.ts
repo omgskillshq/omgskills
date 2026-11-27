@@ -101,10 +101,10 @@ function pickRow(rows: Map<string, CloudRow>, keys: string[]): CloudRow | null {
 const reasons: Partial<Record<LibraryCloudStatus, string>> = {
   review: "A file may contain a key or password; review it on the web.",
   confirmed: "A file contains a key or password, so it is never shared with agents.",
-  failed: "It couldn't be synced.",
-  links: "It contains links outside the skill, so it couldn't be synced.",
-  too_large: "It's too large to sync.",
-  unreadable: "It couldn't be read on your Mac.",
+  failed: "It's local only for now: the last sync failed.",
+  links: "It's local only: it uses files outside its folder.",
+  too_large: "It's local only: it's too large to sync.",
+  unreadable: "It's local only: it couldn't be read on your Mac.",
 };
 
 /**

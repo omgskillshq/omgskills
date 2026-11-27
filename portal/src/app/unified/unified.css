@@ -23,6 +23,8 @@
   --ua-line: #e5e5ea;
   --ua-blue: #0071e3;
   --ua-danger: #dc2626;
+  /* Local-only skills: purple, not red; nothing is wrong with them. */
+  --ua-local: #af52de;
   --ua-shadow: 0 1px 2px #0000000f, 0 12px 40px #00000024;
   --ua-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter",
     system-ui, sans-serif;
@@ -52,6 +54,7 @@
   --rd-row-divider: var(--ua-line);
   --ua-blue: #409cff;
   --ua-danger: #ff6b6b;
+  --ua-local: #bf5af2;
   --ua-shadow: 0 1px 2px #0006, 0 12px 40px #0009;
   color-scheme: dark;
 }
@@ -2271,7 +2274,7 @@
   display: inline-flex;
   align-self: center;
   flex-shrink: 0;
-  color: var(--ua-danger);
+  color: var(--ua-local);
 }
 .ua-row-cloud svg {
   width: 13px;
@@ -2309,7 +2312,7 @@
   color: var(--ua-saved);
 }
 .ua-cloud-badge[data-attention] svg {
-  color: var(--ua-danger);
+  color: var(--ua-local);
 }
 .ua-cloud-status > p.ua-muted {
   font-size: 13px;

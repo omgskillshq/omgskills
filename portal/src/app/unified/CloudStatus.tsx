@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Cloud, CloudOff, TriangleAlert } from "lucide-react";
+import { Cloud, CloudAlert } from "lucide-react";
 import { needsAttention, statusHelp, statusText, labelText, type CloudSaveState, type CloudSkillRow } from "../../cloud-save/cloud-save";
 
 /** The account's cloud save state, and confirming a skill flagged for a key is safe to save. */
@@ -13,7 +13,7 @@ export function CloudStatusBadge({ row: shown, notInstalled = false }: { row: Cl
   // A skill already marked Not installed just reads Saved.
   const row = notInstalled && shown.status === "deleted" ? { ...shown, status: "saved" as const } : shown;
   const attention = needsAttention(row.status);
-  const Icon = row.status === "review" ? TriangleAlert : attention ? CloudOff : Cloud;
+  const Icon = attention ? CloudAlert : Cloud;
   const saved = ["saved", "deleted", "library", "set"].includes(row.status);
   const history = [
     saved && row.versionCount > 0 ? `${row.versionCount} ${row.versionCount === 1 ? "version" : "versions"}` : "",
@@ -35,7 +35,7 @@ export function CloudStatusSection({ row, confirm }: { row: CloudSkillRow | null
   if (!attention && !row.labels.length) return null;
   return <section className="ua-cloud-status" aria-label="Sync" data-status={row.status}>
     {attention && statusHelp[row.status] && <p className="ua-muted">{row.status === "review" && row.origin
-      ? `A file in this skill from ${row.origin === "library" ? "the library" : "a Set"} looks like it contains a key or password, so it wasn't synced. If it's only an example, confirm it's safe.`
+      ? `A file in this skill from ${row.origin === "library" ? "the library" : "a Set"} looks like it contains a key or password, so it stays on your Mac. If it's only an example, confirm it's safe.`
       : statusHelp[row.status]}</p>}
     {row.findings.map(file => <p className="ua-muted ua-cloud-finding" key={file.path}>
       {file.path}: {file.findings.map(finding => `${finding.kind} on line ${finding.line}`).join(", ")}

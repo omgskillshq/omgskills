@@ -1099,7 +1099,7 @@ function renderDevelopersPage() {
     <div class="section">
       <div class="eyebrow">My skills MCP</div>
       <h2>Connect your own library</h2>
-      <p>Your own skills for your agents, read only. Add this address as a custom connector or MCP server (Claude, ChatGPT, Cursor, Codex, Grok, Muse), then sign in to omgskills. Skills that can't sync, or that contain a key or password, are never shared.</p>
+      <p>Your own skills for your agents, read only. Add this address as a custom connector or MCP server (Claude, ChatGPT, Cursor, Codex, Grok, Muse), then sign in to omgskills. Local-only skills, and skills that contain a key or password, are never shared.</p>
       <div class="install-box"><pre class="install"><code>${origin}/my/mcp</code></pre></div>
       <p>Available tools: <code>search_my_skills</code>, <code>read_my_skill</code>, and <code>read_skill_file</code>. See and disconnect agents in the app under MCP.</p>
     </div>

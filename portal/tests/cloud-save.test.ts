@@ -231,9 +231,9 @@ test("one summary line: every skill counts, then only what needs a look", async 
   const row = (status: string, onMac = true) => ({ key: status, name: status, status, versionCount: 0, setCount: 0, savedAt: null,
     labels: [], findings: [], onMac }) as never;
   assert.equal(cloudSummaryText([row("saved"), row("library"), row("set"), row("deleted", false)]), "4 skills · all synced · 1 not on your Macs");
-  assert.equal(cloudSummaryText([row("saved"), row("review"), row("links")]), "3 skills · 2 can't sync");
+  assert.equal(cloudSummaryText([row("saved"), row("review"), row("links")]), "3 skills · 2 local only");
   assert.equal(cloudSummaryText([row("saved"), row("too_large"), row("waiting"), row("excluded")]),
-    "4 skills · 1 can't sync · 1 not synced yet · 1 left out");
+    "4 skills · 1 local only · 1 not synced yet · 1 left out");
   assert.equal(cloudSummaryText([row("saved")]), "1 skill · all synced");
   const rows = cloudSkillRows(state({ skills: [{ key: "gone", versionCount: 1, deletedLocallyAt: "2026-11-01T00:00:00Z", setCount: 0,
     currentVersion: { id: "r", savedAt: "2026-11-01T00:00:00Z", fileCount: 1, totalBytes: 1 } }], needsReview: [], skipped: {} }), [installed("here")]);
@@ -383,7 +383,7 @@ test("the Safety scan page puts each skill under its worst copy", () => {
   assert.equal(safetyStatus(rows, ["held"]).group, "held");
   assert.equal(safetyStatus(rows, ["off"]).group, "off");
   assert.equal(safetyStatus(rows, ["all-off"]).group, "off", "saving off for everything");
-  assert.deepEqual(safetyStatus(rows, ["big"]), { group: "not_saved", note: "Can't sync: too large" });
+  assert.deepEqual(safetyStatus(rows, ["big"]), { group: "not_saved", note: "Local only: too large to sync" });
   assert.equal(safetyStatus(rows, ["missing"]).group, "not_saved");
   assert.deepEqual(safetyStatus(rows, []), { group: "no_copy" });
 });
@@ -440,7 +440,7 @@ test("only copies some Mac has now count: an old app's copies stop counting afte
     ["here", "waiting", true], ["kept", "saved", false], ["pptx", "links", true], ["recent-old-app", "waiting", true],
   ]);
   assert.deepEqual(cloudCounts(rows), { skills: 4, cantSync: 1, notSyncedYet: 2, leftOut: 0, notOnMacs: 1 });
-  assert.equal(cloudSummaryText(rows), "4 skills · 1 can't sync · 2 not synced yet · 1 not on your Macs");
+  assert.equal(cloudSummaryText(rows), "4 skills · 1 local only · 2 not synced yet · 1 not on your Macs");
   // The server's counts win, so every screen says the same (My skills includes added library skills).
   assert.equal(cloudSummaryText(rows, { skills: 4, mySkills: 6, cantSync: 0, notSyncedYet: 0, leftOut: 0, notOnMacs: 0 }), "6 skills · all synced");
 });

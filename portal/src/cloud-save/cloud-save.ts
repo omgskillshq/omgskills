@@ -129,16 +129,16 @@ export function isDeletingAllCloudSkills(selection: CloudDeleteSelection): boole
 export const statusText: Record<CloudSkillRow["status"], string> = {
   saved: "Synced",
   deleted: "Synced · deleted on a Mac",
-  review: "Can't sync: needs review",
+  review: "Local only: needs review",
   confirmed: "Syncs next time",
   excluded: "Left out",
   library: "Synced · from the library",
   set: "Synced · from a Set",
   waiting: "Not synced yet",
   off: "Not synced",
-  links: "Can't sync: links to files outside the skill",
-  too_large: "Can't sync: too large",
-  unreadable: "Can't sync: couldn't be read",
+  links: "Local only: uses files outside its folder",
+  too_large: "Local only: too large to sync",
+  unreadable: "Local only: couldn't be read",
   failed: "Not synced yet: the last try failed, trying again",
 };
 
@@ -161,7 +161,7 @@ export function cloudSummaryText(rows: CloudSkillRow[], summary?: CloudSummary) 
   const total = counts.mySkills ?? counts.skills;
   const parts = [`${total} ${total === 1 ? "skill" : "skills"}`];
   if (!counts.cantSync && !counts.notSyncedYet && !counts.leftOut) parts.push("all synced");
-  if (counts.cantSync) parts.push(`${counts.cantSync} can't sync`);
+  if (counts.cantSync) parts.push(`${counts.cantSync} local only`);
   if (counts.notSyncedYet) parts.push(`${counts.notSyncedYet} not synced yet`);
   if (counts.leftOut) parts.push(`${counts.leftOut} left out`);
   if (counts.notOnMacs) parts.push(`${counts.notOnMacs} not on your Macs`);
@@ -208,11 +208,11 @@ export function cleanScan(rows: Map<string, CloudSkillRow>, keys: string[]): str
 
 /** What to do about a skill that isn't saved, for its detail panel. */
 export const statusHelp: Partial<Record<CloudSkillRow["status"], string>> = {
-  review: "A file looks like it contains a key or password, so it wasn't synced. Remove the key on your Mac and it syncs by itself, or confirm it's safe.",
+  review: "It works as usual on your Mac. A file looks like it contains a key or password, so it stays there. Remove the key and it syncs by itself, or confirm it's safe.",
   confirmed: "You confirmed it's safe. Your Mac syncs it next time.",
-  links: "It links to files outside its folder, which never sync. Copy those files into the skill and it syncs by itself.",
-  too_large: "It's over the size limit (12 MB, 4 MB per file).",
-  unreadable: "Your Mac couldn't read its folder.",
+  links: "It works as usual on your Mac. It uses files outside its folder, which don't sync; copy them into the skill and it syncs by itself.",
+  too_large: "It works as usual on your Mac. It's over the sync size limit (12 MB, 4 MB per file).",
+  unreadable: "Your Mac couldn't read its folder, so it stays on your Mac.",
   failed: "The last sync failed. Your Mac tries again next time.",
   library: "The version you installed from the library is synced. If you change it, your version is synced too.",
   set: "The version you installed from a Set is synced. If you change it, your version is synced too.",
