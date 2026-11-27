@@ -654,6 +654,15 @@ struct CloudSaveSyncTests {
         #expect(summary.keys == [spec.path: "last30days@codex"])
     }
 
+    @Test func reportsKeysOnlyForFoldersTheWebKnows() throws {
+        let root = try temporaryRoot()
+        let notes = installation(try makeSkill(root, "notes"), name: "Notes"), other = installation(try makeSkill(root, "other"), origin: "Cursor")
+        let unkeyed = installation(try makeSkill(root, "unkeyed"))
+        let located = CloudSaveKeys.byLocation([notes.installCmd: "notes", other.installCmd: "other", unkeyed.installCmd: ""],
+                                               installations: [notes, other, unkeyed])
+        #expect(located == ["claude/notes": .init(key: "notes", name: "Notes")], "Not an agent the inventory reports, nor a folder with no key")
+    }
+
     @Test func tellsTheWebTheKeyEachFolderUsesSoItsReasonIsTheOneShown() async throws {
         // The Mac remembers "last30days@claude" from when another last30days held the folder name; the web can't
         // work that out, so the pass says which key each folder here uses.
