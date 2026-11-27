@@ -50,8 +50,14 @@ export async function loadCloudSave(api: PortalApi, signal?: AbortSignal): Promi
   }
 }
 
-export function saveCloudSettings(api: PortalApi, update: { enabled?: boolean; excludedSkillKeys?: string[] }) {
+export function saveCloudSettings(api: PortalApi, update: { enabled?: boolean; excludedSkillKeys?: string[];
+  addExcludedSkillKeys?: string[]; removeExcludedSkillKeys?: string[] }) {
   return api<{ settings: CloudSaveState["settings"] }>(`${base}/settings`, { method: "PUT", body: JSON.stringify(update) });
+}
+
+/** One skill's own switch: leaves its folders' keys out of sync, or syncs them again, without touching the rest. */
+export function setSkillLeftOut(api: PortalApi, keys: string[], leftOut: boolean) {
+  return saveCloudSettings(api, leftOut ? { addExcludedSkillKeys: keys } : { removeExcludedSkillKeys: keys });
 }
 
 export type CloudDeleteResult = { deletedSkills: number; freedBytes: number; pendingFiles: number };

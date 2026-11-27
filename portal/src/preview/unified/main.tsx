@@ -24,6 +24,7 @@ import { f2Cases, f2CaseNavigation, f2NavigationSearch, readF2CaseKey } from "./
 import { createPreviewCatalogStore, createPreviewInstallStore, PublicInstallSetup } from "./PublicInstallSetup";
 import { CatalogInstallSetup } from "../../app/unified/CatalogInstallSetup";
 import { previewCloudState } from "./cloud-fixture";
+import { SyncSettings } from "../../cloud-save/SyncSettings";
 import type { MySkillAddition, PickedFolder } from "../../app/my-skills-additions";
 
 const installClient = import.meta.env.DEV ? previewInstallClient(import.meta.env.DEV,
@@ -194,7 +195,18 @@ function Preview() {
       additions={signedIn ? additions : undefined}
       cloud={{ state: cloudState, confirm: async key => setCloudState(state => ({ ...state,
         needsReview: state.needsReview.map(review => review.key === key ? { ...review, confirmed: true } : review) })),
-        remove: async key => setCloudState(state => ({ ...state, skills: state.skills.filter(skill => skill.key !== key) })) }}
+        remove: async key => setCloudState(state => ({ ...state, skills: state.skills.filter(skill => skill.key !== key),
+          settings: { ...state.settings, excludedSkillKeys: [...new Set([...state.settings.excludedSkillKeys, key])] } })),
+        leaveOut: async (keys, leftOut) => setCloudState(state => ({ ...state, settings: { ...state.settings,
+          excludedSkillKeys: leftOut ? [...new Set([...state.settings.excludedSkillKeys, ...keys])]
+            : state.settings.excludedSkillKeys.filter(key => !keys.includes(key)) } })) }}
+      accountPages={signedIn ? view => view === "profile" ? <div className="ua-account-page">
+        <h2>{data.profile.name}</h2><p>{data.profile.email}</p>
+        <SyncSettings state={cloudState} skills={data.skills}
+          setEnabled={async enabled => setCloudState(state => ({ ...state, settings: { ...state.settings, enabled } }))}
+          deleteAll={async () => setCloudState(state => ({ ...state, skills: [], usage: { ...state.usage, bytes: 0 },
+            settings: { ...state.settings, enabled: false } }))} />
+      </div> : undefined : undefined}
       state={
         scenario === "loading" || scenario === "error" ? scenario : "ready"
       }

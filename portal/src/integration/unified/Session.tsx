@@ -16,8 +16,8 @@ import { useManagement } from "./useManagement";
 import { DevicesPanel } from "../DevicesPanel";
 import { PrivateSourcesPanel } from "../PrivateSourcesPanel";
 import { McpPanel } from "../../app/unified/McpPanel";
-import { CloudSavePanel } from "../../cloud-save/CloudSavePanel";
-import { confirmCloudReview, deleteCloudSaved, loadCloudSave, loadSavedSkillMd, loadSavedVersions, loadSharedSkillMd, type CloudSaveState } from "../../cloud-save/cloud-save";
+import { SyncSettings } from "../../cloud-save/SyncSettings";
+import { confirmCloudReview, deleteCloudSaved, loadCloudSave, saveCloudSettings, setSkillLeftOut, loadSavedSkillMd, loadSavedVersions, loadSharedSkillMd, type CloudSaveState } from "../../cloud-save/cloud-save";
 import type { CloudInfo } from "../../app/unified/CloudStatus";
 import { addGithubSkill, addMySkill, addUpload, previewUpload, type PickedFolder, findSkillsAtGithubLink, loadMySkillAdditions, previewGithubSkill, removeMySkill, type GithubSkillPreview,
   type MySkillAddition, type MySkillAdditions } from "../../app/my-skills-additions";
@@ -81,6 +81,7 @@ function useCloudStatus(api: PortalApi, enabled: boolean, revision: unknown, sav
     state,
     confirm: async (key: string) => { await confirmCloudReview(apiRef.current, key); setReload(value => value + 1); },
     remove: async (key: string) => { await deleteCloudSaved(apiRef.current, key); setReload(value => value + 1); },
+    leaveOut: async (keys: string[], leftOut: boolean) => { await setSkillLeftOut(apiRef.current, keys, leftOut); setReload(value => value + 1); },
   } : undefined, [state]);
   const reloadCloud = useCallback(() => setReload(value => value + 1), []);
   return { info, state, loaded, ok, reload: reloadCloud };
@@ -354,10 +355,12 @@ function AccountView({ identity, signedIn, accountKey, base, local, connectedInv
       busy={snapshot.profileSaving || snapshot.setSaving || snapshot.refreshing}
       blocked={!!snapshot.error || !snapshot.data || snapshot.accessDenied}
       error={snapshot.profileError || snapshot.error} save={account.saveProfile} settings={() => clerk.openUserProfile()}
-      deleteAccount={local ? undefined : deleteAccount} />
+      deleteAccount={local ? undefined : deleteAccount}
+      sync={!local && cloudLoaded ? <SyncSettings state={cloudState} skills={data.skills} retry={reloadCloud}
+        setEnabled={async enabled => { await saveCloudSettings(api, { enabled }); reloadCloud(); }}
+        deleteAll={async () => { await deleteCloudSaved(api); reloadCloud(); }} /> : undefined} />
       : view === "devices" ? <div className="portal-design ua-connected-panel"><DevicesPanel key={accountKey} sessionKey={accountKey} api={api} local={local} readOnly={composition?.readOnly} browserConnection={productionInstall} denied={account.invalidate} theme={theme} inventoryDevices={connectedInventory ? data.devices : undefined} /></div>
       : view === "github" && !composition?.readOnly ? <div className="portal-design ua-connected-panel"><PrivateSourcesPanel api={api} local={local} denied={account.invalidate} /></div>
-      : view === "cloud" && !composition?.readOnly && !local ? <div className="portal-design ua-connected-panel"><CloudSavePanel key={accountKey} api={api} skills={data.skills} denied={account.invalidate} /></div>
       : view === "mcp" && !composition?.readOnly && !local ? <div className="portal-design ua-connected-panel"><McpPanel key={accountKey} api={api} denied={account.invalidate} /></div> : undefined : undefined}
     previewBar={(local || sessionError || (available && (snapshot.error || composition?.readOnly))) && <div className="ua-preview">
       {local && <span>Local test · Unified app</span>}
