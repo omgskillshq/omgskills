@@ -71,8 +71,14 @@ struct CloudSaveFolder: Equatable, Sendable {
             let library = libraryRoot.resolvingSymlinksInPath().standardizedFileURL.path
             if path == library || path.hasPrefix(library + "/") {
                 // Library copies are public, but a repo's hidden files (.git holds its settings) are never read.
-                let inside = path.dropFirst(library.count).split(separator: "/")
-                return inside.contains { $0.hasPrefix(".") } ? .privateFile : .library
+                // Its agents' skill folders are (many repos keep their skills in .claude/skills): only below
+                // "skills", as an agent folder also holds settings.
+                let inside = path.dropFirst(library.count).split(separator: "/").map(String.init)
+                for (index, part) in inside.enumerated() where part.hasPrefix(".") {
+                    if Self.agentFolders.contains(part) && index + 2 < inside.count && inside[index + 1] == "skills" { continue }
+                    return .privateFile
+                }
+                return .library
             }
             if let managedRoot {
                 let managed = managedRoot.resolvingSymlinksInPath().standardizedFileURL.path
