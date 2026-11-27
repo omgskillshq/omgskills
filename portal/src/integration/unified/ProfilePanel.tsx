@@ -3,14 +3,12 @@ import { Copy, Pencil, Settings, Trash2 } from "lucide-react";
 import type { PortalData } from "../../app/model";
 import { Modal } from "../../app/unified/UnifiedApp";
 
-export function ProfilePanel({ profile, busy, blocked, error, save, settings, deleteAccount, theme }: {
+export function ProfilePanel({ profile, busy, blocked, error, save, settings, theme }: {
   profile: PortalData["profile"]; busy: boolean; blocked: boolean; error: string; theme: string;
   save: (changes: { handle?: string; published?: boolean }) => Promise<void>;
   settings: () => void;
-  /** Deletes the account and signs out; rejects with a message to show. */
-  deleteAccount?: () => Promise<void>;
 }) {
-  const [dialog, setDialog] = useState<"handle" | "publish" | "delete" | null>(null);
+  const [dialog, setDialog] = useState<"handle" | "publish" | null>(null);
   const [handle, setHandle] = useState(profile.handle);
   const [notice, setNotice] = useState("");
   async function submit() {
@@ -31,12 +29,8 @@ export function ProfilePanel({ profile, busy, blocked, error, save, settings, de
       void navigator.clipboard.writeText(profile.publicUrl!).then(() => setNotice("Profile link copied."), () => setNotice("Could not copy the link."));
     }}><Copy />Copy profile link</button>}
     <button className="ua-pill" disabled={busy} onClick={settings}><Settings />Account settings</button>
-    {deleteAccount && <div className="ua-account-row"><div><strong>Delete account</strong><p className="ua-muted">Removes your account and everything in it.</p></div>
-      <button className="ua-pill ua-pill-danger" disabled={busy} onClick={() => { setNotice(""); setDialog("delete"); }}><Trash2 />Delete account</button>
-    </div>}
     {(error || notice) && <p role={error ? "alert" : "status"}>{error || notice}</p>}
-    {dialog === "delete" && deleteAccount && <DeleteAccountDialog theme={theme} remove={deleteAccount} close={() => setDialog(null)} />}
-    {dialog && dialog !== "delete" && <Modal theme={theme} title={dialog === "handle" ? "Edit profile" : profile.published ? "Unpublish profile?" : "Publish profile?"} close={() => { if (!busy) setDialog(null); }}>
+    {dialog && <Modal theme={theme} title={dialog === "handle" ? "Edit profile" : profile.published ? "Unpublish profile?" : "Publish profile?"} close={() => { if (!busy) setDialog(null); }}>
       <form onSubmit={event => { event.preventDefault(); void submit(); }}>
         {dialog === "handle" ? <label>Handle<input required autoFocus maxLength={80} value={handle} disabled={busy} onChange={event => setHandle(event.target.value)} /></label>
           : <p>{profile.published ? "Your profile will no longer be listed. Public sets remain accessible." : "Your handle and public sets will be visible to anyone."}</p>}
@@ -46,6 +40,17 @@ export function ProfilePanel({ profile, busy, blocked, error, save, settings, de
         </div>
       </form>
     </Modal>}
+  </div>;
+}
+
+/** Deleting the account, at the bottom of Settings. `remove` deletes it and signs out, or rejects with a message. */
+export function DeleteAccountSection({ remove, busy, theme }: { remove: () => Promise<void>; busy: boolean; theme: string }) {
+  const [open, setOpen] = useState(false);
+  return <div className="ua-account-page">
+    <div className="ua-account-row"><div><strong>Delete account</strong><p className="ua-muted">Removes your account and everything in it.</p></div>
+      <button className="ua-pill ua-pill-danger" disabled={busy} onClick={() => setOpen(true)}><Trash2 />Delete account</button>
+    </div>
+    {open && <DeleteAccountDialog theme={theme} remove={remove} close={() => setOpen(false)} />}
   </div>;
 }
 
