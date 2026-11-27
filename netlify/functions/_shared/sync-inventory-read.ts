@@ -1,7 +1,7 @@
 import type { Pool } from "pg";
 import { listUserDevices } from "./device-auth.js";
 import { cloudSkillKeys } from "./cloud-skill-keys.js";
-import { readCloudRecordNames } from "./cloud-save.js";
+import { readCloudRecordNames, readReportedCloudKeys } from "./cloud-save.js";
 import { verifiedCatalogHint } from "./github-skill-resolution.js";
 import { isIncompleteRead, keysFor, linkChoiceOf, nameKey, readBlobContentIndex, resolveCopy, type ContentIndexEntry, type LinkChoice } from "./catalog-content-index.js";
 import { readTextMatches, type TextMatch } from "./content-match.js";
@@ -77,9 +77,10 @@ export async function readSyncInventory(
     }];
   });
   // The cloud save record each copy uses; same-name folders holding different skills are saved apart.
-  const records = await readCloudRecordNames(pool, userId);
+  // Each Mac's own keys from its last pass come first (see cloudSkillKeys).
+  const [records, reported] = await Promise.all([readCloudRecordNames(pool, userId), readReportedCloudKeys(pool, userId)]);
   const sources = new Map(records.flatMap((record) => record.githubSource ? [[record.key, record.githubSource] as const] : []));
-  for (const [skill, cloudKey] of cloudSkillKeys(skills, records)) Object.assign(skill, { cloudKey });
+  for (const [skill, cloudKey] of cloudSkillKeys(skills, records, reported)) Object.assign(skill, { cloudKey });
   // Presence reports store the Mac's catalog hint unverified; link the rows it proves.
   // Copies with no hint (installed from GitHub directly) are matched by the prebuilt content index:
   // the exact SKILL.md first, then the same name and description (another version of a library

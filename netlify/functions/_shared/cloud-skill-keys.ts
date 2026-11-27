@@ -12,8 +12,11 @@ const MAX_KEY_LENGTH = 200;
 export type KeyedInstallation = { deviceId?: string | null; isCurrent?: boolean; source: string; name: string;
   installationFolder?: string | null };
 
-/** A saved skill: its key, and its SKILL.md name as cloud save compares it (null when saved before names were kept). */
-export type CloudRecordName = { key: string; name: string | null };
+/**
+ * A saved skill: its key, its SKILL.md name as cloud save compares it (null when saved before names were kept),
+ * and the Mac that saved its current version, when known.
+ */
+export type CloudRecordName = { key: string; name: string | null; deviceId?: string | null };
 
 /** The keys a skill in this folder may use, in order: the folder name, then "<folder>@<agent>", "<folder>@<agent>-2", … */
 export function candidateKey(folder: string, agent: string, index: number) {
@@ -36,24 +39,61 @@ function belongsToFolder(key: string, folder: string) {
   return !!suffix && candidateKey(folder, suffix[1], suffix[2] ? Number(suffix[2]) : 1) === key;
 }
 
+/** Where a skill is on its Mac, as the Mac names it in its key report: "<agent>/<folder>". */
+export function cloudKeyLocation(source: string, folder: string) {
+  return `${source.trim().toLowerCase()}/${folder}`;
+}
+
+/** A key a Mac used for one skill folder, and the SKILL.md name of the skill that was in it. */
+export type ReportedCloudKey = { key: string; name: string };
+/** Each Mac's own keys from its last pass, by device ID, then by `cloudKeyLocation`. */
+export type ReportedCloudKeys = ReadonlyMap<string, Readonly<Record<string, ReportedCloudKey>>>;
+
 /**
- * A skill's cloud key is its folder name, unless that key holds a different skill. Then:
+ * A skill's cloud key is the one its Mac reported using for that folder on its last pass, while the same skill
+ * (by SKILL.md name) is still there: the Mac decides (it also remembers keys, which nothing here can work out).
+ * Otherwise it's worked out the same way the Mac does: its folder name, unless that key holds a different skill. Then:
  * 1. A saved skill with the same SKILL.md name under this folder's keys is this skill (its folder name first).
  * 2. Otherwise, the skills in same-name folders on one Mac are told apart by SKILL.md name. The one named like
  *    its folder chooses first (else the one in the first agent alphabetically), and each takes the first key
  *    no other skill holds: the folder name, then "<folder>@<its first agent>", then "-2", "-3"…
  */
-export function cloudSkillKeys<T extends KeyedInstallation>(installations: T[], records: CloudRecordName[] = []): Map<T, string> {
+export function cloudSkillKeys<T extends KeyedInstallation>(installations: T[], records: CloudRecordName[] = [],
+  reported: ReportedCloudKeys = new Map()): Map<T, string> {
   const keys = new Map<T, string>();
   const taken = new Map<string, string>();
   for (const record of records) if (record.name) taken.set(record.key, record.name);
+  // A Mac's current copies take the keys it reported, unless another skill has since replaced the one that was
+  // in the folder (the report is from the Mac's last finished pass). The rest are worked out around them.
+  // As on the Mac, a key saved since with another skill is that skill's, unless this Mac saved it (a rename).
+  const claimed = new Map<string, string>();
+  const savedBy = new Map(records.map(record => [record.key, record]));
+  const fromMac = (skill: T) => {
+    if (skill.isCurrent === false || !skill.deviceId || !skill.installationFolder) return undefined;
+    const entry = reported.get(skill.deviceId)?.[cloudKeyLocation(skill.source, skill.installationFolder)];
+    const name = cloudNameKey(skill.name);
+    if (!entry || cloudNameKey(entry.name) !== name || !belongsToFolder(entry.key, cloudNameKey(skill.installationFolder))) return undefined;
+    const saved = savedBy.get(entry.key);
+    return !saved?.name || saved.name === name || saved.deviceId === skill.deviceId ? entry.key : undefined;
+  };
+  for (const skill of installations) {
+    const key = fromMac(skill);
+    if (!key) continue;
+    keys.set(skill, key);
+    const name = cloudNameKey(skill.name) || cloudNameKey(skill.installationFolder || skill.name);
+    taken.set(key, name);
+    claimed.set(key, name);
+  }
   const groups = new Map<string, T[]>();
   installations.forEach((skill, index) => {
+    if (keys.has(skill)) return;
     const folder = cloudNameKey(skill.installationFolder || skill.name);
     const name = cloudNameKey(skill.name) || folder;
     keys.set(skill, folder);
     if (!folder) return;
-    const saved = records.filter(record => record.name === name && belongsToFolder(record.key, folder))
+    // A saved skill's key that a Mac reported for another skill is that one's (a rename not saved yet).
+    const saved = records.filter(record => record.name === name && belongsToFolder(record.key, folder)
+      && (claimed.get(record.key) ?? name) === name)
       .map(record => record.key).sort((a, b) => Number(b === folder) - Number(a === folder) || order(a, b))[0];
     if (saved) { keys.set(skill, saved); return; }
     // Only one Mac's current copies can collide; older rows and copies from nowhere are on their own.

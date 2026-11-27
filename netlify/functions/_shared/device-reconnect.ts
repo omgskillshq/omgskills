@@ -62,6 +62,8 @@ export async function releaseMovedDevice(client: PoolClient, userId: string, key
   const deviceIds = moved.rows.map(row => row.id);
   if (deviceIds.length) {
     await client.query("DELETE FROM synced_skills WHERE device_id = ANY($1::uuid[])", [deviceIds]);
+    // Its last skip report names its skill folders too.
+    await client.query("DELETE FROM cloud_skip_reports WHERE device_id = ANY($1::uuid[])", [deviceIds]);
   }
   return deviceIds;
 }

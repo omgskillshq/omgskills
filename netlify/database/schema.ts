@@ -587,11 +587,14 @@ export const cloudSkipReports = pgTable(
     userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     deviceId: uuid("device_id").notNull().references(() => deviceTokens.id, { onDelete: "cascade" }),
     skipped: jsonb("skipped").notNull(),
-    reportedAt: timestamp("reported_at", { withTimezone: true }).notNull().defaultNow()
+    reportedAt: timestamp("reported_at", { withTimezone: true }).notNull().defaultNow(),
+    /** The key each skill folder there uses, with its skill's name: `{ "<agent>/<folder>": { key, name } }`. */
+    cloudKeys: jsonb("cloud_keys")
   },
   (table) => [
     primaryKey({ columns: [table.userId, table.deviceId] }),
-    check("cloud_skip_reports_skipped_check", sql`jsonb_typeof(${table.skipped}) = 'object'`)
+    check("cloud_skip_reports_skipped_check", sql`jsonb_typeof(${table.skipped}) = 'object'`),
+    check("cloud_skip_reports_cloud_keys_check", sql`${table.cloudKeys} IS NULL OR jsonb_typeof(${table.cloudKeys}) = 'object'`)
   ]
 );
 

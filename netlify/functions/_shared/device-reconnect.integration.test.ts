@@ -259,8 +259,15 @@ test("a Mac moving to another account revokes the old connection and deletes onl
       await client.query("COMMIT");
     } finally { client.release(); }
 
+    for (const device of [moving.deviceId, staying.deviceId]) {
+      await pool.query(`INSERT INTO cloud_skip_reports (user_id, device_id, skipped, cloud_keys)
+        VALUES ($1, $2, '{}', '{"codex/reconnect-fixture": {"key": "reconnect-fixture", "name": "Reconnect fixture"}}')`, [first, device]);
+    }
+
     const moved = await pair(pool, second, key);
     assert.notEqual(moved.deviceId, moving.deviceId);
+    assert.deepEqual((await pool.query("SELECT device_id FROM cloud_skip_reports")).rows.map(row => row.device_id), [staying.deviceId],
+      "Its last skip report, which names its skill folders, goes with its inventory");
     await assert.rejects(requireDeviceActor(pool, request(moving.credential), "sync:write"), status(401));
     const old = (await rows(pool, "device_tokens")).find(row => row.id === moving.deviceId);
     assert.ok(old.revoked_at);
