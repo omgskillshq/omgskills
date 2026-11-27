@@ -268,6 +268,14 @@ test("copies from an app too old to say which Mac are superseded once a Mac repo
   assert.deepEqual(await read([{ ...tagged, isCurrent: false }, old], 3), [["tagged", false], ["old", true]]);
   // An old app still reporting (another Mac not updated yet) keeps its copies.
   assert.deepEqual(await read([tagged, { ...old, lastSeenAt: "2026-11-25T12:00:00Z" }], 3), [["tagged", true], ["old", true]]);
+  // The same Mac updated minutes after its old app's last report: once it checks in a day later (nothing changed,
+  // so its copies' last-seen time stays), the old copies are history.
+  const updated = { ...tagged, lastSeenAt: "2026-11-25T12:05:00Z" }, lastOld = { ...old, lastSeenAt: "2026-11-25T12:00:00Z" };
+  assert.deepEqual(await read([updated, lastOld], 3), [["tagged", true], ["old", true]]);
+  const checked = (await readSyncInventory({ query: async (sql: string) => ({ rows: sql.includes("FROM synced_skills") ? [updated, lastOld]
+    : sql.includes("max(inventory_checked_at)") ? [{ checkedAt: "2026-11-27T09:00:00Z" }] : [] }) } as unknown as Pool,
+    "user", 3, new Date(), async () => catalog, index([], {})) as { skills: Array<{ id: string; isCurrent?: boolean }> }).skills;
+  assert.deepEqual(checked.map((skill) => [skill.id, skill.isCurrent]), [["tagged", true], ["old", false]]);
 });
 
 test("a mirror counts for its original when that's listed, and never on its own", async () => {

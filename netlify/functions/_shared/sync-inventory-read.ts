@@ -58,8 +58,12 @@ export async function readSyncInventory(
   // they weren't reported again around then: that report is the truth about what's installed, so they're
   // history. An old app still reporting (another Mac not updated yet) keeps its copies fresh, so they stay.
   const seenAt = (value: unknown) => value instanceof Date ? value.getTime() : Date.parse(String(value));
-  const newestTagged = Math.max(-Infinity, ...result.rows
-    .filter((row) => row.deviceId != null && row.isCurrent !== false).map((row) => seenAt(row.lastSeenAt)).filter(Number.isFinite));
+  const tagged = result.rows.filter((row) => row.deviceId != null && row.isCurrent !== false);
+  // A Mac that finds nothing changed only checks in (its copies' last-seen time stays), so its latest check counts too.
+  const checkedIn = tagged.length ? await pool.query<{ checkedAt: Date | string | null }>(
+    `SELECT max(inventory_checked_at) AS "checkedAt" FROM device_tokens WHERE user_id = $1 AND revoked_at IS NULL`, [userId]
+  ).then((read) => read.rows[0]?.checkedAt ?? null, () => null) : null;
+  const newestTagged = Math.max(-Infinity, ...[...tagged.map((row) => row.lastSeenAt), checkedIn].map(seenAt).filter(Number.isFinite));
   const superseded = (row: { deviceId?: unknown; lastSeenAt?: unknown }) => row.deviceId == null && Number.isFinite(newestTagged)
     && !(seenAt(row.lastSeenAt) > newestTagged - SUPERSEDE_GRACE_MS);
   const skills = result.rows.flatMap(({ stableKey, ...row }) => {
