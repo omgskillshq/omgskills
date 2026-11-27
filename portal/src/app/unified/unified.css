@@ -2286,11 +2286,12 @@
   white-space: nowrap;
 }
 .ua-local-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   flex-shrink: 0;
   border-radius: 50%;
-  background: var(--ua-blue);
+  /* A soft blue, not the app's accent: a note about the skill, not something new to look at. */
+  background: color-mix(in srgb, var(--ua-blue) 45%, var(--ua-bg));
 }
 .ua-cloud-badge {
   display: inline-flex;
