@@ -14,6 +14,7 @@ function dependencies(overrides: Record<string, unknown> = {}) {
     store: unused,
     requireUser: unused,
     requireDevice: unused,
+    summaryInputs: async () => null,
     ...overrides
   } as never;
 }

@@ -370,6 +370,7 @@ test("saved versions and their files can't be changed or deleted", async () => {
 
 test("the endpoints save, list and download a skill for a paired Mac", async () => {
   const { portalCloudSave } = await import("../portal-cloud-save.mjs");
+  const { readCloudSummaryInputsSoon } = await import("./cloud-summary.js");
   await withMigratedSchema(async (pool) => {
     const store = new MemoryStore();
     const { userId, deviceId } = await createUser(pool);
@@ -378,6 +379,7 @@ test("the endpoints save, list and download a skill for a paired Mac", async () 
       available: () => true,
       pool: () => pool,
       store: () => store,
+      summaryInputs: readCloudSummaryInputsSoon,
       requireUser: async () => ({ userId, deviceId: null }),
       requireDevice: async (_req: Request, scope: string) => {
         scopes.push(scope);
@@ -620,6 +622,7 @@ test("the Mac can confirm a held file directly, and versions carry their labels"
 
 test("held-file errors from the endpoints list what was found and where", async () => {
   const { portalCloudSave } = await import("../portal-cloud-save.mjs");
+  const { readCloudSummaryInputsSoon } = await import("./cloud-summary.js");
   await withMigratedSchema(async (pool) => {
     const store = new MemoryStore();
     const { userId, deviceId } = await createUser(pool);
@@ -628,6 +631,7 @@ test("held-file errors from the endpoints list what was found and where", async 
       available: () => true,
       pool: () => pool,
       store: () => store,
+      summaryInputs: readCloudSummaryInputsSoon,
       requireUser: async () => ({ userId, deviceId: null }),
       requireDevice: async () => ({ userId, deviceId })
     };
@@ -654,6 +658,7 @@ test("held-file errors from the endpoints list what was found and where", async 
 
 test("a batch upload stores a skill's files in one request and reports a held file without stopping the rest", async () => {
   const { portalCloudSave } = await import("../portal-cloud-save.mjs");
+  const { readCloudSummaryInputsSoon } = await import("./cloud-summary.js");
   await withMigratedSchema(async (pool) => {
     const store = new MemoryStore();
     const { userId, deviceId } = await createUser(pool);
@@ -662,6 +667,7 @@ test("a batch upload stores a skill's files in one request and reports a held fi
       available: () => true,
       pool: () => pool,
       store: () => store,
+      summaryInputs: readCloudSummaryInputsSoon,
       requireUser: async () => ({ userId, deviceId: null }),
       requireDevice: async (_req: Request, scope: string) => {
         scopes.push(scope);
@@ -1027,6 +1033,7 @@ test("versions of shared and GitHub sources stay append-only, even inside a clou
 
 test("reading cloud save does no clean-up work, and the hourly run finishes a delete", async () => {
   const { portalCloudSave } = await import("../portal-cloud-save.mjs");
+  const { readCloudSummaryInputsSoon } = await import("./cloud-summary.js");
   const { deleteCloudSkills } = await import("./cloud-save.js");
   const { sweepCloudStorage } = await import("./cloud-storage-sweep.js");
   await withMigratedSchema(async (pool) => {
@@ -1041,6 +1048,7 @@ test("reading cloud save does no clean-up work, and the hourly run finishes a de
 
     const read = await portalCloudSave(new Request("https://omgskills.com/api/portal/cloud-save"), {} as never, {
       available: () => true, pool: () => pool, store: () => { throw new Error("reads must not use storage"); },
+      summaryInputs: readCloudSummaryInputsSoon,
       requireUser: async () => ({ userId, deviceId: null }), requireDevice: async () => ({ userId, deviceId })
     } as never);
     assert.equal(read.status, 200);
@@ -1421,6 +1429,7 @@ test("the old clean-up queue moves over, leaving out files still in use", async 
 
 test("each Mac reports why it didn't save skills, and its next report replaces the last", async () => {
   const { portalCloudSave } = await import("../portal-cloud-save.mjs");
+  const { readCloudSummaryInputsSoon } = await import("./cloud-summary.js");
   await withMigratedSchema(async (pool) => {
     const { userId, deviceId } = await createUser(pool);
     const other = (await pool.query<{ id: string }>(
@@ -1674,6 +1683,7 @@ test("adding your own skill to a Set shares its saved version; Update Set moves 
 
 test("the web reads a saved skill's current SKILL.md, only for its owner", async () => {
   const { portalCloudSave } = await import("../portal-cloud-save.mjs");
+  const { readCloudSummaryInputsSoon } = await import("./cloud-summary.js");
   await withMigratedSchema(async (pool) => {
     const store = new MemoryStore();
     const { userId, deviceId } = await createUser(pool);
@@ -1689,6 +1699,7 @@ test("the web reads a saved skill's current SKILL.md, only for its owner", async
       available: () => true,
       pool: () => pool,
       store: () => store,
+      summaryInputs: readCloudSummaryInputsSoon,
       requireUser: async () => ({ userId: web, deviceId: null }),
       requireDevice: async () => ({ userId, deviceId })
     };

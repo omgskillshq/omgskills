@@ -254,6 +254,30 @@ test("a skill added from GitHub and installed by the app shows that repo, its st
   assert.equal(skills[0].githubUrl, null);
 });
 
+test("copies from an app too old to say which Mac are superseded once a Mac reports with its own", async () => {
+  const tagged = row({ id: "tagged", name: "here", catalogSkillIdHint: null, deviceId: "mac", lastSeenAt: "2026-11-26T00:00:00Z" });
+  const old = row({ id: "old", name: "gone", catalogSkillIdHint: null, deviceId: null, source: "Claude", lastSeenAt: "2026-09-28T00:00:00Z" });
+  const read = async (rows: unknown[], version: 2 | 3) => ((await readSyncInventory(pool(rows), "user", version, new Date(), async () => catalog,
+    index([], {}))) as { skills: Array<{ id: string; isCurrent?: boolean }> }).skills.map((skill) => [skill.id, skill.isCurrent]);
+  // With a Mac reporting: v3 keeps them as history (not current), v2 leaves them out.
+  assert.deepEqual(await read([tagged, old], 3), [["tagged", true], ["old", false]]);
+  assert.deepEqual(await read([tagged, old], 2), [["tagged", true]]);
+  // An account whose only reports are from the old app keeps them.
+  assert.deepEqual(await read([old], 3), [["old", true]]);
+  // A Mac's history alone (nothing current) doesn't supersede them.
+  assert.deepEqual(await read([{ ...tagged, isCurrent: false }, old], 3), [["tagged", false], ["old", true]]);
+  // An old app still reporting (another Mac not updated yet) keeps its copies.
+  assert.deepEqual(await read([tagged, { ...old, lastSeenAt: "2026-11-25T12:00:00Z" }], 3), [["tagged", true], ["old", true]]);
+  // The same Mac updated minutes after its old app's last report: once it checks in a day later (nothing changed,
+  // so its copies' last-seen time stays), the old copies are history.
+  const updated = { ...tagged, lastSeenAt: "2026-11-25T12:05:00Z" }, lastOld = { ...old, lastSeenAt: "2026-11-25T12:00:00Z" };
+  assert.deepEqual(await read([updated, lastOld], 3), [["tagged", true], ["old", true]]);
+  const checked = (await readSyncInventory({ query: async (sql: string) => ({ rows: sql.includes("FROM synced_skills") ? [updated, lastOld]
+    : sql.includes("max(inventory_checked_at)") ? [{ checkedAt: "2026-11-27T09:00:00Z" }] : [] }) } as unknown as Pool,
+    "user", 3, new Date(), async () => catalog, index([], {})) as { skills: Array<{ id: string; isCurrent?: boolean }> }).skills;
+  assert.deepEqual(checked.map((skill) => [skill.id, skill.isCurrent]), [["tagged", true], ["old", false]]);
+});
+
 test("a mirror counts for its original when that's listed, and never on its own", async () => {
   const old = "7".repeat(40), orphan = "6".repeat(40);
   const read = index([

@@ -24,6 +24,7 @@ import {
   updateCloudSaveSettings
 } from "./_shared/cloud-save.js";
 import { CloudStoreError, createCloudObjectStore, type CloudObjectStore } from "./_shared/cloud-store.js";
+import { cloudSummary, readCloudSummaryInputsSoon, type CloudSummaryInputs } from "./_shared/cloud-summary.js";
 import { isDeviceCredential } from "./_shared/crypto.js";
 import { getPgPool } from "./_shared/db.js";
 import { DeviceAuthError, requireDeviceActor, type DeviceScope } from "./_shared/device-auth.js";
@@ -100,12 +101,15 @@ export type PortalCloudSaveDependencies = {
   store(): CloudObjectStore;
   requireUser(req: Request): Promise<CloudSaveActor>;
   requireDevice(req: Request, scope: DeviceScope): Promise<CloudSaveActor>;
+  /** What the shared counts need besides cloud save; null when it couldn't be read in time. */
+  summaryInputs(pool: Pool, userId: string): Promise<CloudSummaryInputs | null>;
 };
 
 const defaultDependencies: PortalCloudSaveDependencies = {
   available: () => isCloudSaveAvailable(getEnv),
   pool: getPgPool,
   store: () => createCloudObjectStore(),
+  summaryInputs: readCloudSummaryInputsSoon,
   async requireUser(req) {
     return { userId: (await requirePortalUser(req)).id, deviceId: null };
   },
@@ -156,8 +160,13 @@ export async function portalCloudSave(
           return secretJsonResponse(req, await deleteCloudSkills(dependencies.pool(), dependencies.store(), { userId }));
         }
         // Reads do no clean-up work; the hourly cloud-storage-sweep run removes deleted files.
-        const { userId } = await actor(req, dependencies, "sync:write");
-        return secretJsonResponse(req, await readCloudSave(dependencies.pool(), userId));
+        const { userId, deviceId } = await actor(req, dependencies, "sync:write");
+        const pool = dependencies.pool();
+        // With the counts every screen shows, worked out here once (left out if they're slow to read).
+        // A Mac asks for them (?summary=1) once it shows them, so older Macs' passes don't pay for the read.
+        const wanted = !deviceId || new URL(req.url).searchParams.get("summary") === "1";
+        const [state, inputs] = await Promise.all([readCloudSave(pool, userId), wanted ? dependencies.summaryInputs(pool, userId) : null]);
+        return secretJsonResponse(req, inputs ? { ...state, summary: cloudSummary(state, inputs, deviceId) } : state);
       }
       case "skill": {
         // Delete everywhere: the web, or a Mac that may write content.
