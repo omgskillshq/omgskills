@@ -163,7 +163,9 @@ export async function portalCloudSave(
         const { userId, deviceId } = await actor(req, dependencies, "sync:write");
         const pool = dependencies.pool();
         // With the counts every screen shows, worked out here once (left out if they're slow to read).
-        const [state, inputs] = await Promise.all([readCloudSave(pool, userId), dependencies.summaryInputs(pool, userId)]);
+        // A Mac asks for them (?summary=1) once it shows them, so older Macs' passes don't pay for the read.
+        const wanted = !deviceId || new URL(req.url).searchParams.get("summary") === "1";
+        const [state, inputs] = await Promise.all([readCloudSave(pool, userId), wanted ? dependencies.summaryInputs(pool, userId) : null]);
         return secretJsonResponse(req, inputs ? { ...state, summary: cloudSummary(state, inputs, deviceId) } : state);
       }
       case "skill": {

@@ -26,6 +26,8 @@ export type CloudSaveState = {
   needsReview: { key: string; files: { path: string; findings: CloudFinding[] }[]; confirmed: boolean; updatedAt: string }[];
   /** Why a Mac didn't save each skill on its last pass. */
   skipped: Record<string, CloudSkipReason>;
+  /** The Mac whose report gave each reason; older servers leave it out. */
+  skippedBy?: Record<string, string>;
   /** The counts every screen shows, worked out by the server; older servers leave it out. */
   summary?: CloudSummary;
 };

@@ -196,6 +196,8 @@ export type CloudSaveState = {
   needsReview: CloudSkillReview[];
   /** Skill key to reason, from every Mac's last report; a newer report wins. */
   skipped: Record<string, CloudSkipReason>;
+  /** The Mac whose report gave each reason. */
+  skippedBy: Record<string, string>;
 };
 
 export async function readCloudSaveSettings(db: Database, userId: string): Promise<CloudSaveSettings> {
@@ -297,12 +299,19 @@ async function readReviews(db: Database, userId: string): Promise<CloudSkillRevi
   }));
 }
 
-async function readSkips(db: Database, userId: string): Promise<Record<string, CloudSkipReason>> {
-  const result = await db.query<{ skipped: Record<string, CloudSkipReason> }>(
-    "SELECT skipped FROM cloud_skip_reports WHERE user_id = $1 ORDER BY reported_at, device_id",
+/** Each Mac's last reasons (a newer report wins), and which Mac gave each; a disconnected Mac's don't count. */
+async function readSkips(db: Database, userId: string): Promise<{ skipped: Record<string, CloudSkipReason>; skippedBy: Record<string, string> }> {
+  const result = await db.query<{ skipped: Record<string, CloudSkipReason>; deviceId: string }>(
+    `SELECT report.skipped, report.device_id AS "deviceId" FROM cloud_skip_reports report
+     JOIN device_tokens device ON device.id = report.device_id AND device.revoked_at IS NULL
+     WHERE report.user_id = $1 ORDER BY report.reported_at, report.device_id`,
     [userId]
   );
-  return Object.assign({}, ...result.rows.map((row) => row.skipped));
+  const skipped: Record<string, CloudSkipReason> = {}, skippedBy: Record<string, string> = {};
+  for (const row of result.rows) {
+    for (const [key, reason] of Object.entries(row.skipped)) { skipped[key] = reason; skippedBy[key] = row.deviceId; }
+  }
+  return { skipped, skippedBy };
 }
 
 /**
@@ -415,7 +424,7 @@ function githubSourceJson(source: unknown): string | null {
 }
 
 export async function readCloudSave(db: Database, userId: string): Promise<CloudSaveState> {
-  const [settings, bytes, skills, needsReview, skipped] = await Promise.all([
+  const [settings, bytes, skills, needsReview, { skipped, skippedBy }] = await Promise.all([
     readCloudSaveSettings(db, userId),
     usedBytes(db, userId),
     db.query<CloudSavedVersion & { key: string; name: string | null; description: string | null; versionCount: number; deletedLocallyAt: string | null; setCount: number;
@@ -447,6 +456,7 @@ export async function readCloudSave(db: Database, userId: string): Promise<Cloud
     settings,
     needsReview,
     skipped,
+    skippedBy,
     usage: { bytes, limitBytes: CLOUD_SAVE_LIMITS.maximumUserBytes },
     skills: skills.rows.map(({ key, name, description, versionCount, deletedLocallyAt, setCount, githubSource, ...version }) => ({
       key,

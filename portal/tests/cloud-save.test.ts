@@ -66,11 +66,16 @@ test("a Mac's reason for not saving the version it has now wins over guessing an
     installed("pdf", { catalogSkillId: "anthropics/skills:pdf", isLocalOnly: false }),
     installed("huge"), installed("odd"), installed("spec"), installed("notes"), installed("fresh"),
   ]);
-  // The version on the Mac now couldn't be saved: an older saved copy (notes) doesn't make it synced.
+  // A failed try is retried, so an older saved copy (notes) still counts as synced.
   assert.deepEqual(rows.map(row => [row.key, row.status]), [
-    ["notes", "failed"], ["pdf", "failed"], ["ship", "links"], ["huge", "too_large"], ["odd", "unreadable"],
+    ["notes", "saved"], ["pdf", "failed"], ["ship", "links"], ["huge", "too_large"], ["odd", "unreadable"],
     ["fresh", "waiting"], ["spec", "waiting"],
   ]);
+  // A lasting reason from the Mac that has the skill now beats an older saved copy; another Mac's old reason doesn't.
+  const reason = (by: string) => cloudSkillRows(state({ skills: [saved("ship")], skipped: { ship: "links" }, skippedBy: { ship: by } }),
+    [installed("ship", { deviceId: "mac-1" })]).map(row => row.status);
+  assert.deepEqual(reason("mac-1"), ["links"]);
+  assert.deepEqual(reason("old-mac"), ["saved"]);
   // With cloud save off, nothing is being saved, so old reasons don't show.
   const off = cloudSkillRows(state({ settings: { enabled: false, excludedSkillKeys: [] }, skipped: { ship: "links" } }),
     [installed("ship")]);
@@ -424,7 +429,7 @@ test("an installed copy's folder comes from its agent", () => {
 test("only copies some Mac has now count: an old app's copies stop counting after 30 days", async () => {
   const { cloudCounts, cloudSummaryText } = await import("../src/cloud-save/cloud-save");
   const now = Date.parse("2026-11-26T00:00:00Z");
-  const rows = cloudSkillRows(state({ skills: [saved("kept")], skipped: { pptx: "links" } }), [
+  const rows = cloudSkillRows(state({ skills: [saved("kept"), saved("pptx")], skipped: { pptx: "links" }, skippedBy: { pptx: "mac" } }), [
     installed("here", { deviceId: "mac" }),
     installed("pptx", { deviceId: "mac", catalogSkillId: "a/b:pptx", isLocalOnly: false }),
     installed("recent-old-app", { lastSeenAt: "2026-11-20T00:00:00Z" }),

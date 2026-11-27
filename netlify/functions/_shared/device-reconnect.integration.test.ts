@@ -493,7 +493,7 @@ test("reconnecting an active Mac does not consume another slot; a revoked Mac ca
   });
 });
 
-test("a pairing whose Mac never reported shows inactive after a week and doesn't use up a place", async () => {
+test("a pairing whose Mac never reported shows inactive after a week", async () => {
   await withSchema(async pool => {
     const owner = await user(pool), first = await pair(pool, owner, key);
     const insert = (age: string) => pool.query<{ id: string }>(`INSERT INTO device_tokens(user_id,token_hash,device_name,expires_at,created_at)
@@ -506,12 +506,6 @@ test("a pairing whose Mac never reported shows inactive after a week and doesn't
     assert.equal(statuses.get(recent), "active", "A new pairing gets a week");
     assert.equal(statuses.get(reported), "active", "A Mac that checked in is a real Mac");
     assert.equal(statuses.get(first.deviceId), "active");
-    // Abandoned pairings don't count toward the limit: with one place left (and several abandoned), a Mac still
-    // connects; the next is refused.
-    for (let i = 4; i < MAX_ACTIVE_DEVICES; i++) await insert("1 day");
-    for (let i = 0; i < 5; i++) await insert("8 days");
-    await pair(pool, owner, otherKey);
-    await assert.rejects(pair(pool, owner, "ef".repeat(32)), status(409));
   });
 });
 

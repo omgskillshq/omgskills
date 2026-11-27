@@ -25,6 +25,8 @@ export type CloudRowsState = {
   }[];
   needsReview: { key: string; files: { path: string; findings: CloudFinding[] }[]; confirmed: boolean }[];
   skipped: Record<string, string>;
+  /** The Mac whose report gave each reason; older servers leave it out. */
+  skippedBy?: Record<string, string>;
 };
 
 export type CloudSkillStatus = "saved" | "deleted" | "review" | "confirmed" | "excluded" | "library" | "set" | "waiting" | "off"
@@ -82,9 +84,12 @@ export function needsAttention(status: CloudSkillStatus) {
   return status === "review" || status === "failed" || status === "links" || status === "too_large" || status === "unreadable";
 }
 
-/** A Mac's reason for not saving the version it has now. */
+/** A Mac's reason for not saving a skill. */
 const cantSave = (reason: string | undefined): reason is "links" | "too_large" | "unreadable" | "failed" =>
   reason === "links" || reason === "too_large" || reason === "unreadable" || reason === "failed";
+/** A reason that lasts until the skill's files change (a failed try is retried, so it doesn't). */
+const lasting = (reason: string | undefined): reason is "links" | "too_large" | "unreadable" =>
+  reason === "links" || reason === "too_large" || reason === "unreadable";
 
 export const statusOrder: Record<CloudSkillStatus, number> = {
   review: 0, confirmed: 1, saved: 2, deleted: 3, failed: 4, links: 5, too_large: 6, unreadable: 7, waiting: 8, off: 9,
@@ -108,11 +113,14 @@ export function cloudSkillRows(state: CloudRowsState, installed: readonly Synced
   const names = new Map<string, string>();
   const fromLibrary = new Set<string>();
   const fromCatalog = new Set<string>();
+  // Which Macs have each skill now, to tell whose reason is about the version there.
+  const macs = new Map<string, Set<string>>();
   for (const skill of installed) {
     if (!isLiveCopy(skill, now)) continue;
     const key = installationCloudKey(skill);
     if (!key) continue;
     if (!names.has(key)) names.set(key, skill.name);
+    if (skill.deviceId) macs.set(key, (macs.get(key) ?? new Set()).add(skill.deviceId));
     if (skill.catalogSkillId || skill.installedFromSet) fromLibrary.add(key);
     if (skill.catalogSkillId) fromCatalog.add(key);
   }
@@ -136,8 +144,8 @@ export function cloudSkillRows(state: CloudRowsState, installed: readonly Synced
     const reason = state.skipped[key];
     const found: CloudSkillStatus = excluded.has(key) ? "excluded"
       : review ? (review.confirmed ? "confirmed" : "review")
-      // On a Mac now and that version can't be saved: an older saved copy doesn't make it synced.
-      : names.has(key) && state.settings.enabled && cantSave(reason) ? reason
+      // The Mac that has it now can't save that version: an older saved copy doesn't make it synced.
+      : state.settings.enabled && lasting(reason) && !!state.skippedBy?.[key] && !!macs.get(key)?.has(state.skippedBy[key]) ? reason
       : copy ? (copy.deletedLocallyAt ? "deleted" : fromLibrary.has(key) ? "library" : "saved")
       : !state.settings.enabled ? "off"
       // Only a saved copy is "from the library"; an older Mac reports unchanged installs as not uploaded.

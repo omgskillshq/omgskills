@@ -7,7 +7,6 @@ import {
 } from "./crypto.js";
 import {
   BASE_DEVICE_SCOPES,
-  NEVER_REPORTED_SQL,
   normalizeDeviceScopes,
   type DeviceScope
 } from "./device-auth.js";
@@ -162,8 +161,6 @@ export async function exchangePairingCode(pool: Pool, options: ExchangeOptions) 
           AND revoked_at IS NULL
           AND expires_at > $2
           AND ($3::uuid IS NULL OR id <> $3)
-          -- An abandoned pairing doesn't use up a place.
-          AND NOT (${NEVER_REPORTED_SQL})
       `,
       [pairing.user_id, now, reconnectDeviceId]
     );

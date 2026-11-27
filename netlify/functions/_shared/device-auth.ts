@@ -162,11 +162,11 @@ export async function revokePresentedDevice(pool: Pool, req: Request, now = new 
 
 /**
  * A pairing whose Mac never reported or checked in, and that hasn't been used for a week: an abandoned
- * connect (an app reinstalled, a pairing tried twice). It shows as inactive and doesn't count toward the
- * device limit; if that Mac ever uses it again it's active again. ($2 is now.)
+ * connect (an app reinstalled, a pairing tried twice). Shown as inactive, so the Macs list doesn't
+ * show a Mac that isn't there; once a Mac reports with it, it's active. ($2 is now.)
  */
 export const NEVER_REPORTED_SQL = `inventory_checked_at IS NULL
-  AND NOT EXISTS (SELECT 1 FROM sync_runs run WHERE run.device_id = device_tokens.id)
+  AND NOT EXISTS (SELECT 1 FROM sync_runs run WHERE run.user_id = device_tokens.user_id AND run.device_id = device_tokens.id)
   AND COALESCE(last_used_at, created_at) <= $2::timestamptz - interval '7 days'`;
 
 export async function listUserDevices(pool: Pool, userId: string, now = new Date()) {

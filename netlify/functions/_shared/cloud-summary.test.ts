@@ -11,7 +11,7 @@ const copy = (name: string, extra: Partial<SyncedSkill> = {}): SyncedSkill => ({
   lastSeenAt: "2026-11-25T00:00:00Z", deviceId: "mac", ...extra,
 });
 const state = (overrides: Partial<CloudSaveState> = {}) => ({
-  settings: { enabled: true, excludedSkillKeys: ["left"] }, usage: { bytes: 0, limitBytes: 1 }, needsReview: [], skipped: { pptx: "links" },
+  settings: { enabled: true, excludedSkillKeys: ["left"] }, usage: { bytes: 0, limitBytes: 1 }, needsReview: [], skipped: { pptx: "links" }, skippedBy: { pptx: "mac" },
   skills: [{ key: "kept", name: "kept", description: null, versionCount: 1, deletedLocallyAt: null, setCount: 0, githubSource: null,
     currentVersion: { savedAt: "2026-11-02T00:00:00.000Z" } }],
   ...overrides,
@@ -28,13 +28,21 @@ test("the counts every screen shows, from the same rules as the web", () => {
 
 test("the state carries the counts when they could be read, and is unchanged when they couldn't", async () => {
   const pool = { query: async (sql: string) => ({ rows: sql.includes("AS bytes") ? [{ bytes: "0" }] : [], rowCount: 0 }) };
-  const call = (summaryInputs: () => Promise<unknown>) => portalCloudSave(new Request("https://omgskills.com/api/portal/cloud-save"), {} as never, {
-    available: () => true, pool: () => pool, store: () => { throw new Error("unused"); },
-    requireUser: async () => ({ userId: "u", deviceId: null }), requireDevice: async () => { throw new Error("unused"); },
-    summaryInputs,
-  } as never).then((response) => response.json());
+  const call = (summaryInputs: () => Promise<unknown>, mac?: { query: string }) => portalCloudSave(
+    new Request(`https://omgskills.com/api/portal/cloud-save${mac?.query ?? ""}`,
+      mac ? { headers: { authorization: `Bearer device_${"a".repeat(43)}` } } : {}), {} as never, {
+      available: () => true, pool: () => pool, store: () => { throw new Error("unused"); },
+      requireUser: async () => ({ userId: "u", deviceId: null }), requireDevice: async () => ({ userId: "u", deviceId: "mac" }),
+      summaryInputs,
+    } as never).then((response) => response.json());
   const withCounts = await call(async () => ({ inventory: [copy("here")], additions: [] }));
   // Sync is off in this account (no settings yet), so nothing is waiting to sync.
   assert.deepEqual(withCounts.summary, { skills: 1, cantSync: 0, notSyncedYet: 0, leftOut: 0, notOnMacs: 0, mySkills: 1 });
   assert.equal((await call(async () => null)).summary, undefined);
+  // A Mac gets them only when it asks (one that shows them), so older Macs' passes don't pay for the read.
+  let reads = 0;
+  const counted = async () => { reads += 1; return { inventory: [copy("here")], additions: [] }; };
+  assert.equal((await call(counted, { query: "" })).summary, undefined);
+  assert.equal(reads, 0);
+  assert.equal((await call(counted, { query: "?summary=1" })).summary.onThisMac, 1);
 });

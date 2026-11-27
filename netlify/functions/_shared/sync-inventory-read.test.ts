@@ -255,8 +255,8 @@ test("a skill added from GitHub and installed by the app shows that repo, its st
 });
 
 test("copies from an app too old to say which Mac are superseded once a Mac reports with its own", async () => {
-  const tagged = row({ id: "tagged", name: "here", catalogSkillIdHint: null, deviceId: "mac" });
-  const old = row({ id: "old", name: "gone", catalogSkillIdHint: null, deviceId: null, source: "Claude" });
+  const tagged = row({ id: "tagged", name: "here", catalogSkillIdHint: null, deviceId: "mac", lastSeenAt: "2026-11-26T00:00:00Z" });
+  const old = row({ id: "old", name: "gone", catalogSkillIdHint: null, deviceId: null, source: "Claude", lastSeenAt: "2026-09-28T00:00:00Z" });
   const read = async (rows: unknown[], version: 2 | 3) => ((await readSyncInventory(pool(rows), "user", version, new Date(), async () => catalog,
     index([], {}))) as { skills: Array<{ id: string; isCurrent?: boolean }> }).skills.map((skill) => [skill.id, skill.isCurrent]);
   // With a Mac reporting: v3 keeps them as history (not current), v2 leaves them out.
@@ -266,6 +266,8 @@ test("copies from an app too old to say which Mac are superseded once a Mac repo
   assert.deepEqual(await read([old], 3), [["old", true]]);
   // A Mac's history alone (nothing current) doesn't supersede them.
   assert.deepEqual(await read([{ ...tagged, isCurrent: false }, old], 3), [["tagged", false], ["old", true]]);
+  // An old app still reporting (another Mac not updated yet) keeps its copies.
+  assert.deepEqual(await read([tagged, { ...old, lastSeenAt: "2026-11-25T12:00:00Z" }], 3), [["tagged", true], ["old", true]]);
 });
 
 test("a mirror counts for its original when that's listed, and never on its own", async () => {

@@ -22,6 +22,9 @@ export function inventoryReadVersion(req: Request, allowReconciliation = false):
   return 2;
 }
 
+/** How much older than a Mac's latest report an old app's copies may be and still count as current. */
+export const SUPERSEDE_GRACE_MS = 24 * 60 * 60 * 1000;
+
 export async function readSyncInventory(
   pool: Pool,
   userId: string,
@@ -51,14 +54,19 @@ export async function readSyncInventory(
     [userId]
   );
 
-  // Copies from an app too old to say which Mac they're on are superseded once a Mac reports with its own:
-  // that Mac's report is the truth about what's installed, so they're history, not skills on a Mac.
-  const superseded = result.rows.some((row) => row.deviceId != null && row.isCurrent !== false);
+  // Copies from an app too old to say which Mac they're on are superseded once a Mac reports with its own and
+  // they weren't reported again around then: that report is the truth about what's installed, so they're
+  // history. An old app still reporting (another Mac not updated yet) keeps its copies fresh, so they stay.
+  const seenAt = (value: unknown) => value instanceof Date ? value.getTime() : Date.parse(String(value));
+  const newestTagged = Math.max(-Infinity, ...result.rows
+    .filter((row) => row.deviceId != null && row.isCurrent !== false).map((row) => seenAt(row.lastSeenAt)).filter(Number.isFinite));
+  const superseded = (row: { deviceId?: unknown; lastSeenAt?: unknown }) => row.deviceId == null && Number.isFinite(newestTagged)
+    && !(seenAt(row.lastSeenAt) > newestTagged - SUPERSEDE_GRACE_MS);
   const skills = result.rows.flatMap(({ stableKey, ...row }) => {
-    if (superseded && row.deviceId == null && row.isCurrent !== false && version !== 3) return [];
+    if (superseded(row) && row.isCurrent !== false && version !== 3) return [];
     return [{
       ...row,
-      ...(superseded && row.deviceId == null ? { isCurrent: false } : {}),
+      ...(superseded(row) ? { isCurrent: false } : {}),
       installationFolder: installationFolderFromKey(stableKey, row.source),
       // Historical uploads accepted arbitrary URLs. Do not repeat credentials.
       githubUrl: safeRepositoryUrl(row.githubUrl)
