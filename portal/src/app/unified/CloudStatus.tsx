@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Cloud, CloudAlert } from "lucide-react";
+import { Cloud } from "lucide-react";
 import { needsAttention, statusHelp, statusText, labelText, type CloudSaveState, type CloudSkillRow } from "../../cloud-save/cloud-save";
 
 /** The account's cloud save state, and confirming a skill flagged for a key is safe to save. */
@@ -13,7 +13,6 @@ export function CloudStatusBadge({ row: shown, notInstalled = false }: { row: Cl
   // A skill already marked Not installed just reads Saved.
   const row = notInstalled && shown.status === "deleted" ? { ...shown, status: "saved" as const } : shown;
   const attention = needsAttention(row.status);
-  const Icon = attention ? CloudAlert : Cloud;
   const saved = ["saved", "deleted", "library", "set"].includes(row.status);
   const history = [
     saved && row.versionCount > 0 ? `${row.versionCount} ${row.versionCount === 1 ? "version" : "versions"}` : "",
@@ -22,7 +21,7 @@ export function CloudStatusBadge({ row: shown, notInstalled = false }: { row: Cl
   const detail = attention ? undefined : [history && `${history[0].toUpperCase()}${history.slice(1)}.`, statusHelp[row.status]].filter(Boolean).join(" ");
   return <span className="ua-cloud-badge" data-status={row.status} data-attention={attention || undefined} title={detail || undefined}
     aria-label={`Sync: ${statusText[row.status]}${detail ? `. ${detail}` : ""}`}>
-    <Icon aria-hidden="true" /><span aria-hidden="true">{statusText[row.status]}</span>
+    {attention ? <span className="ua-local-dot" aria-hidden="true" /> : <Cloud aria-hidden="true" />}<span aria-hidden="true">{statusText[row.status]}</span>
   </span>;
 }
 

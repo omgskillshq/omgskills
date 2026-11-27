@@ -23,8 +23,6 @@
   --ua-line: #e5e5ea;
   --ua-blue: #0071e3;
   --ua-danger: #dc2626;
-  /* Local-only skills: purple, not red; nothing is wrong with them. */
-  --ua-local: #af52de;
   --ua-shadow: 0 1px 2px #0000000f, 0 12px 40px #00000024;
   --ua-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter",
     system-ui, sans-serif;
@@ -54,7 +52,6 @@
   --rd-row-divider: var(--ua-line);
   --ua-blue: #409cff;
   --ua-danger: #ff6b6b;
-  --ua-local: #bf5af2;
   --ua-shadow: 0 1px 2px #0006, 0 12px 40px #0009;
   color-scheme: dark;
 }
@@ -2270,15 +2267,31 @@
 .ua-saved-versions small {
   color: var(--ua-muted);
 }
-.ua-row-cloud {
+/* A local-only skill: a blue dot and why, in a few words; nothing is wrong with it. */
+.ua-row-local {
   display: inline-flex;
+  align-items: center;
   align-self: center;
-  flex-shrink: 0;
-  color: var(--ua-local);
+  gap: 5px;
+  min-width: 0;
+  /* On a narrow row the reason gives way before the skill's name does. */
+  flex-shrink: 20;
+  color: var(--ua-muted);
+  font-size: 11px;
+  font-weight: 400;
 }
-.ua-row-cloud svg {
-  width: 13px;
-  height: 13px;
+.ua-row-local-reason {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ua-local-dot {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  /* A soft blue, not the app's accent: a note about the skill, not something new to look at. */
+  background: color-mix(in srgb, var(--ua-blue) 45%, var(--ua-bg));
 }
 .ua-cloud-badge {
   display: inline-flex;
@@ -2311,8 +2324,11 @@
 .ua-cloud-badge:is([data-status="saved"], [data-status="deleted"], [data-status="library"], [data-status="set"]) svg {
   color: var(--ua-saved);
 }
-.ua-cloud-badge[data-attention] svg {
-  color: var(--ua-local);
+.ua-cloud-badge .ua-local-dot {
+  margin: 0 4px;
+}
+.ua-detail-sync-note .ua-cloud-badge .ua-local-dot {
+  margin: 0 1px 0 0;
 }
 .ua-cloud-status > p.ua-muted {
   font-size: 13px;
