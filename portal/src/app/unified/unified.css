@@ -2401,14 +2401,53 @@
 .ua-settings {
   display: flex;
   flex-direction: column;
-  gap: 24px;
 }
 .ua-settings-section {
   scroll-margin-top: 16px;
+  border-bottom: 1px solid var(--ua-line);
 }
-.ua-settings-section + .ua-settings-section {
-  padding-top: 24px;
-  border-top: 1px solid var(--ua-line);
+.ua-settings-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 16px 0;
+  border: 0;
+  background: none;
+  color: var(--ua-ink);
+  font: inherit;
+  font-family: var(--ua-display);
+  font-size: 16px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.ua-settings-toggle small {
+  margin-left: 10px;
+  color: var(--ua-muted);
+  font-family: var(--ua-sans);
+  font-size: 13px;
+  font-weight: 400;
+}
+.ua-settings-toggle svg {
+  width: 16px;
+  height: 16px;
+  color: var(--ua-muted);
+  transition: transform 150ms;
+}
+.ua-settings-section[data-open] .ua-settings-toggle svg {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ua-settings-toggle svg { transition: none; }
+}
+.ua-settings-body {
+  padding-bottom: 20px;
+}
+/* The section's own name is on its toggle; the panels' headings would repeat it (their buttons stay). */
+.ua-settings-body .ua-sync-settings > h2,
+.ua-settings-body .rd-section-heading > h2 {
+  display: none;
 }
 /* The account's sync, in Settings. */
 .ua-sync-settings {

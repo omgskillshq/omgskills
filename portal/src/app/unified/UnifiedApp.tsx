@@ -199,6 +199,8 @@ type Props = {
   onSignIn?: () => void;
   management?: UnifiedManagement;
   accountPages?: (view: View, theme: string) => ReactNode;
+  /** Deleting the account: the last section of Settings. */
+  accountDeletion?: (theme: string) => ReactNode;
   /** Reads a local skill's instructions from the user's cloud save, when signed in. */
   savedSkillMd?: SavedSkillMdLoader;
   /** Reads a private Set item's instructions for people the Set is shared with. */
@@ -673,6 +675,7 @@ export function UnifiedApp({
   onSignIn,
   management,
   accountPages,
+  accountDeletion,
   savedSkillMd,
   sharedSkillMd,
   savedVersions,
@@ -690,7 +693,8 @@ export function UnifiedApp({
   const [onMac] = useState(() => isMacDevice());
   const supportsView = (view: View) => !supportedAccountViews || isDiscovery(view) || supportedAccountViews.includes(view);
   // The Settings page's sections, in order; each old account page's address opens it at its section.
-  const settingsViews: View[] = ["profile", "cloud", "devices", "github", "mcp"];
+  const settingsViews: View[] = ["profile", "devices", "github", "mcp", "cloud"];
+  const settingsLabels: Partial<Record<View, string>> = { profile: "Profile", cloud: "Sync", devices: "Devices", github: "GitHub sources", mcp: "MCP server" };
   const settingsSections = settingsViews.filter(view => supportsView(view)
     && (view === "profile" || view === "cloud" || !readOnlyAccount || !!accountPages));
   const [rail, setRail] = useState(false);
@@ -742,8 +746,11 @@ export function UnifiedApp({
   // An old account page's address (Devices, GitHub sources, MCP, Sync) opens Settings at its section.
   // The page may still be loading (or its sections above still growing): look for the section for a few
   // seconds, and scroll to it once more after it appears.
+  // Settings' sections start closed; an old page's address opens its own.
+  const [settingsOpen, setSettingsOpen] = useState<string[]>(() => nav.view !== "profile" && settingsViews.includes(nav.view) ? [nav.view] : []);
   useEffect(() => {
     if (nav.view === "profile" || !settingsViews.includes(nav.view)) return;
+    setSettingsOpen(open => open.includes(nav.view) ? open : [...open, nav.view]);
     const id = `settings-${nav.view}`;
     let again: ReturnType<typeof setTimeout> | undefined;
     let tries = 0;
@@ -1360,7 +1367,6 @@ export function UnifiedApp({
                       </p>
                     </>
                   )}
-                  {view === "devices" && <h2>Devices</h2>}
                   {view === "devices" &&
                     data.devices.map((device) => (
                       <div className="ua-account-row" key={device.id}>
@@ -2338,9 +2344,19 @@ export function UnifiedApp({
                 // One Settings page: the account, its sync, then its connections. The old pages' addresses open it
                 // at their section.
                 <div className="ua-settings">
-                  {settingsSections.map(view => {
-                    const page = accountPages?.(view, theme) ?? (view === "cloud" ? null : accountFallback(view));
-                    return page && <div key={view} id={`settings-${view}`} className="ua-settings-section">{page}</div>;
+                  {[...settingsSections.map(view => ({ key: view as string, label: settingsLabels[view] ?? view,
+                      page: accountPages?.(view, theme) ?? (view === "cloud" ? null : accountFallback(view)) })),
+                    // Deleting the account is last, apart from everything else.
+                    { key: "delete", label: "Delete account", page: accountDeletion?.(theme) ?? null }].map(({ key, label, page }) => {
+                    const open = settingsOpen.includes(key);
+                    // Closed by default, so the page is a short list; a section loads when it's opened.
+                    return page && <section key={key} id={`settings-${key}`} className="ua-settings-section" data-open={open || undefined}>
+                      <button type="button" className="ua-settings-toggle" aria-expanded={open} aria-controls={`settings-${key}-body`}
+                        onClick={() => setSettingsOpen(list => open ? list.filter(item => item !== key) : [...list, key])}>
+                        <span>{label}{key === "profile" && data.profile.email && <small>{data.profile.email}</small>}</span><ChevronDown aria-hidden="true" />
+                      </button>
+                      {open && <div id={`settings-${key}-body`} className="ua-settings-body">{page}</div>}
+                    </section>;
                   })}
                 </div>
               ) : (

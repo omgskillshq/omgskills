@@ -22,7 +22,7 @@ import { confirmCloudReview, deleteCloudSaved, loadCloudSave, saveCloudSettings,
 import type { CloudInfo } from "../../app/unified/CloudStatus";
 import { addGithubSkill, addMySkill, addUpload, previewUpload, type PickedFolder, findSkillsAtGithubLink, loadMySkillAdditions, previewGithubSkill, removeMySkill, type GithubSkillPreview,
   type MySkillAddition, type MySkillAdditions } from "../../app/my-skills-additions";
-import { ProfilePanel } from "./ProfilePanel";
+import { DeleteAccountSection, ProfilePanel } from "./ProfilePanel";
 import { entryNavigation, staticPageAddress, unknownAppAddress } from "./entry-navigation";
 import { renderPublicFirst } from "./public-first";
 import { announceAppReady } from "../../takeover";
@@ -386,11 +386,13 @@ function AccountView({ identity, signedIn, accountKey, base, local, connectedInv
     libraryMatchDetails={(ids, signal) => Promise.all(ids.map(id => publicClient.skill(id, signal).catch(() => null)))}
     sharedSkillMd={available && !snapshot.accessDenied && !local
       ? (releaseId, signal) => loadSharedSkillMd(api, releaseId, signal) : undefined}
+    accountDeletion={available && !snapshot.accessDenied && !composition?.readOnly && !local
+      ? theme => <DeleteAccountSection remove={deleteAccount} busy={snapshot.profileSaving || snapshot.setSaving || snapshot.refreshing} theme={theme} /> : undefined}
     accountPages={available && !snapshot.accessDenied ? (view, theme) => view === "profile" && !composition?.readOnly ? <ProfilePanel profile={data.profile} theme={theme}
       busy={snapshot.profileSaving || snapshot.setSaving || snapshot.refreshing}
       blocked={!!snapshot.error || !snapshot.data || snapshot.accessDenied}
       error={snapshot.profileError || snapshot.error} save={account.saveProfile} settings={() => clerk.openUserProfile()}
-      deleteAccount={local ? undefined : deleteAccount} />
+ />
       : view === "cloud" && !composition?.readOnly && !local ? <div className="ua-account-page"><SyncSettings state={cloudState}
         status={cloudLoaded ? cloudStatus : null} skills={data.skills}
         retry={() => void reloadCloud()} find={name => navigate({ ...initialNavigation, view: "all", query: name })}
