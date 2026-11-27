@@ -142,6 +142,15 @@ export const statusText: Record<CloudSkillRow["status"], string> = {
   failed: "Not synced yet: the last try failed, trying again",
 };
 
+/** Why a local-only skill stays on the Mac, in a few words, beside its blue dot in lists. */
+export const localOnlyReason: Partial<Record<CloudSkillRow["status"], string>> = {
+  review: "Needs review",
+  links: "Uses files outside its folder",
+  too_large: "Too large to sync",
+  unreadable: "Couldn't be read",
+  failed: "Last sync failed",
+};
+
 export const labelText: Record<CloudLabel, string> = {
   confirmed_secret: "Contains a key you confirmed",
   download_and_run: "Downloads and runs code",

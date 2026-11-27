@@ -64,7 +64,6 @@ import {
   SearchX,
   Server,
   Cloud,
-  CloudAlert,
   Shapes,
   Share,
   ShieldAlert,
@@ -158,7 +157,7 @@ import { ReviewBadge } from "./ReviewBadge";
 import { looksLikeGithubLink, type MySkillAdditions } from "../my-skills-additions";
 import { AddSkillForm } from "./AddSkillDialog";
 import { PortalApiError } from "../../api-error";
-import { cleanScan, cloudSkillRows, installationCloudKey, safetyGroups, safetyStatus, scanCopyKeys, type CloudScanFinding, type SafetyStatus, needsAttention, setsNote, skillCloudRow, statusText } from "../../cloud-save/cloud-save";
+import { cleanScan, cloudSkillRows, installationCloudKey, safetyGroups, safetyStatus, scanCopyKeys, type CloudScanFinding, type SafetyStatus, needsAttention, localOnlyReason, setsNote, skillCloudRow, statusText } from "../../cloud-save/cloud-save";
 import { agentReviewPrompt, findingInfo, findingPlace, installerView, skillFolder, type FlaggedSkill } from "../../cloud-save/scan-findings";
 
 // Official Lucide artwork (ISC): https://lucide.dev/icons/package-question-mark (not in our installed version yet).
@@ -226,11 +225,13 @@ type Props = {
   supportedAccountViews?: readonly View[];
 };
 
-/** A small mark beside a skill's name, only when cloud save can't keep a copy of it. */
+/** Beside a skill's name, only when its files stay on the Mac: a blue dot and why, in a few words. */
 function CloudAttention({ status }: { status?: Parameters<typeof needsAttention>[0] }) {
   if (!status || !needsAttention(status)) return null;
-  const Icon = CloudAlert;
-  return <span className="ua-row-cloud" data-status={status} title={statusText[status]} aria-label={statusText[status]} role="img"><Icon aria-hidden="true" /></span>;
+  // The row's own label already says it (attentionLabel), so this reads once.
+  return <span className="ua-row-local" data-status={status} title={statusText[status]} aria-hidden="true">
+    <span className="ua-local-dot" /><span className="ua-row-local-reason">{localOnlyReason[status]}</span>
+  </span>;
 }
 
 // Semi-bolds the "Use when ..." lead-in so the reader sees when to use the skill first.
