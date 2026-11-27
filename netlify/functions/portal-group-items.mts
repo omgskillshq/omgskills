@@ -15,7 +15,7 @@ import {
   reorderGroupItemsWithClient,
   updateCloudGroupItemWithClient
 } from "./_shared/group-items.js";
-import { normalizeSkillKey, readCloudRecordNames } from "./_shared/cloud-save.js";
+import { normalizeSkillKey, readCloudRecordNames, readReportedCloudKeys } from "./_shared/cloud-save.js";
 import { cloudSkillKeys } from "./_shared/cloud-skill-keys.js";
 import { installationFolderFromKey } from "./_shared/sync-skill.js";
 import { errorResponse, jsonResponse, optionsResponse, secretJsonResponse, withTimeout } from "./_shared/http.js";
@@ -51,8 +51,9 @@ type SyncedSkill = {
 };
 
 /**
- * The cloud save key of one synced skill: its folder name, unless another skill in a same-name folder
- * holds that key (see cloud-skill-keys.ts). Its Mac's other current copies and the saved skills decide.
+ * The cloud save key of one synced skill: the one its Mac reported using, else its folder name, unless another
+ * skill in a same-name folder holds that key (see cloud-skill-keys.ts). Its Mac's other current copies and the
+ * saved skills decide.
  */
 async function cloudKeyOf(client: QueryClient, userId: string, skill: SyncedSkill): Promise<string | null> {
   const rows = await client.query<{ id: string; name: string; source: string; stableKey: string; deviceId: string | null;
@@ -67,7 +68,8 @@ async function cloudKeyOf(client: QueryClient, userId: string, skill: SyncedSkil
   const copies = rows.rows.map(row => ({ ...row, installationFolder: installationFolderFromKey(row.stableKey, row.source) }));
   const own = copies.find(copy => copy.id === skill.id);
   if (!own) return null;
-  const key = cloudSkillKeys(copies, await readCloudRecordNames(client, userId)).get(own);
+  const [records, reported] = await Promise.all([readCloudRecordNames(client, userId), readReportedCloudKeys(client, userId)]);
+  const key = cloudSkillKeys(copies, records, reported).get(own);
   try {
     return key ? normalizeSkillKey(key) : null;
   } catch {

@@ -16,6 +16,7 @@ import {
   parseCloudSaveSettingsUpdate,
   readCloudSave,
   readCloudSkillMd,
+  parseCloudKeyReport,
   parseCloudSkipReport,
   reportCloudSkips,
   saveCloudVersion,
@@ -206,8 +207,9 @@ export async function portalCloudSave(
       }
       case "skipped": {
         const { userId, deviceId } = await dependencies.requireDevice(req, "content:write");
-        const skipped = parseCloudSkipReport(await requireJsonObject(req));
-        await reportCloudSkips(dependencies.pool(), { userId, deviceId, skipped });
+        const body = await requireJsonObject(req);
+        const skipped = parseCloudSkipReport(body);
+        await reportCloudSkips(dependencies.pool(), { userId, deviceId, skipped, keys: parseCloudKeyReport(body) });
         return new Response(null, { status: 204, headers: corsHeaders(req) });
       }
       case "skill-md": {

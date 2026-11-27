@@ -67,3 +67,26 @@ test("a saved skill keeps a key whose folder part was cut to fit", () => {
   const spec = copy("codex", "other", folder);
   assert.equal(cloudSkillKeys([spec], [{ key: folder, name: folder }, { key: saved, name: "other" }]).get(spec), saved);
 });
+
+test("a Mac's reported keys win for its current copies; the rest are worked out around them", () => {
+  // The Mac remembers "last30days@claude" from when another last30days held the folder name.
+  const reported = new Map([["mac-1", { "claude/last30days": "last30days@claude" }]]);
+  const here = copy("claude", "last30days");
+  const added = copy("codex", "last30days-v3-spec"); // installed after the Mac's last pass, so not reported yet
+  const other = copy("claude", "last30days", "last30days", "mac-2");
+  const old = copy("claude", "last30days", "last30days", "mac-1", false);
+  const keys = cloudSkillKeys([here, added], [], reported);
+  assert.equal(keys.get(here), "last30days@claude");
+  assert.equal(keys.get(added), "last30days", "Worked out as before; the reported key is taken");
+  for (const [copy, why] of [[other, "Another Mac's copies use its own report, or none"], [old, "An old copy isn't what the Mac has now"]] as const) {
+    assert.deepEqual([...cloudSkillKeys([here, copy], [], reported).values()], ["last30days@claude", "last30days"], why);
+  }
+
+  // A copy whose agent or folder the Mac didn't report is worked out too.
+  const spec = copy("codex", "last30days", "last30days", "mac-1");
+  assert.equal(cloudSkillKeys([spec], [], reported).get(spec), "last30days");
+  // With a reported copy holding another name under the folder key, a new same-name folder goes around it.
+  const held = new Map([["mac-1", { "claude/last30days": "last30days" }]]);
+  const spec2 = copy("codex", "last30days-v3-spec");
+  assert.equal(cloudSkillKeys([copy("claude", "last30days"), spec2], [], held).get(spec2), "last30days@codex");
+});

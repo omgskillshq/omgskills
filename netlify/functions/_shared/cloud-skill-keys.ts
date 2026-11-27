@@ -36,19 +36,40 @@ function belongsToFolder(key: string, folder: string) {
   return !!suffix && candidateKey(folder, suffix[1], suffix[2] ? Number(suffix[2]) : 1) === key;
 }
 
+/** Where a skill is on its Mac, as the Mac names it in its key report: "<agent>/<folder>". */
+export function cloudKeyLocation(source: string, folder: string) {
+  return `${source.trim().toLowerCase()}/${folder}`;
+}
+
+/** Each Mac's own keys from its last pass, by device ID, then by `cloudKeyLocation`. */
+export type ReportedCloudKeys = ReadonlyMap<string, Readonly<Record<string, string>>>;
+
 /**
- * A skill's cloud key is its folder name, unless that key holds a different skill. Then:
+ * A skill's cloud key is the one its Mac reported using for that folder on its last pass, when it did: the Mac
+ * decides (it also remembers keys, which nothing here can work out). Otherwise it's worked out the same way the
+ * Mac does: its folder name, unless that key holds a different skill. Then:
  * 1. A saved skill with the same SKILL.md name under this folder's keys is this skill (its folder name first).
  * 2. Otherwise, the skills in same-name folders on one Mac are told apart by SKILL.md name. The one named like
  *    its folder chooses first (else the one in the first agent alphabetically), and each takes the first key
  *    no other skill holds: the folder name, then "<folder>@<its first agent>", then "-2", "-3"…
  */
-export function cloudSkillKeys<T extends KeyedInstallation>(installations: T[], records: CloudRecordName[] = []): Map<T, string> {
+export function cloudSkillKeys<T extends KeyedInstallation>(installations: T[], records: CloudRecordName[] = [],
+  reported: ReportedCloudKeys = new Map()): Map<T, string> {
   const keys = new Map<T, string>();
   const taken = new Map<string, string>();
   for (const record of records) if (record.name) taken.set(record.key, record.name);
+  // A Mac's current copies take the keys it reported; the rest are worked out around them.
+  const fromMac = (skill: T) => skill.isCurrent !== false && skill.deviceId && skill.installationFolder
+    ? reported.get(skill.deviceId)?.[cloudKeyLocation(skill.source, skill.installationFolder)] : undefined;
+  for (const skill of installations) {
+    const key = fromMac(skill);
+    if (!key) continue;
+    keys.set(skill, key);
+    taken.set(key, cloudNameKey(skill.name) || cloudNameKey(skill.installationFolder || skill.name));
+  }
   const groups = new Map<string, T[]>();
   installations.forEach((skill, index) => {
+    if (keys.has(skill)) return;
     const folder = cloudNameKey(skill.installationFolder || skill.name);
     const name = cloudNameKey(skill.name) || folder;
     keys.set(skill, folder);

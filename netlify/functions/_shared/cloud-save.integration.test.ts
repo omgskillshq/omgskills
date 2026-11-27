@@ -1472,6 +1472,54 @@ test("each Mac reports why it didn't save skills, and its next report replaces t
   });
 });
 
+test("each skill uses the key its Mac reports using, so its reason and Set item find it; older Macs' keys are worked out", async () => {
+  const { portalCloudSave } = await import("../portal-cloud-save.mjs");
+  const { readSyncInventory } = await import("./sync-inventory-read.js");
+  const { cloudSkillRows } = await import("../../../portal/src/cloud-save/cloud-rows.js");
+  await withMigratedSchema(async (pool) => {
+    const { userId, deviceId } = await createUser(pool);
+    await updateCloudSaveSettings(pool, userId, { enabled: true });
+    const run = randomUUID();
+    await pool.query("INSERT INTO sync_runs(id,user_id,device_id,status,completed_at) VALUES($1,$2,$3,'completed',now())", [run, userId, deviceId]);
+    const synced = (await pool.query<{ id: string }>(`INSERT INTO synced_skills(user_id,sync_run_id,device_id,stable_key,name,source,identity_status,is_local_only)
+      VALUES($1,$2,$3,'location:v1:claude:last30days','last30days','claude','localOnly',true) RETURNING id`, [userId, run, deviceId])).rows[0].id;
+    const dependencies = {
+      available: () => true, pool: () => pool, store: () => new MemoryStore(),
+      requireUser: async () => ({ userId, deviceId: null }), requireDevice: async () => ({ userId, deviceId }),
+    };
+    const report = (body: unknown) => portalCloudSave(new Request("https://omgskills.com/api/portal/cloud-save/skipped",
+      { method: "PUT", body: JSON.stringify(body), headers: { authorization: `Bearer device_${"a".repeat(43)}` } }),
+      {} as never, dependencies as never);
+    const read = async () => {
+      const skills = (await readSyncInventory(pool, userId, 3, new Date(), undefined, async () => ({}))).skills as unknown as Parameters<typeof cloudSkillRows>[1];
+      const rows = cloudSkillRows(await readCloudSave(pool, userId), skills);
+      return { key: (skills[0] as { cloudKey?: string }).cloudKey, rows: rows.map((row) => [row.key, row.status]) };
+    };
+
+    // The Mac remembers this skill's key from when another last30days took the folder name; nothing else knows that.
+    assert.equal((await report({ skipped: { "last30days@claude": "too_large" },
+      keys: { "claude/last30days": "Last30days@Claude", "codex/gone": "gone", "nope/x": "x", "claude/a/b": "b", "claude/ok": ".bad" } })).status, 204);
+    assert.deepEqual((await pool.query("SELECT cloud_keys FROM cloud_skip_reports WHERE device_id = $1", [deviceId])).rows[0].cloud_keys,
+      { "claude/last30days": "last30days@claude", "codex/gone": "gone" }, "Keys are normalized; odd entries drop alone");
+    assert.deepEqual(await read(), { key: "last30days@claude", rows: [["last30days@claude", "too_large"]] },
+      "Its reason is the one shown, not \"not synced yet\"");
+    const group = (await pool.query<{ id: string }>(
+      "INSERT INTO skill_groups (owner_user_id, name, slug, visibility) VALUES ($1, 'Solo', 'solo', 'private') RETURNING id", [userId])).rows[0].id;
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await addGroupItemWithClient(client, group, { kind: "synced", syncedSkillId: synced }, { kind: "metadata_only", reason: "synced_local_only" });
+      await client.query("COMMIT");
+    } finally { client.release(); }
+    assert.equal(await savedSkillInSetFromMac(pool, userId, group, "last30days@claude"), true, "A Set finds it by the Mac's key");
+
+    assert.equal((await report({ skipped: {}, keys: ["claude/last30days"] })).status, 400);
+    // A Mac too old to send keys clears them: its keys are worked out as before.
+    assert.equal((await report({ skipped: {} })).status, 204);
+    assert.deepEqual(await read(), { key: "last30days", rows: [["last30days", "waiting"]] });
+  });
+});
+
 test("someone invited to a Set downloads the owner's saved version; nobody else does", async () => {
   await withMigratedSchema(async (pool) => {
     const store = new MemoryStore();

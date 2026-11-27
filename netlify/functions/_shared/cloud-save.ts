@@ -4,7 +4,7 @@ import { appendSkillRelease } from "./group-storage.js";
 import { cloudBlobKey, type CloudObjectStore } from "./cloud-store.js";
 import { forgetContentMatches } from "./content-match.js";
 import { skillMdBody } from "./skill-readme.js";
-import { cloudNameKey, type CloudRecordName } from "./cloud-skill-keys.js";
+import { cloudKeyLocation, cloudNameKey, type CloudRecordName, type ReportedCloudKeys } from "./cloud-skill-keys.js";
 import { parseGithubSource, type GithubSource } from "./github-source.js";
 import { installationFolderFromKey } from "./sync-skill.js";
 import { drainCloudPurge, queuedFileCount, releaseStorageKeys, reserveStorageKeys } from "./cloud-storage-purge.js";
@@ -333,19 +333,57 @@ export function parseCloudSkipReport(body: Record<string, unknown>): Record<stri
   return report;
 }
 
-/** Replaces this Mac's last report. */
+/**
+ * The key a Mac used for each skill folder on its pass, sent with its skip report:
+ * `{ keys: { "<agent>/<folder>": key } }`, or null from a Mac too old to send them.
+ * An entry that isn't one folder of a known agent, or whose key isn't valid, drops only that entry.
+ */
+export function parseCloudKeyReport(body: Record<string, unknown>): Record<string, string> | null {
+  const keys = body.keys;
+  if (keys === undefined) return null;
+  if (!keys || typeof keys !== "object" || Array.isArray(keys)) {
+    throw new CloudSaveError("invalid_request", "keys must map skill folders to keys");
+  }
+  const entries = Object.entries(keys);
+  if (entries.length > MAX_SKIP_REPORT_KEYS) throw new CloudSaveError("invalid_request", "Too many skill folders");
+  const report: Record<string, string> = {};
+  for (const [location, key] of entries) {
+    const slash = location.indexOf("/");
+    const source = location.slice(0, slash), folder = location.slice(slash + 1);
+    if (slash < 0 || !CLOUD_KEY_AGENTS.includes(source) || !folder || folder.length > 500 || folder === "." || folder === ".."
+      || folder.includes("/") || cloudKeyLocation(source, folder) !== location) continue;
+    try { report[location] = normalizeSkillKey(key); } catch { continue; }
+  }
+  return report;
+}
+const CLOUD_KEY_AGENTS = ["claude", "codex", "agents"];
+
+/** Replaces this Mac's last report. Keys are replaced too: a Mac too old to send them clears them. */
 export async function reportCloudSkips(
   db: Database,
-  input: { userId: string; deviceId: string | null; skipped: Record<string, CloudSkipReason> }
+  input: { userId: string; deviceId: string | null; skipped: Record<string, CloudSkipReason>; keys?: Record<string, string> | null }
 ): Promise<void> {
   if (!input.deviceId) throw new CloudSaveError("invalid_request", "Only a Mac reports skipped skills");
   await db.query(
     `
-      INSERT INTO cloud_skip_reports (user_id, device_id, skipped) VALUES ($1, $2, $3::jsonb)
-      ON CONFLICT (user_id, device_id) DO UPDATE SET skipped = EXCLUDED.skipped, reported_at = now()
+      INSERT INTO cloud_skip_reports (user_id, device_id, skipped, cloud_keys) VALUES ($1, $2, $3::jsonb, $4::jsonb)
+      ON CONFLICT (user_id, device_id) DO UPDATE SET skipped = EXCLUDED.skipped, cloud_keys = EXCLUDED.cloud_keys,
+        reported_at = now()
     `,
-    [input.userId, input.deviceId, JSON.stringify(input.skipped)]
+    [input.userId, input.deviceId, JSON.stringify(input.skipped), input.keys ? JSON.stringify(input.keys) : null]
   );
+}
+
+/** Each connected Mac's keys from its last report, for `cloudSkillKeys`. */
+export async function readReportedCloudKeys(db: Database, userId: string): Promise<ReportedCloudKeys> {
+  const result = await db.query<{ deviceId: string; keys: Record<string, unknown> }>(
+    `SELECT report.device_id AS "deviceId", report.cloud_keys AS keys FROM cloud_skip_reports report
+     JOIN device_tokens device ON device.id = report.device_id AND device.revoked_at IS NULL
+     WHERE report.user_id = $1 AND report.cloud_keys IS NOT NULL`,
+    [userId]
+  );
+  return new Map(result.rows.map((row) => [row.deviceId, Object.fromEntries(Object.entries(row.keys)
+    .filter((entry): entry is [string, string] => typeof entry[1] === "string"))]));
 }
 
 /**
