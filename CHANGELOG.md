@@ -4,6 +4,12 @@ All notable changes to omgskills are documented here.
 
 ## [Unreleased]
 
+## [0.0.49] - 2026-11-27
+
+### App
+- Skills from library repos that keep them in a .claude/skills folder now sync.
+- The menu says "local only" instead of "can't sync".
+
 ## [0.0.48] - 2026-11-27
 
 ### App
