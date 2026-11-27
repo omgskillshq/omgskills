@@ -163,7 +163,11 @@ final class CloudSaveController {
             // The server answered either way, so the sync section can show.
             if next.status != .unavailable { isAvailable = true }
             guard !rerun else { return }
-            summary = next
+            // A pass whose count read failed keeps the server's last counts, so the menu doesn't jump between
+            // the server's numbers and this Mac's own from one pass to the next.
+            var shown = next
+            if shown.server == nil, [.upToDate, .incomplete].contains(next.status) { shown.server = summary?.server }
+            summary = shown
             if [.off, .upToDate, .incomplete].contains(next.status) { confirmedEnabled = next.status != .off }
             message = nil
         } catch is CancellationError {
@@ -181,12 +185,17 @@ final class CloudSaveController {
         case .storageFull: return "Sync storage is full."
         case .unavailable: return "Sync is unavailable right now. It will try again."
         case .upToDate, .incomplete:
-            let attention = summary.attentionCount
-            var parts = ["\(summary.hereCount) on this Mac"]
-            if attention == 0 && summary.leftOutCount == 0 && summary.notSavedYetCount == 0 { parts.append("all synced") }
+            // The server's counts when it sent them (the same the web shows); else this Mac's own.
+            let server = summary.server
+            let here = server?.onThisMac ?? summary.hereCount
+            let attention = server?.cantSync ?? summary.attentionCount
+            let waiting = server?.notSyncedYet ?? summary.notSavedYetCount
+            let leftOut = server?.leftOut ?? summary.leftOutCount
+            var parts = ["\(here) on this Mac"]
+            if attention == 0 && leftOut == 0 && waiting == 0 { parts.append("all synced") }
             if attention > 0 { parts.append("\(attention) can't sync") }
-            if summary.notSavedYetCount > 0 { parts.append("\(summary.notSavedYetCount) not synced yet") }
-            if summary.leftOutCount > 0 { parts.append("\(summary.leftOutCount) left out") }
+            if waiting > 0 { parts.append("\(waiting) not synced yet") }
+            if leftOut > 0 { parts.append("\(leftOut) left out") }
             return parts.joined(separator: " · ")
         }
     }

@@ -125,7 +125,8 @@ struct ConnectedInventoryView: View {
 
     /// The My skills count: everything in the account once sync has reported, else what this Mac has.
     nonisolated static func headerText(here: Int, summary: CloudSaveSummary?) -> String {
-        let total = summary.flatMap { [.upToDate, .incomplete].contains($0.status) ? $0.mySkillsCount : nil } ?? here
+        // The server's My skills count when it sent it (the web's), else this Mac's own.
+        let total = summary.flatMap { [.upToDate, .incomplete].contains($0.status) ? ($0.server?.mySkills ?? $0.mySkillsCount) : nil } ?? here
         return "\(total) \(total == 1 ? "skill" : "skills")"
     }
 
