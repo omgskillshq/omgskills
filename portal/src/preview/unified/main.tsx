@@ -25,7 +25,6 @@ import { createPreviewCatalogStore, createPreviewInstallStore, PublicInstallSetu
 import { CatalogInstallSetup } from "../../app/unified/CatalogInstallSetup";
 import { previewCloudState } from "./cloud-fixture";
 import { SyncSettings } from "../../cloud-save/SyncSettings";
-import { DeleteAccountSection } from "../../integration/unified/ProfilePanel";
 import type { MySkillAddition, PickedFolder } from "../../app/my-skills-additions";
 
 const installClient = import.meta.env.DEV ? previewInstallClient(import.meta.env.DEV,
@@ -204,8 +203,6 @@ function Preview() {
         leaveOut: async (keys, leftOut) => setCloudState(state => ({ ...state, settings: { ...state.settings,
           excludedSkillKeys: leftOut ? [...new Set([...state.settings.excludedSkillKeys, ...keys])]
             : state.settings.excludedSkillKeys.filter(key => !keys.includes(key)) } })) }}
-      accountDeletion={signedIn ? theme => <DeleteAccountSection theme={theme} busy={false}
-        remove={async () => { throw new Error("The preview doesn't delete anything."); }} /> : undefined}
       accountPages={signedIn ? view => view === "cloud" ? <div className="ua-account-page">
         <SyncSettings state={cloudState} status="ready" skills={data.skills}
           find={name => navigate({ ...initialNavigation, view: "all", query: name })}
