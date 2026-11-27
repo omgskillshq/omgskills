@@ -163,7 +163,11 @@ final class CloudSaveController {
             // The server answered either way, so the sync section can show.
             if next.status != .unavailable { isAvailable = true }
             guard !rerun else { return }
-            summary = next
+            // A pass whose count read failed keeps the server's last counts, so the menu doesn't jump between
+            // the server's numbers and this Mac's own from one pass to the next.
+            var shown = next
+            if shown.server == nil, [.upToDate, .incomplete].contains(next.status) { shown.server = summary?.server }
+            summary = shown
             if [.off, .upToDate, .incomplete].contains(next.status) { confirmedEnabled = next.status != .off }
             message = nil
         } catch is CancellationError {

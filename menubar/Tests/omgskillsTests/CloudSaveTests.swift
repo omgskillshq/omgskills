@@ -1062,6 +1062,21 @@ struct CloudSaveControllerTests {
         #expect(controller.summary != nil, "The queued pass publishes")
     }
 
+    @Test func aPassWhoseCountReadFailedKeepsTheServersLastCounts() async throws {
+        let api = FakeCloudSave(enabled: true)
+        let counts = CloudSaveState.Summary(skills: 3, mySkills: 4, cantSync: 0, notSyncedYet: 0, leftOut: 0, notOnMacs: 0, onThisMac: 3)
+        await api.setCounts(counts)
+        let controller = CloudSaveController(api: api, credential: { credential() },
+            scan: { InstalledSkillsScanner.ScanResult(skills: [], installations: [], summary: InstalledSkillSummary()) },
+            folderKeys: { [] }, treeRecord: nil, pace: {})
+        await controller.requestRun()?.value
+        #expect(controller.summary?.server == counts)
+        // The next read fails: the menu keeps the server's numbers rather than switching to this Mac's own.
+        await api.setCounts(nil)
+        await controller.requestRun()?.value
+        #expect(controller.summary?.server == counts)
+    }
+
     @Test func aFailedPassAfterTurningOnKeepsTheSwitchOn() async throws {
         struct Flaky: CloudSaveServing {
             func state(credential: StoredDeviceCredential) async throws -> CloudSaveState { throw CloudSaveAPIError.unavailable }
