@@ -43,12 +43,27 @@ struct CloudSaveState: Decodable, Equatable, Sendable {
         let confirmed: Bool
     }
 
+    /// The counts every screen shows (the web's Sync line too), worked out by the server from what every Mac
+    /// reported. Sent when asked for; older servers leave it out.
+    struct Summary: Decodable, Equatable, Sendable {
+        let skills: Int
+        /// Everything in My skills, added library skills included.
+        let mySkills: Int?
+        let cantSync: Int
+        let notSyncedYet: Int
+        let leftOut: Int
+        let notOnMacs: Int
+        /// Skills on the Mac that asked.
+        let onThisMac: Int?
+    }
+
     let settings: Settings
     let usage: Usage
     let skills: [SavedSkill]
     let needsReview: [Review]
+    var summary: Summary? = nil
 
-    private enum CodingKeys: String, CodingKey { case settings, usage, skills, needsReview }
+    private enum CodingKeys: String, CodingKey { case settings, usage, skills, needsReview, summary }
 
     init(settings: Settings, usage: Usage, skills: [SavedSkill], needsReview: [Review]) {
         self.settings = settings
@@ -64,6 +79,8 @@ struct CloudSaveState: Decodable, Equatable, Sendable {
         skills = try container.decode([SavedSkill].self, forKey: .skills)
         // Servers before the safety scan have no review list.
         needsReview = try container.decodeIfPresent([Review].self, forKey: .needsReview) ?? []
+        // A count the server can't read leaves the summary out; the Mac then counts by itself.
+        summary = try? container.decodeIfPresent(Summary.self, forKey: .summary)
     }
 }
 
@@ -103,6 +120,12 @@ protocol CloudSaveServing: Sendable {
     func reportSkipped(_ skipped: [String: CloudSaveSkipReason], credential: StoredDeviceCredential) async throws
     /// Library skills added to My skills (by catalog ID), installed anywhere or not.
     func mySkillAdditions(credential: StoredDeviceCredential) async throws -> [String]
+    /// The server's counts, read after a pass so they include it; nil from a server without them.
+    func counts(credential: StoredDeviceCredential) async throws -> CloudSaveState.Summary?
+}
+
+extension CloudSaveServing {
+    func counts(credential: StoredDeviceCredential) async throws -> CloudSaveState.Summary? { nil }
 }
 
 /// The server has no batch upload; files go one at a time.
@@ -150,6 +173,12 @@ struct CloudSaveAPI: CloudSaveServing {
     func state(credential: StoredDeviceCredential) async throws -> CloudSaveState {
         let data = try await send("GET", path: [], credential: credential)
         do { return try JSONDecoder().decode(CloudSaveState.self, from: data) }
+        catch { throw CloudSaveAPIError.invalidResponse }
+    }
+
+    func counts(credential: StoredDeviceCredential) async throws -> CloudSaveState.Summary? {
+        let data = try await send("GET", path: [], query: [URLQueryItem(name: "summary", value: "1")], credential: credential)
+        do { return try JSONDecoder().decode(CloudSaveState.self, from: data).summary }
         catch { throw CloudSaveAPIError.invalidResponse }
     }
 

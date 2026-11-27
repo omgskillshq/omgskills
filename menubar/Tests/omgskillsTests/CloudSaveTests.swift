@@ -269,6 +269,9 @@ private actor FakeCloudSave: CloudSaveServing {
     var leftOut: [String]?
     func setExcluded(_ keys: [String], credential: StoredDeviceCredential) async throws { leftOut = keys }
     func mySkillAdditions(credential: StoredDeviceCredential) async throws -> [String] { additions }
+    var serverCounts: CloudSaveState.Summary?
+    func setCounts(_ counts: CloudSaveState.Summary?) { serverCounts = counts }
+    func counts(credential: StoredDeviceCredential) async throws -> CloudSaveState.Summary? { calls.append("counts"); return serverCounts }
 
     init(enabled: Bool = true, excluded: [String] = [], skills: [CloudSaveState.SavedSkill] = []) {
         state = CloudSaveState(settings: .init(enabled: enabled, excludedSkillKeys: excluded),
@@ -342,7 +345,8 @@ struct CloudSaveSyncTests {
         #expect(first.status == .upToDate)
         #expect(first.uploadedCount == 1)
         let calls = await api.calls
-        #expect(calls.first == "state" && calls[1] == "version:notes" && calls.last == "version:notes")
+        // The pass ends by reading the server's counts, which then include it.
+        #expect(calls.first == "state" && calls[1] == "version:notes" && calls.dropLast().last == "version:notes" && calls.last == "counts")
         #expect(Set(calls[2..<4]) == ["upload:SKILL.md", "upload:a.txt"])
 
         // Once the server's copy matches, a later pass sends nothing.
@@ -352,7 +356,7 @@ struct CloudSaveSyncTests {
         let second = try await sync(synced).run(installations: [installation(notes)], localFolderKeys: ["notes"],
             deviceID: "device-1", credential: credential())
         #expect(second.savedCount == 1 && second.uploadedCount == 0)
-        #expect(await synced.calls == ["state"])
+        #expect(await synced.calls == ["state", "counts"])
     }
 
     @Test func summaryLineCountsEverySkillThenWhatNeedsALook() async throws {
@@ -379,6 +383,38 @@ struct CloudSaveSyncTests {
         clean.skipped = ["b": .links, "c": .tooLarge]
         #expect(CloudSaveController.statusText(clean) == "21 on this Mac · 3 can't sync")
         #expect(CloudSaveController.statusText(CloudSaveSummary(status: .off)) == "Not synced")
+    }
+
+    @Test func theMenuShowsTheServersCountsAfterThePass() async throws {
+        let root = try temporaryRoot()
+        let notes = try makeSkill(root, "notes")
+        let api = FakeCloudSave()
+        await api.setCounts(.init(skills: 66, mySkills: 69, cantSync: 5, notSyncedYet: 0, leftOut: 1, notOnMacs: 1, onThisMac: 65))
+        let summary = try await sync(api).run(installations: [installation(notes)], localFolderKeys: ["notes"],
+            deviceID: "device-1", credential: credential())
+        // Read after the pass reported, so the counts include it.
+        #expect(await api.calls.last == "counts")
+        #expect(summary.server?.mySkills == 69)
+        #expect(ConnectedInventoryView.headerText(here: 1, summary: summary) == "69 skills")
+        #expect(CloudSaveController.statusText(summary) == "65 on this Mac · 5 can't sync · 1 left out")
+        // A server without them: the Mac counts by itself, as before.
+        await api.setCounts(nil)
+        let own = try await sync(api).run(installations: [installation(notes)], localFolderKeys: ["notes"],
+            deviceID: "device-1", credential: credential())
+        #expect(own.server == nil)
+        #expect(own.mySkillsCount == 1 && ConnectedInventoryView.headerText(here: 1, summary: own) == "1 skill")
+        #expect(CloudSaveController.statusText(own).hasPrefix("1 on this Mac"))
+    }
+
+    @Test func theStateDecodesTheServersCountsAndToleratesTheirAbsence() throws {
+        let base = #"{"settings":{"enabled":true,"excludedSkillKeys":[]},"usage":{"bytes":0,"limitBytes":1},"skills":[],"needsReview":[]"#
+        let without = try JSONDecoder().decode(CloudSaveState.self, from: Data((base + "}").utf8))
+        #expect(without.summary == nil)
+        let with = try JSONDecoder().decode(CloudSaveState.self, from: Data((base + #","summary":{"skills":3,"mySkills":4,"cantSync":1,"notSyncedYet":0,"leftOut":0,"notOnMacs":1,"onThisMac":2}}"#).utf8))
+        #expect(with.summary?.mySkills == 4 && with.summary?.onThisMac == 2)
+        // A summary this Mac can't read is left out rather than failing the state.
+        let odd = try JSONDecoder().decode(CloudSaveState.self, from: Data((base + #","summary":{"skills":"x"}}"#).utf8))
+        #expect(odd.summary == nil)
     }
 
     @Test func mySkillsCountAddsLibrarySkillsNothingElseStandsFor() async throws {
@@ -700,9 +736,9 @@ struct CloudSaveSyncTests {
         _ = try await CloudSaveSync(api: api, pace: { await paces.tick() }).run(installations: [installation(skill)],
             localFolderKeys: ["notes"], deviceID: "device-1", credential: credential())
         // Without batch upload: the first version request, one per batch attempt, one per file, the final save,
-        // the added library skills, and the report of skills not saved.
+        // the added library skills, the report of skills not saved, and the server's counts.
         #expect(await api.calls.filter { $0.hasPrefix("upload:") }.count == 3)
-        #expect(await paces.count == 1 + 1 + 3 + 1 + 1 + 1)
+        #expect(await paces.count == 1 + 1 + 3 + 1 + 1 + 1 + 1)
     }
 
     @Test func stopsWhenTheServerIsUnavailable() async throws {
@@ -736,7 +772,7 @@ struct CloudSaveReviewFixTests {
         let summary = try await sync(api).run(installations: [installation(notes)], localFolderKeys: ["notes"],
             deviceID: "device-1", credential: credential())
         #expect(summary.olderHereCount == 1 && summary.uploadedCount == 0)
-        #expect(await api.calls == ["state"])
+        #expect(await api.calls == ["state", "counts"])
 
         // Edited here after that save: it is saved.
         try touch(notes.appendingPathComponent("SKILL.md"), "2026-11-02T00:00:00Z")

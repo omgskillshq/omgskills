@@ -48,6 +48,8 @@ struct CloudSaveSummary: Equatable, Sendable {
     var notSavedYetCount = 0
     /// Skills whose files keep them from being saved until something is done, shown on the web.
     var attentionCount: Int { needsReview.count + skipped.count }
+    /// The server's counts after this pass, so the menu says what the web says; nil from an older server.
+    var server: CloudSaveState.Summary?
     /// The tree of every skill folder read in this pass, to tell next time whether it changed here.
     var localTrees: [String: String] = [:]
     /// The cloud key of every skill here, by `installCmd`, to keep each skill on its key next time.
@@ -203,6 +205,9 @@ struct CloudSaveSync: Sendable {
         let report = summary.skipped.filter { !excluded.contains($0.key) }
         try? await pace()
         try? await api.reportSkipped(report, credential: credential)
+        // After the report, so the counts include this pass.
+        try? await pace()
+        summary.server = try? await api.counts(credential: credential)
         if !summary.needsReview.isEmpty || !summary.skipped.isEmpty { summary.status = .incomplete }
         summary.needsReview.sort()
         return summary

@@ -181,12 +181,17 @@ final class CloudSaveController {
         case .storageFull: return "Sync storage is full."
         case .unavailable: return "Sync is unavailable right now. It will try again."
         case .upToDate, .incomplete:
-            let attention = summary.attentionCount
-            var parts = ["\(summary.hereCount) on this Mac"]
-            if attention == 0 && summary.leftOutCount == 0 && summary.notSavedYetCount == 0 { parts.append("all synced") }
+            // The server's counts when it sent them (the same the web shows); else this Mac's own.
+            let server = summary.server
+            let here = server?.onThisMac ?? summary.hereCount
+            let attention = server?.cantSync ?? summary.attentionCount
+            let waiting = server?.notSyncedYet ?? summary.notSavedYetCount
+            let leftOut = server?.leftOut ?? summary.leftOutCount
+            var parts = ["\(here) on this Mac"]
+            if attention == 0 && leftOut == 0 && waiting == 0 { parts.append("all synced") }
             if attention > 0 { parts.append("\(attention) can't sync") }
-            if summary.notSavedYetCount > 0 { parts.append("\(summary.notSavedYetCount) not synced yet") }
-            if summary.leftOutCount > 0 { parts.append("\(summary.leftOutCount) left out") }
+            if waiting > 0 { parts.append("\(waiting) not synced yet") }
+            if leftOut > 0 { parts.append("\(leftOut) left out") }
             return parts.joined(separator: " · ")
         }
     }
