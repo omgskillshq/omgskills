@@ -130,7 +130,7 @@ struct ConnectedInventoryView: View {
         return "\(total) \(total == 1 ? "skill" : "skills")"
     }
 
-    /// "75 on this Mac · 5 can't sync · 2 left out", or why sync isn't reporting.
+    /// "75 on this Mac · 5 local only · 2 left out", or why sync isn't reporting.
     nonisolated static func lineText(here: Int, summary: CloudSaveSummary?) -> String {
         guard let summary else { return "\(here) on this Mac" }
         switch summary.status {

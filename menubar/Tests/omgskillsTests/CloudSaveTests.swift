@@ -383,7 +383,7 @@ struct CloudSaveSyncTests {
         #expect(CloudSaveController.statusText(clean) == "21 on this Mac · all synced")
         clean.needsReview = ["a"]
         clean.skipped = ["b": .links, "c": .tooLarge]
-        #expect(CloudSaveController.statusText(clean) == "21 on this Mac · 3 can't sync")
+        #expect(CloudSaveController.statusText(clean) == "21 on this Mac · 3 local only")
         #expect(CloudSaveController.statusText(CloudSaveSummary(status: .off)) == "Not synced")
     }
 
@@ -398,7 +398,7 @@ struct CloudSaveSyncTests {
         #expect(await api.calls.last == "counts")
         #expect(summary.server?.mySkills == 69)
         #expect(ConnectedInventoryView.headerText(here: 1, summary: summary) == "69 skills")
-        #expect(CloudSaveController.statusText(summary) == "65 on this Mac · 5 can't sync · 1 left out")
+        #expect(CloudSaveController.statusText(summary) == "65 on this Mac · 5 local only · 1 left out")
         // A server without them: the Mac counts by itself, as before.
         await api.setCounts(nil)
         let own = try await sync(api).run(installations: [installation(notes)], localFolderKeys: ["notes"],

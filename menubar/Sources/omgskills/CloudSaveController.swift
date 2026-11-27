@@ -193,7 +193,7 @@ final class CloudSaveController {
             let leftOut = server?.leftOut ?? summary.leftOutCount
             var parts = ["\(here) on this Mac"]
             if attention == 0 && leftOut == 0 && waiting == 0 { parts.append("all synced") }
-            if attention > 0 { parts.append("\(attention) can't sync") }
+            if attention > 0 { parts.append("\(attention) local only") }
             if waiting > 0 { parts.append("\(waiting) not synced yet") }
             if leftOut > 0 { parts.append("\(leftOut) left out") }
             return parts.joined(separator: " · ")
