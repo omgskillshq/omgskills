@@ -204,7 +204,8 @@ struct CloudSaveSync: Sendable {
         // Only a finished pass knows every reason; the web keeps the last full report until then.
         let report = summary.skipped.filter { !excluded.contains($0.key) }
         try? await pace()
-        try? await api.reportSkipped(report, credential: credential)
+        try? await api.reportSkipped(report, keys: CloudSaveKeys.byLocation(summary.keys, installations: installations),
+                                     credential: credential)
         // After the report, so the counts include this pass.
         try? await pace()
         summary.server = try? await api.counts(credential: credential)
