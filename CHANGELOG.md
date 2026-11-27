@@ -4,6 +4,11 @@ All notable changes to omgskills are documented here.
 
 ## [Unreleased]
 
+## [0.0.48] - 2026-11-27
+
+### App
+- The Mac and website now identify each skill the same way, so skills that are too large show "Can't sync" instead of "Not synced yet".
+
 ## [0.0.47] - 2026-11-27
 
 ### App
