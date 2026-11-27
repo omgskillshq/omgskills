@@ -548,9 +548,29 @@ struct CloudSaveSyncTests {
         try fm.removeItem(at: impeccable.appendingPathComponent("settings"))
         let other = try makeSkill(library.appendingPathComponent("o--r/.github/skills"), "ci")
         try fm.createSymbolicLink(at: skills.appendingPathComponent("ci"), withDestinationURL: other)
-        #expect(throws: CloudSaveFolder.ReadError.self) { try CloudSaveFolder.read(directory: skills.appendingPathComponent("ci"), links: policy) }
+        #expect(throws: CloudSaveFolder.ReadError.privateLink("ci")) { try CloudSaveFolder.read(directory: skills.appendingPathComponent("ci"), links: policy) }
         try fm.createSymbolicLink(at: skills.appendingPathComponent("all"), withDestinationURL: library.appendingPathComponent("o--r/website/.agents/skills"))
-        #expect(throws: CloudSaveFolder.ReadError.self) { try CloudSaveFolder.read(directory: skills.appendingPathComponent("all"), links: policy) }
+        #expect(throws: CloudSaveFolder.ReadError.privateLink("all")) { try CloudSaveFolder.read(directory: skills.appendingPathComponent("all"), links: policy) }
+
+        // Hidden files inside the skill aren't read; links from it up to the repo's settings or into a hidden
+        // folder below "skills" aren't followed.
+        try Data("TOKEN=x".utf8).write(to: impeccable.appendingPathComponent(".env"))
+        try fm.createDirectory(at: impeccable.appendingPathComponent("sub/.git"), withIntermediateDirectories: true)
+        try Data("[remote]".utf8).write(to: impeccable.appendingPathComponent("sub/.git/config"))
+        #expect(try CloudSaveFolder.read(directory: skills.appendingPathComponent("impeccable"), links: policy).entries.map(\.path)
+                == ["SKILL.md", "reference/a.md"])
+        let repoSettings = library.appendingPathComponent("pbakaus--impeccable/.claude/settings.local.json")
+        try Data("{}".utf8).write(to: repoSettings)
+        try fm.createSymbolicLink(atPath: impeccable.appendingPathComponent("up").path, withDestinationPath: "../../settings.local.json")
+        #expect(throws: CloudSaveFolder.ReadError.privateLink("up")) {
+            try CloudSaveFolder.read(directory: skills.appendingPathComponent("impeccable"), links: policy)
+        }
+        try fm.removeItem(at: impeccable.appendingPathComponent("up"))
+        let system = try makeSkill(library.appendingPathComponent("pbakaus--impeccable/.claude/skills/.system"), "x")
+        try fm.createSymbolicLink(at: skills.appendingPathComponent("system"), withDestinationURL: system)
+        #expect(throws: CloudSaveFolder.ReadError.privateLink("system")) {
+            try CloudSaveFolder.read(directory: skills.appendingPathComponent("system"), links: policy)
+        }
     }
 
     @Test func skillsLinkedIntoTheOldLibraryFolderAreSaved() async throws {
