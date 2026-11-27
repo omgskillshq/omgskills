@@ -4,7 +4,7 @@ import { appendSkillRelease } from "./group-storage.js";
 import { cloudBlobKey, type CloudObjectStore } from "./cloud-store.js";
 import { forgetContentMatches } from "./content-match.js";
 import { skillMdBody } from "./skill-readme.js";
-import { cloudKeyLocation, cloudNameKey, type CloudRecordName, type ReportedCloudKeys } from "./cloud-skill-keys.js";
+import { cloudKeyLocation, cloudNameKey, type CloudRecordName, type ReportedCloudKey, type ReportedCloudKeys } from "./cloud-skill-keys.js";
 import { parseGithubSource, type GithubSource } from "./github-source.js";
 import { installationFolderFromKey } from "./sync-skill.js";
 import { drainCloudPurge, queuedFileCount, releaseStorageKeys, reserveStorageKeys } from "./cloud-storage-purge.js";
@@ -334,34 +334,38 @@ export function parseCloudSkipReport(body: Record<string, unknown>): Record<stri
 }
 
 /**
- * The key a Mac used for each skill folder on its pass, sent with its skip report:
- * `{ keys: { "<agent>/<folder>": key } }`, or null from a Mac too old to send them.
- * An entry that isn't one folder of a known agent, or whose key isn't valid, drops only that entry.
+ * The key a Mac used for each skill folder on its pass, with the SKILL.md name of the skill in it, sent with its
+ * skip report: `{ keys: { "<agent>/<folder>": { key, name } } }`. Null from a Mac too old to send them, or when a
+ * Mac has more folders than a report holds (its keys are then worked out, as for an older Mac). An entry that
+ * isn't one folder of a known agent, or whose key or name isn't valid, drops only that entry.
  */
-export function parseCloudKeyReport(body: Record<string, unknown>): Record<string, string> | null {
+export function parseCloudKeyReport(body: Record<string, unknown>): Record<string, ReportedCloudKey> | null {
   const keys = body.keys;
   if (keys === undefined) return null;
   if (!keys || typeof keys !== "object" || Array.isArray(keys)) {
     throw new CloudSaveError("invalid_request", "keys must map skill folders to keys");
   }
   const entries = Object.entries(keys);
-  if (entries.length > MAX_SKIP_REPORT_KEYS) throw new CloudSaveError("invalid_request", "Too many skill folders");
-  const report: Record<string, string> = {};
-  for (const [location, key] of entries) {
+  if (entries.length > MAX_KEY_REPORT_FOLDERS) return null;
+  const report: Record<string, ReportedCloudKey> = {};
+  for (const [location, value] of entries) {
     const slash = location.indexOf("/");
     const source = location.slice(0, slash), folder = location.slice(slash + 1);
     if (slash < 0 || !CLOUD_KEY_AGENTS.includes(source) || !folder || folder.length > 500 || folder === "." || folder === ".."
       || folder.includes("/") || cloudKeyLocation(source, folder) !== location) continue;
-    try { report[location] = normalizeSkillKey(key); } catch { continue; }
+    const { key, name } = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
+    if (typeof name !== "string" || !name.trim() || name.length > 200) continue;
+    try { report[location] = { key: normalizeSkillKey(key), name }; } catch { continue; }
   }
   return report;
 }
+const MAX_KEY_REPORT_FOLDERS = 5000;
 const CLOUD_KEY_AGENTS = ["claude", "codex", "agents"];
 
 /** Replaces this Mac's last report. Keys are replaced too: a Mac too old to send them clears them. */
 export async function reportCloudSkips(
   db: Database,
-  input: { userId: string; deviceId: string | null; skipped: Record<string, CloudSkipReason>; keys?: Record<string, string> | null }
+  input: { userId: string; deviceId: string | null; skipped: Record<string, CloudSkipReason>; keys?: Record<string, ReportedCloudKey> | null }
 ): Promise<void> {
   if (!input.deviceId) throw new CloudSaveError("invalid_request", "Only a Mac reports skipped skills");
   await db.query(
@@ -374,16 +378,21 @@ export async function reportCloudSkips(
   );
 }
 
-/** Each connected Mac's keys from its last report, for `cloudSkillKeys`. */
+/**
+ * Each connected Mac's keys from its last report, for `cloudSkillKeys`. Best effort: unread, keys are worked out
+ * as for older Macs.
+ */
 export async function readReportedCloudKeys(db: Database, userId: string): Promise<ReportedCloudKeys> {
   const result = await db.query<{ deviceId: string; keys: Record<string, unknown> }>(
     `SELECT report.device_id AS "deviceId", report.cloud_keys AS keys FROM cloud_skip_reports report
      JOIN device_tokens device ON device.id = report.device_id AND device.revoked_at IS NULL
      WHERE report.user_id = $1 AND report.cloud_keys IS NOT NULL`,
     [userId]
-  );
-  return new Map(result.rows.map((row) => [row.deviceId, Object.fromEntries(Object.entries(row.keys)
-    .filter((entry): entry is [string, string] => typeof entry[1] === "string"))]));
+  ).catch(() => ({ rows: [] }));
+  return new Map(result.rows.map((row) => [row.deviceId, Object.fromEntries(Object.entries(row.keys).flatMap(([location, value]) => {
+    const { key, name } = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
+    return typeof key === "string" && typeof name === "string" ? [[location, { key, name }]] : [];
+  }))]));
 }
 
 /**

@@ -1497,10 +1497,12 @@ test("each skill uses the key its Mac reports using, so its reason and Set item 
     };
 
     // The Mac remembers this skill's key from when another last30days took the folder name; nothing else knows that.
+    const entry = (key: string, name = "last30days") => ({ key, name });
     assert.equal((await report({ skipped: { "last30days@claude": "too_large" },
-      keys: { "claude/last30days": "Last30days@Claude", "codex/gone": "gone", "nope/x": "x", "claude/a/b": "b", "claude/ok": ".bad" } })).status, 204);
+      keys: { "claude/last30days": entry("Last30days@Claude"), "codex/gone": entry("gone", "Gone"), "nope/x": entry("x"),
+        "claude/a/b": entry("b"), "claude/ok": entry(".bad"), "claude/plain": "plain", "claude/nameless": { key: "n" } } })).status, 204);
     assert.deepEqual((await pool.query("SELECT cloud_keys FROM cloud_skip_reports WHERE device_id = $1", [deviceId])).rows[0].cloud_keys,
-      { "claude/last30days": "last30days@claude", "codex/gone": "gone" }, "Keys are normalized; odd entries drop alone");
+      { "claude/last30days": entry("last30days@claude"), "codex/gone": entry("gone", "Gone") }, "Keys are normalized; odd entries drop alone");
     assert.deepEqual(await read(), { key: "last30days@claude", rows: [["last30days@claude", "too_large"]] },
       "Its reason is the one shown, not \"not synced yet\"");
     const group = (await pool.query<{ id: string }>(
@@ -1514,6 +1516,16 @@ test("each skill uses the key its Mac reports using, so its reason and Set item 
     assert.equal(await savedSkillInSetFromMac(pool, userId, group, "last30days@claude"), true, "A Set finds it by the Mac's key");
 
     assert.equal((await report({ skipped: {}, keys: ["claude/last30days"] })).status, 400);
+    // More folders than a report holds: the reasons still count, and the keys are worked out.
+    const many = Object.fromEntries(Array.from({ length: 5001 }, (_, i) => [`claude/s${i}`, entry(`s${i}`)]));
+    assert.equal((await report({ skipped: { "last30days@claude": "too_large" }, keys: many })).status, 204);
+    assert.deepEqual(await read(), { key: "last30days", rows: [["last30days", "waiting"]] });
+    assert.equal((await report({ skipped: { "last30days@claude": "too_large" }, keys: { "claude/last30days": entry("last30days@claude") } })).status, 204);
+    // A disconnected Mac's keys are ignored with it.
+    await pool.query("UPDATE device_tokens SET revoked_at = now() WHERE id = $1", [deviceId]);
+    const { readReportedCloudKeys } = await import("./cloud-save.js");
+    assert.equal((await readReportedCloudKeys(pool, userId)).size, 0);
+    await pool.query("UPDATE device_tokens SET revoked_at = NULL WHERE id = $1", [deviceId]);
     // A Mac too old to send keys clears them: its keys are worked out as before.
     assert.equal((await report({ skipped: {} })).status, 204);
     assert.deepEqual(await read(), { key: "last30days", rows: [["last30days", "waiting"]] });

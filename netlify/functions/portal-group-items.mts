@@ -55,7 +55,8 @@ type SyncedSkill = {
  * skill in a same-name folder holds that key (see cloud-skill-keys.ts). Its Mac's other current copies and the
  * saved skills decide.
  */
-async function cloudKeyOf(client: QueryClient, userId: string, skill: SyncedSkill): Promise<string | null> {
+async function cloudKeyOf(client: QueryClient, userId: string, skill: SyncedSkill,
+  known: Promise<KeyInputs> = keyInputs(client, userId)): Promise<string | null> {
   const rows = await client.query<{ id: string; name: string; source: string; stableKey: string; deviceId: string | null;
     isCurrent: boolean }>(
     `SELECT id, name, source, stable_key AS "stableKey", device_id AS "deviceId", is_current AS "isCurrent"
@@ -68,7 +69,7 @@ async function cloudKeyOf(client: QueryClient, userId: string, skill: SyncedSkil
   const copies = rows.rows.map(row => ({ ...row, installationFolder: installationFolderFromKey(row.stableKey, row.source) }));
   const own = copies.find(copy => copy.id === skill.id);
   if (!own) return null;
-  const [records, reported] = await Promise.all([readCloudRecordNames(client, userId), readReportedCloudKeys(client, userId)]);
+  const { records, reported } = await known;
   const key = cloudSkillKeys(copies, records, reported).get(own);
   try {
     return key ? normalizeSkillKey(key) : null;
@@ -78,6 +79,12 @@ async function cloudKeyOf(client: QueryClient, userId: string, skill: SyncedSkil
 }
 
 type QueryClient = Pick<ReturnType<typeof getPgPool>, "query">;
+
+/** What decides keys besides the copies: the saved skills' names and each Mac's reported keys. Read once per request. */
+type KeyInputs = { records: Awaited<ReturnType<typeof readCloudRecordNames>>; reported: Awaited<ReturnType<typeof readReportedCloudKeys>> };
+async function keyInputs(client: QueryClient, userId: string): Promise<KeyInputs> {
+  return { records: await readCloudRecordNames(client, userId), reported: await readReportedCloudKeys(client, userId) };
+}
 
 /**
  * Whether the Set already holds this saved skill as a name-only item from a Mac's copy (added when nothing
@@ -90,10 +97,12 @@ export async function savedSkillInSetFromMac(client: QueryClient, userId: string
      WHERE group_id = $1 AND kind = 'synced' AND source_id IS NULL AND synced_skill_id IS NOT NULL`,
     [groupId]
   );
+  let known: Promise<KeyInputs> | undefined;
   for (const { syncedSkillId } of items.rows) {
     const skill = await getSyncedSkill(client, userId, syncedSkillId);
     if (skill) {
-      if (await cloudKeyOf(client, userId, skill) === skillKey) return true;
+      known ??= keyInputs(client, userId);
+      if (await cloudKeyOf(client, userId, skill, known) === skillKey) return true;
       continue;
     }
     // No Mac has it now: its folder name is the key it saved under ("notes", or "notes@codex" when taken).

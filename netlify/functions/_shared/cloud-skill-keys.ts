@@ -41,13 +41,15 @@ export function cloudKeyLocation(source: string, folder: string) {
   return `${source.trim().toLowerCase()}/${folder}`;
 }
 
+/** A key a Mac used for one skill folder, and the SKILL.md name of the skill that was in it. */
+export type ReportedCloudKey = { key: string; name: string };
 /** Each Mac's own keys from its last pass, by device ID, then by `cloudKeyLocation`. */
-export type ReportedCloudKeys = ReadonlyMap<string, Readonly<Record<string, string>>>;
+export type ReportedCloudKeys = ReadonlyMap<string, Readonly<Record<string, ReportedCloudKey>>>;
 
 /**
- * A skill's cloud key is the one its Mac reported using for that folder on its last pass, when it did: the Mac
- * decides (it also remembers keys, which nothing here can work out). Otherwise it's worked out the same way the
- * Mac does: its folder name, unless that key holds a different skill. Then:
+ * A skill's cloud key is the one its Mac reported using for that folder on its last pass, while the same skill
+ * (by SKILL.md name) is still there: the Mac decides (it also remembers keys, which nothing here can work out).
+ * Otherwise it's worked out the same way the Mac does: its folder name, unless that key holds a different skill. Then:
  * 1. A saved skill with the same SKILL.md name under this folder's keys is this skill (its folder name first).
  * 2. Otherwise, the skills in same-name folders on one Mac are told apart by SKILL.md name. The one named like
  *    its folder chooses first (else the one in the first agent alphabetically), and each takes the first key
@@ -58,14 +60,21 @@ export function cloudSkillKeys<T extends KeyedInstallation>(installations: T[], 
   const keys = new Map<T, string>();
   const taken = new Map<string, string>();
   for (const record of records) if (record.name) taken.set(record.key, record.name);
-  // A Mac's current copies take the keys it reported; the rest are worked out around them.
-  const fromMac = (skill: T) => skill.isCurrent !== false && skill.deviceId && skill.installationFolder
-    ? reported.get(skill.deviceId)?.[cloudKeyLocation(skill.source, skill.installationFolder)] : undefined;
+  // A Mac's current copies take the keys it reported, unless another skill has since replaced the one that was
+  // in the folder (the report is from the Mac's last finished pass). The rest are worked out around them.
+  const claimed = new Map<string, string>();
+  const fromMac = (skill: T) => {
+    if (skill.isCurrent === false || !skill.deviceId || !skill.installationFolder) return undefined;
+    const entry = reported.get(skill.deviceId)?.[cloudKeyLocation(skill.source, skill.installationFolder)];
+    return entry && cloudNameKey(entry.name) === cloudNameKey(skill.name) ? entry.key : undefined;
+  };
   for (const skill of installations) {
     const key = fromMac(skill);
     if (!key) continue;
     keys.set(skill, key);
-    taken.set(key, cloudNameKey(skill.name) || cloudNameKey(skill.installationFolder || skill.name));
+    const name = cloudNameKey(skill.name) || cloudNameKey(skill.installationFolder || skill.name);
+    taken.set(key, name);
+    claimed.set(key, name);
   }
   const groups = new Map<string, T[]>();
   installations.forEach((skill, index) => {
@@ -74,7 +83,9 @@ export function cloudSkillKeys<T extends KeyedInstallation>(installations: T[], 
     const name = cloudNameKey(skill.name) || folder;
     keys.set(skill, folder);
     if (!folder) return;
-    const saved = records.filter(record => record.name === name && belongsToFolder(record.key, folder))
+    // A saved skill's key that a Mac reported for another skill is that one's (a rename not saved yet).
+    const saved = records.filter(record => record.name === name && belongsToFolder(record.key, folder)
+      && (claimed.get(record.key) ?? name) === name)
       .map(record => record.key).sort((a, b) => Number(b === folder) - Number(a === folder) || order(a, b))[0];
     if (saved) { keys.set(skill, saved); return; }
     // Only one Mac's current copies can collide; older rows and copies from nowhere are on their own.
