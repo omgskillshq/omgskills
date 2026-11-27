@@ -35,7 +35,7 @@ export function CloudStatusSection({ row, confirm }: { row: CloudSkillRow | null
   if (!attention && !row.labels.length) return null;
   return <section className="ua-cloud-status" aria-label="Sync" data-status={row.status}>
     {attention && statusHelp[row.status] && <p className="ua-muted">{row.status === "review" && row.origin
-      ? `A file in this skill from ${row.origin === "library" ? "the library" : "a Set"} looks like it contains a key or password, so it wasn't synced. If it's only an example, confirm it's safe.`
+      ? `A file in this skill from ${row.origin === "library" ? "the library" : "a Set"} looks like it contains a key or password, so it stays on your Mac. If it's only an example, confirm it's safe.`
       : statusHelp[row.status]}</p>}
     {row.findings.map(file => <p className="ua-muted ua-cloud-finding" key={file.path}>
       {file.path}: {file.findings.map(finding => `${finding.kind} on line ${finding.line}`).join(", ")}
