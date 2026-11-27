@@ -746,8 +746,8 @@ export function UnifiedApp({
   // An old account page's address (Devices, GitHub sources, MCP, Sync) opens Settings at its section.
   // The page may still be loading (or its sections above still growing): look for the section for a few
   // seconds, and scroll to it once more after it appears.
-  // Settings' sections start closed; an old page's address opens its own.
-  const [settingsOpen, setSettingsOpen] = useState<string[]>(() => nav.view !== "profile" && settingsViews.includes(nav.view) ? [nav.view] : []);
+  // Settings opens with Profile open and the rest closed; an old page's address also opens its own.
+  const [settingsOpen, setSettingsOpen] = useState<string[]>(() => nav.view !== "profile" && settingsViews.includes(nav.view) ? ["profile", nav.view] : ["profile"]);
   useEffect(() => {
     if (nav.view === "profile" || !settingsViews.includes(nav.view)) return;
     setSettingsOpen(open => open.includes(nav.view) ? open : [...open, nav.view]);
@@ -2354,7 +2354,7 @@ export function UnifiedApp({
                       <h2 className="ua-settings-heading"><button type="button" className="ua-settings-toggle" aria-expanded={open}
                         aria-controls={open ? `settings-${key}-body` : undefined}
                         onClick={() => setSettingsOpen(list => open ? list.filter(item => item !== key) : [...list, key])}>
-                        <span>{label}{key === "profile" && data.profile.email && <small>{data.profile.email}</small>}</span><ChevronDown aria-hidden="true" />
+                        <span>{label}{key === "profile" && !open && data.profile.email && <small>{data.profile.email}</small>}</span><ChevronDown aria-hidden="true" />
                       </button></h2>
                       {open && <div id={`settings-${key}-body`} className="ua-settings-body">{page}</div>}
                     </section>;
