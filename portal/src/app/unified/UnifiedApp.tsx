@@ -148,7 +148,7 @@ import { SavedSkillReadme, SavedVersionsList, SharedSkillReadme, SkillReadme, sa
 import type { SavedSkillMdLoader, SavedVersionsLoader, SharedSkillMdLoader } from "../../cloud-save/cloud-save";
 import { PullToRefresh } from "./PullToRefresh";
 import { AlphaRail, railLetter, railLettersOf as railLetters } from "./AlphaRail";
-import { CloudStatusBadge, CloudStatusSection, type CloudInfo } from "./CloudStatus";
+import { SkillSyncSection, type CloudInfo } from "./CloudStatus";
 import { SetItemScan } from "./SetItemScan";
 import { LibraryMatchPicker, libraryMatchOf, potentialMatch } from "./LibraryMatchPicker";
 import { fitTip, useTipFit } from "./tip-bounds";
@@ -1297,9 +1297,6 @@ export function UnifiedApp({
       {supportsView("github") && <MenuItem icon={Code} onSelect={() => goFromAccount("github")}>
         GitHub sources
       </MenuItem>}
-      {supportsView("cloud") && accountPages && <MenuItem icon={Cloud} onSelect={() => goFromAccount("cloud")}>
-        Sync
-      </MenuItem>}
       {supportsView("safety") && cloud && signedIn && <MenuItem icon={ShieldCheck} onSelect={() => goFromAccount("safety")}>
         Safety scan
       </MenuItem>}
@@ -2285,9 +2282,6 @@ export function UnifiedApp({
                       </p>
                     </>
                   )}
-                  {nav.view === "cloud" && (
-                    <Empty title="Sync">Sign in to sync your skills.</Empty>
-                  )}
                   {nav.view === "github" && (
                     <Empty
                       title={
@@ -2643,9 +2637,6 @@ export function UnifiedApp({
                     </button>
                   )}
                 </div>
-                {/* Sync runs in the background; it only shows when something needs you, in small text under the buttons. */}
-                {cloud && !detail.setItemReleaseId && (detail.installed || detail.cloudKey) && needsAttention(cloudRow(detail)?.status ?? "saved")
-                  && <div className="ua-detail-sync-note"><CloudStatusBadge row={cloudRow(detail)} notInstalled={!!detail.cloudKey} /></div>}
                 {!onMac && detail.installCommand && (
                   <p className="ua-muted ua-detail-copy-hint">
                     {/* Opens the app's own Developers page (same theme, no page load); a new-tab click still gets the address. */}
@@ -2730,10 +2721,6 @@ export function UnifiedApp({
                 {detail.setItemReleaseId && sharedSkillMd
                   ? <SharedSkillReadme releaseId={detail.setItemReleaseId} load={sharedSkillMd} />
                   : savedSkillMd && <SavedSkillReadme skill={detail} load={savedSkillMd} />}
-                {cloud && !detail.setItemReleaseId && detail.installed && <CloudStatusSection key={detail.key} row={cloudRow(detail)}
-                  confirm={!readOnlyAccount || management ? cloud.confirm : undefined} />}
-                {!detail.setItemReleaseId && savedVersions && <SavedVersionsList skill={detail}
-                  liveName={!readOnlyAccount || management ? detailLive?.name : undefined} load={savedVersions} />}
                 {detail.publicUrl && (
                   <a className="ua-link" href={detail.publicUrl} target="_blank" rel="noreferrer">
                     View public skill page <ArrowUpRight />
@@ -2825,6 +2812,15 @@ export function UnifiedApp({
                     </div>
                   </section>;
                 })()}
+                {/* Its sync, last: how it syncs, what the scan found, its versions and its own switch. */}
+                {!detail.setItemReleaseId && (cloud && (detail.installed || detail.cloudKey) && cloudRow(detail)
+                  ? <SkillSyncSection key={detail.key} row={cloudRow(detail)} keys={savedSkillKeys(detail)} cloud={cloud}
+                    installed={!!detail.installed} editable={!readOnlyAccount || !!management}
+                    openSettings={supportsView("profile") ? () => go("profile") : undefined}
+                    versions={savedVersions && <SavedVersionsList skill={detail}
+                      liveName={!readOnlyAccount || management ? detailLive?.name : undefined} load={savedVersions} />} />
+                  : savedVersions && <SavedVersionsList skill={detail}
+                    liveName={!readOnlyAccount || management ? detailLive?.name : undefined} load={savedVersions} />)}
                 {selectedInstallations.some(installation => inventorySummary(installation)) && (
                   <section className="ua-detail-history">
                     <button

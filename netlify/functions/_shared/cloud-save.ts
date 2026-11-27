@@ -523,8 +523,11 @@ export async function readCloudSave(db: Database, userId: string): Promise<Cloud
   };
 }
 
-/** A settings change. `addExcludedSkillKeys` leaves more skills out without replacing the list, for the Mac. */
-export type CloudSaveSettingsUpdate = Partial<CloudSaveSettings> & { addExcludedSkillKeys?: string[] };
+/**
+ * A settings change. `addExcludedSkillKeys` leaves more skills out and `removeExcludedSkillKeys` syncs them again,
+ * each without replacing the list (the Mac and the web's per-skill switch change it at the same time).
+ */
+export type CloudSaveSettingsUpdate = Partial<CloudSaveSettings> & { addExcludedSkillKeys?: string[]; removeExcludedSkillKeys?: string[] };
 
 export function parseCloudSaveSettingsUpdate(body: Record<string, unknown>): CloudSaveSettingsUpdate {
   const update: CloudSaveSettingsUpdate = {};
@@ -544,7 +547,18 @@ export function parseCloudSaveSettingsUpdate(body: Record<string, unknown>): Clo
     }
     update.addExcludedSkillKeys = [...new Set(body.addExcludedSkillKeys.map(normalizeSkillKey))].sort();
   }
-  if (update.enabled === undefined && update.excludedSkillKeys === undefined && update.addExcludedSkillKeys === undefined) {
+  if (Object.hasOwn(body, "removeExcludedSkillKeys")) {
+    if (!Array.isArray(body.removeExcludedSkillKeys) || body.removeExcludedSkillKeys.length > MAX_EXCLUDED_SKILLS) {
+      throw new CloudSaveError("invalid_request", "removeExcludedSkillKeys must be a list of skill keys");
+    }
+    update.removeExcludedSkillKeys = [...new Set(body.removeExcludedSkillKeys.map(normalizeSkillKey))].sort();
+  }
+  // One kind of list change per request, so a change is one statement and never half done.
+  if ([update.excludedSkillKeys, update.addExcludedSkillKeys, update.removeExcludedSkillKeys].filter(Boolean).length > 1) {
+    throw new CloudSaveError("invalid_request", "Change the left-out list one way at a time");
+  }
+  if (update.enabled === undefined && update.excludedSkillKeys === undefined && update.addExcludedSkillKeys === undefined
+    && update.removeExcludedSkillKeys === undefined) {
     throw new CloudSaveError("invalid_request", "Nothing to update");
   }
   return update;
@@ -570,7 +584,21 @@ export async function updateCloudSaveSettings(
       [userId, update.addExcludedSkillKeys]
     );
     if (!added.rows[0]) throw new CloudSaveError("invalid_request", "Too many skills are left out");
-    if (update.enabled === undefined && update.excludedSkillKeys === undefined) return added.rows[0];
+    if (update.enabled === undefined && update.excludedSkillKeys === undefined && !update.removeExcludedSkillKeys) return added.rows[0];
+  }
+  if (update.removeExcludedSkillKeys) {
+    const removed = await db.query<CloudSaveSettings>(
+      `
+        INSERT INTO cloud_save_settings AS settings (user_id, enabled, excluded_skill_keys)
+        VALUES ($1, false, ARRAY[]::text[])
+        ON CONFLICT (user_id) DO UPDATE SET
+          excluded_skill_keys = ARRAY(SELECT key FROM unnest(settings.excluded_skill_keys) AS key WHERE NOT key = ANY($2::text[]) ORDER BY key),
+          updated_at = now()
+        RETURNING enabled, excluded_skill_keys AS "excludedSkillKeys"
+      `,
+      [userId, update.removeExcludedSkillKeys]
+    );
+    if (update.enabled === undefined && update.excludedSkillKeys === undefined) return removed.rows[0];
   }
   const result = await db.query<CloudSaveSettings>(
     `

@@ -72,6 +72,9 @@ test("settings updates take only known fields", () => {
   assert.throws(() => parseCloudSaveSettingsUpdate({}), CloudSaveError);
   assert.throws(() => parseCloudSaveSettingsUpdate({ enabled: "yes" }), CloudSaveError);
   assert.throws(() => parseCloudSaveSettingsUpdate({ excludedSkillKeys: "a" }), CloudSaveError);
+  assert.deepEqual(parseCloudSaveSettingsUpdate({ removeExcludedSkillKeys: ["B", "a"] }), { removeExcludedSkillKeys: ["a", "b"] });
+  assert.throws(() => parseCloudSaveSettingsUpdate({ removeExcludedSkillKeys: "a" }), CloudSaveError);
+  assert.throws(() => parseCloudSaveSettingsUpdate({ addExcludedSkillKeys: ["a"], removeExcludedSkillKeys: ["a"] }), CloudSaveError);
 });
 
 test("a manifest's tree hash matches the hash of the package it describes", () => {

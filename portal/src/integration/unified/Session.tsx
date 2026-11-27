@@ -16,8 +16,9 @@ import { useManagement } from "./useManagement";
 import { DevicesPanel } from "../DevicesPanel";
 import { PrivateSourcesPanel } from "../PrivateSourcesPanel";
 import { McpPanel } from "../../app/unified/McpPanel";
-import { CloudSavePanel } from "../../cloud-save/CloudSavePanel";
-import { confirmCloudReview, deleteCloudSaved, loadCloudSave, loadSavedSkillMd, loadSavedVersions, loadSharedSkillMd, type CloudSaveState } from "../../cloud-save/cloud-save";
+import { SyncSettings } from "../../cloud-save/SyncSettings";
+import { PortalApiError } from "../../api-error";
+import { confirmCloudReview, deleteCloudSaved, loadCloudSave, saveCloudSettings, setSkillLeftOut, loadSavedSkillMd, loadSavedVersions, loadSharedSkillMd, type CloudSaveState, type CloudSaveView } from "../../cloud-save/cloud-save";
 import type { CloudInfo } from "../../app/unified/CloudStatus";
 import { addGithubSkill, addMySkill, addUpload, previewUpload, type PickedFolder, findSkillsAtGithubLink, loadMySkillAdditions, previewGithubSkill, removeMySkill, type GithubSkillPreview,
   type MySkillAddition, type MySkillAdditions } from "../../app/my-skills-additions";
@@ -56,34 +57,69 @@ export type UnifiedSessionComposition = {
   clearInstallIntent: (next: Navigation) => void;
 };
 
-/** The account's cloud save state for the skill list; reloaded with the account and after a confirm. */
-function useCloudStatus(api: PortalApi, enabled: boolean, revision: unknown, saved: CloudSaveState | null = null): { info: CloudInfo | undefined; state: CloudSaveState | null; loaded: boolean; ok: boolean; reload: () => void } {
+/**
+ * The account's cloud save state for the skill list, the skill panels and the profile's sync. Reloaded with the
+ * account and after each change; a change resolves once the reload after it is in, so nothing shows the old state.
+ */
+function useCloudStatus(api: PortalApi, enabled: boolean, revision: unknown, saved: CloudSaveState | null = null,
+  denied?: () => void): { info: CloudInfo | undefined; state: CloudSaveState | null; status: CloudSaveView["status"] | null;
+    loaded: boolean; ok: boolean; reload: () => Promise<void> } {
   const apiRef = useRef(api);
   apiRef.current = api;
+  const deniedRef = useRef(denied);
+  deniedRef.current = denied;
   // Starts from the last saved state, if any, so a return visit shows its sync icons at once.
   const [state, setState] = useState<CloudSaveState | null>(saved);
+  // How the last load went: ready, unavailable (sync isn't switched on for this server) or error.
+  const [status, setStatus] = useState<CloudSaveView["status"] | null>(null);
   // Whether the first answer is in (or failed), so My skills shows its count once, not 75 then 85.
   const [loaded, setLoaded] = useState(false);
   // Whether the last answer was real, so a failed load is never saved for the next visit.
   const [ok, setOk] = useState(false);
   const [reload, setReload] = useState(0);
+  // Changes waiting for a load that started after them (never one already running when they asked).
+  const waiting = useRef<{ after: number; done: () => void }[]>([]);
+  const requested = useRef(0);
   useEffect(() => {
-    if (!enabled) { setState(null); setLoaded(false); setOk(false); return; }
+    if (!enabled) { setState(null); setStatus(null); setLoaded(false); setOk(false); return; }
     const controller = new AbortController();
     void loadCloudSave(apiRef.current, controller.signal)
-      .then(view => { if (!controller.signal.aborted) { setState(view.status === "ready" ? view.state : null); setOk(view.status !== "error"); } })
-      // The list shows no cloud status (not the saved one); the Cloud save page reports the error.
-      .catch(() => { if (!controller.signal.aborted) { setState(null); setOk(false); } })
-      .finally(() => { if (!controller.signal.aborted) setLoaded(true); });
+      .then(view => { if (!controller.signal.aborted) { setState(view.status === "ready" ? view.state : null); setStatus(view.status); setOk(view.status !== "error"); } })
+      // The list shows no cloud status (not the saved one); the profile's sync says it couldn't load.
+      .catch((cause: unknown) => {
+        if (controller.signal.aborted) return;
+        setState(null); setStatus("error"); setOk(false);
+        if (cause instanceof PortalApiError && cause.status === 401) deniedRef.current?.();
+      })
+      .finally(() => {
+        if (controller.signal.aborted) return;
+        setLoaded(true);
+        const ready = waiting.current.filter(wait => wait.after <= reload);
+        waiting.current = waiting.current.filter(wait => wait.after > reload);
+        for (const wait of ready) wait.done();
+      });
     return () => controller.abort();
   }, [enabled, revision, reload]);
+  const reloadCloud = useCallback(() => new Promise<void>(done => {
+    const after = ++requested.current;
+    waiting.current.push({ after, done });
+    setReload(after);
+  }), []);
   const info = useMemo(() => state ? {
     state,
-    confirm: async (key: string) => { await confirmCloudReview(apiRef.current, key); setReload(value => value + 1); },
-    remove: async (key: string) => { await deleteCloudSaved(apiRef.current, key); setReload(value => value + 1); },
-  } : undefined, [state]);
-  const reloadCloud = useCallback(() => setReload(value => value + 1), []);
-  return { info, state, loaded, ok, reload: reloadCloud };
+    confirm: async (key: string) => { await confirmCloudReview(apiRef.current, key); await reloadCloud(); },
+    remove: async (key: string) => { await deleteCloudSaved(apiRef.current, key); await reloadCloud(); },
+    leaveOut: async (keys: string[], leftOut: boolean) => { await setSkillLeftOut(apiRef.current, keys, leftOut); await reloadCloud(); },
+    // Leaves the folders not synced yet out first, then deletes the saved ones, then reloads once: the panel never
+    // shows a half-done delete, and a failure leaves nothing deleted that the message says wasn't.
+    deleteSynced: async (saved: string[], others: string[]) => {
+      try {
+        if (others.length) await setSkillLeftOut(apiRef.current, others, true);
+        for (const key of saved) await deleteCloudSaved(apiRef.current, key);
+      } finally { await reloadCloud(); }
+    },
+  } : undefined, [state, reloadCloud]);
+  return { info, state, status, loaded, ok, reload: reloadCloud };
 }
 
 /** Library skills added to My skills; each change shows at once and goes back if the save fails. */
@@ -276,7 +312,7 @@ function AccountView({ identity, signedIn, accountKey, base, local, connectedInv
   const setCatalog = useSetCatalog(publicClient, detail.set);
   // Both start with the account load instead of after it. The account's first load is revision 1: no second fetch.
   const extras = available && !snapshot.accessDenied && !composition?.readOnly && !local;
-  const { info: cloud, state: cloudState, loaded: cloudLoaded, ok: cloudOk, reload: reloadCloud } = useCloudStatus(api, extras, Math.max(1, snapshot.revision), saved?.cloud ?? null);
+  const { info: cloud, state: cloudState, status: cloudStatus, loaded: cloudLoaded, ok: cloudOk, reload: reloadCloud } = useCloudStatus(api, extras, Math.max(1, snapshot.revision), saved?.cloud ?? null, account.invalidate);
   const { additions: mySkills, loaded: mySkillsLoaded, ok: mySkillsOk } = useMySkillAdditions(api, extras, reloadCloud, saved?.additions ?? null);
   const addedCatalog = useAddedCatalog(publicClient, useMemo(() => mySkills?.skills.map(skill => skill.catalogId) ?? [], [mySkills?.skills]));
   // Save what this visit loaded, once all three parts loaded for real, for the next visit.
@@ -354,10 +390,13 @@ function AccountView({ identity, signedIn, accountKey, base, local, connectedInv
       busy={snapshot.profileSaving || snapshot.setSaving || snapshot.refreshing}
       blocked={!!snapshot.error || !snapshot.data || snapshot.accessDenied}
       error={snapshot.profileError || snapshot.error} save={account.saveProfile} settings={() => clerk.openUserProfile()}
-      deleteAccount={local ? undefined : deleteAccount} />
+      deleteAccount={local ? undefined : deleteAccount}
+      sync={local ? undefined : <SyncSettings state={cloudState} status={cloudLoaded ? cloudStatus : null} skills={data.skills}
+        retry={() => void reloadCloud()} find={name => navigate({ ...initialNavigation, view: "all", query: name })}
+        setEnabled={async enabled => { await saveCloudSettings(api, { enabled }); await reloadCloud(); }}
+        deleteAll={async () => { await deleteCloudSaved(api); await reloadCloud(); }} />} />
       : view === "devices" ? <div className="portal-design ua-connected-panel"><DevicesPanel key={accountKey} sessionKey={accountKey} api={api} local={local} readOnly={composition?.readOnly} browserConnection={productionInstall} denied={account.invalidate} theme={theme} inventoryDevices={connectedInventory ? data.devices : undefined} /></div>
       : view === "github" && !composition?.readOnly ? <div className="portal-design ua-connected-panel"><PrivateSourcesPanel api={api} local={local} denied={account.invalidate} /></div>
-      : view === "cloud" && !composition?.readOnly && !local ? <div className="portal-design ua-connected-panel"><CloudSavePanel key={accountKey} api={api} skills={data.skills} denied={account.invalidate} /></div>
       : view === "mcp" && !composition?.readOnly && !local ? <div className="portal-design ua-connected-panel"><McpPanel key={accountKey} api={api} denied={account.invalidate} /></div> : undefined : undefined}
     previewBar={(local || sessionError || (available && (snapshot.error || composition?.readOnly))) && <div className="ua-preview">
       {local && <span>Local test · Unified app</span>}

@@ -2293,45 +2293,139 @@
   /* A soft blue, not the app's accent: a note about the skill, not something new to look at. */
   background: color-mix(in srgb, var(--ua-blue) 45%, var(--ua-bg));
 }
-.ua-cloud-badge {
-  display: inline-flex;
+/* A skill's sync, at the bottom of its panel. */
+.ua-skill-sync {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ua-line);
+}
+.ua-skill-sync h3 {
+  font-family: var(--ua-sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ua-muted);
+}
+.ua-skill-sync > p.ua-muted {
+  font-size: 13px;
+}
+.ua-skill-sync-line {
+  display: flex;
   align-items: center;
   gap: 6px;
-  min-height: 32px;
-  padding: 0 4px;
-  color: var(--ua-muted);
+  color: var(--ua-body);
   font-size: 13px;
-  white-space: nowrap;
-  cursor: default;
 }
-/* Under the panel's buttons: a quiet line, not a button-sized badge. */
-.ua-detail-sync-note .ua-cloud-badge {
-  min-height: 0;
-  padding: 0;
-  gap: 4px;
-  font-size: 11px;
-  white-space: normal;
-}
-.ua-detail-sync-note .ua-cloud-badge svg {
-  width: 12px;
-  height: 12px;
-}
-.ua-cloud-badge svg {
-  width: 15px;
-  height: 15px;
+.ua-skill-sync-line svg {
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
+  color: var(--ua-muted);
 }
-.ua-cloud-badge:is([data-status="saved"], [data-status="deleted"], [data-status="library"], [data-status="set"]) svg {
+.ua-skill-sync:is([data-status="saved"], [data-status="deleted"], [data-status="library"], [data-status="set"]) .ua-skill-sync-line svg {
   color: var(--ua-saved);
 }
-.ua-cloud-badge .ua-local-dot {
+.ua-skill-sync-line .ua-local-dot {
   margin: 0 4px;
 }
-.ua-detail-sync-note .ua-cloud-badge .ua-local-dot {
-  margin: 0 1px 0 0;
+.ua-skill-sync > .ua-pill {
+  align-self: flex-start;
 }
-.ua-cloud-status > p.ua-muted {
+.ua-skill-sync-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   font-size: 13px;
+}
+.ua-skill-sync-delete {
+  align-self: flex-start;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ua-danger);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.ua-skill-sync-delete:hover {
+  text-decoration: underline;
+}
+.ua-skill-sync-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+}
+.ua-skill-sync-confirm > div {
+  display: flex;
+  gap: 8px;
+}
+/* An on/off switch, as on the Mac. */
+.ua-theme .ua-switch {
+  width: 36px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 2px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ua-muted) 40%, var(--ua-bg));
+  cursor: pointer;
+}
+.ua-theme .ua-switch[aria-checked="true"] {
+  background: var(--ua-saved);
+}
+.ua-theme .ua-switch:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.ua-switch > span {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px #0003;
+  transition: transform 150ms;
+}
+.ua-switch[aria-checked="true"] > span {
+  transform: translateX(16px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ua-switch > span { transition: none; }
+}
+/* The account's sync, in the profile. */
+.ua-sync-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 18px;
+}
+.ua-sync-settings > p.ua-muted {
+  font-size: 13px;
+}
+.ua-sync-left-out {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 13px;
+}
+.ua-sync-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ua-sync-confirm > div {
+  display: flex;
+  gap: 8px;
+}
+.ua-sync-settings .ua-account-row > button {
+  margin-left: auto;
+  flex-shrink: 0;
 }
 .ua-cloud-finding {
   overflow-wrap: anywhere;
@@ -2347,9 +2441,6 @@
   padding: 2px 8px;
   color: var(--ua-muted);
   font-size: 11px;
-}
-.ua-cloud-status > .ua-pill {
-  align-self: flex-start;
 }
 .ua-detail-match {
   align-self: flex-start;

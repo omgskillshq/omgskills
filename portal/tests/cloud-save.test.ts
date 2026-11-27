@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { PortalApiError } from "../src/api-error";
-import { cleanScan, safetyStatus, scanCopyKeys, cloudSkillKey, cloudSkillRows, deleteCloudSaved, loadSavedSkillMd, formatBytes, isDeletingAllCloudSkills, isDeletingCloudSkill, loadCloudSave, type CloudSaveState } from "../src/cloud-save/cloud-save";
+import { cleanScan, safetyStatus, scanCopyKeys, cloudSkillKey, cloudSkillRows, deleteCloudSaved, setSkillLeftOut, loadSavedSkillMd, formatBytes, loadCloudSave, type CloudSaveState } from "../src/cloud-save/cloud-save";
 import type { SyncedSkill } from "../src/synced-skill-grouping";
 import { savedSkillKeys } from "../src/app/unified/SkillReadme";
-import { notInstalledSkills } from "../src/app/unified/model";
+import { notInstalledSkills, parseNavigation } from "../src/app/unified/model";
 import { agentReviewPrompt, skillFolder } from "../src/cloud-save/scan-findings";
 
 // A Mac's report (tagged with its device), so it counts whatever today's date; old-app copies pass deviceId: null.
@@ -113,16 +113,19 @@ test("delete calls the one-skill or everything route", async () => {
   assert.deepEqual(calls, ["DELETE /api/portal/cloud-save/skills/my%20notes", "DELETE /api/portal/cloud-save"]);
 });
 
-test("deleting a skill named * never selects delete all, and vice versa", () => {
-  const one = { kind: "skill", key: "*" } as const;
-  const all = { kind: "all" } as const;
-  assert.equal(isDeletingCloudSkill(one, "*"), true);
-  assert.equal(isDeletingCloudSkill(one, "other"), false);
-  assert.equal(isDeletingAllCloudSkills(one), false);
-  assert.equal(isDeletingCloudSkill(all, "*"), false);
-  assert.equal(isDeletingAllCloudSkills(all), true);
-  assert.equal(isDeletingCloudSkill(null, "*"), false);
-  assert.equal(isDeletingAllCloudSkills(null), false);
+test("a skill's own switch adds or removes only its keys", async () => {
+  const bodies: unknown[] = [];
+  const api = async <T>(path: string, init?: RequestInit) => { bodies.push([init?.method, path, JSON.parse(String(init?.body))]); return {} as T; };
+  await setSkillLeftOut(api, ["notes", "notes@codex"], true);
+  await setSkillLeftOut(api, ["notes"], false);
+  assert.deepEqual(bodies, [
+    ["PUT", "/api/portal/cloud-save/settings", { addExcludedSkillKeys: ["notes", "notes@codex"] }],
+    ["PUT", "/api/portal/cloud-save/settings", { removeExcludedSkillKeys: ["notes"] }],
+  ]);
+});
+
+test("the old Sync page address opens the profile, where the account's sync is", () => {
+  assert.equal(parseNavigation("?view=cloud").view, "profile");
 });
 
 test("a local skill's instructions come from the first folder with a saved copy", async () => {
