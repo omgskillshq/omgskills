@@ -82,7 +82,6 @@ import {
   X,
   type LucideIcon,
   Settings,
-  CloudOff,
 } from "lucide-react";
 import {
   isMember,
@@ -721,7 +720,6 @@ export function UnifiedApp({
   const [actionSkills, setActionSkills] = useState<SkillDisplay[]>([]);
   const [setName, setSetName] = useState("");
   const [notice, setNotice] = useState(initialNotice);
-  const [leavingOut, setLeavingOut] = useState(false);
   // The agent picker opens from the Install button and closes when another skill is shown.
   const [installOpen, setInstallOpen] = useState(false);
   const [successNotice, setSuccessNotice] = useState("");
@@ -2409,11 +2407,6 @@ export function UnifiedApp({
                 const ownSet = setPage && !!activeSet
                   && (editableSet || (activeSet.isFavorites && activeSet.role === "owner"));
                 const inSet = ownSet ? chosen.filter(skill => skill.setItemId) : [];
-                // Sync for the picked skills on a Mac: all their folders out of sync, or (when all are out) back in.
-                const syncKeys = [...new Set(installed.flatMap(skill => savedSkillKeys(skill)))];
-                const excludedKeys = new Set(cloud?.state.settings.excludedSkillKeys ?? []);
-                const allOut = syncKeys.length > 0 && syncKeys.every(key => excludedKeys.has(key));
-                const canLeaveOut = !setPage && !!cloud?.leaveOut && !!cloud.state.settings.enabled;
                 return <>
                   {/* New set is inside Add to set's picker. */}
                   <button type="button" className="ua-pill" disabled={!forSets.length || (!!management && !canManage)}
@@ -2426,16 +2419,6 @@ export function UnifiedApp({
                     onClick={() => names.length ? setRemovingFromMac({ names, skill: one, saved: savedOnly }) : setRemoving(savedOnly)}>
                     <Trash2 />Remove
                   </button>}
-                  {canLeaveOut && <button type="button" className="ua-pill" disabled={!syncKeys.length || leavingOut}
-                    onClick={() => {
-                      setLeavingOut(true);
-                      const count = installed.length;
-                      void cloud!.leaveOut!(syncKeys, !allOut).then(
-                        () => setNotice(allOut ? `${count === 1 ? "It syncs" : `${count} skills sync`} again`
-                          : `${count === 1 ? "Left" : `${count} skills left`} out of sync`),
-                        () => setNotice("Sync couldn't be changed. Try again."),
-                      ).finally(() => setLeavingOut(false));
-                    }}>{allOut ? <><Cloud />Sync again</> : <><CloudOff />Leave out of sync</>}</button>}
                 </>;
               })()}
               <button type="button" className="ua-pill ua-primary" onClick={() => { setEditing(false); setPicked([]); closeDetail(); }}>Done</button>
