@@ -64,8 +64,7 @@ import {
   SearchX,
   Server,
   Cloud,
-  CloudOff,
-  TriangleAlert,
+  CloudAlert,
   Shapes,
   Share,
   ShieldAlert,
@@ -230,7 +229,7 @@ type Props = {
 /** A small mark beside a skill's name, only when cloud save can't keep a copy of it. */
 function CloudAttention({ status }: { status?: Parameters<typeof needsAttention>[0] }) {
   if (!status || !needsAttention(status)) return null;
-  const Icon = status === "review" ? TriangleAlert : CloudOff;
+  const Icon = CloudAlert;
   return <span className="ua-row-cloud" data-status={status} title={statusText[status]} aria-label={statusText[status]} role="img"><Icon aria-hidden="true" /></span>;
 }
 
@@ -1663,7 +1662,7 @@ export function UnifiedApp({
   const railList = nameOrdered && !nav.query.trim() && nav.show !== "origin" && nav.show !== "creator";
   const attentionView = nav.view === "all" && nav.id === "attention";
   const titles: Record<View, string> = {
-    all: attentionView ? "can't sync" : "my skills",
+    all: attentionView ? "local only" : "my skills",
     favorites: "favorites",
     sets: "sets",
     discover: "Discover",
@@ -1690,7 +1689,7 @@ export function UnifiedApp({
   const meta = nav.query
     ? `Results for "${nav.query}"`
     : attentionView
-      ? "These can't sync yet. Open one to see why and what to do."
+      ? "These stay on your Mac and work as usual. Open one to see why."
     : nav.view === "all" && listState === "loading"
       ? "Loading skills\u2026"
     : nav.view === "all"
@@ -1825,7 +1824,7 @@ export function UnifiedApp({
             ) : (
               <>
                 {navItem("all", "All skills", User, myCountReady ? allMine.length : undefined)}
-                {attention.length > 0 && navItem("all", "Can't sync", TriangleAlert, attention.length, "attention")}
+                {attention.length > 0 && navItem("all", "Local only", Laptop, attention.length, "attention")}
                 {(!readOnlyAccount || management) && <>{navItem("favorites", "Favorites", Heart, management ? data.sets.find(set => set.isFavorites)?.itemCount ?? 0 : favorites.length)}
                 {management && navItem("sets", "All sets", Shapes, sets.length)}
                 <div className="ua-nav-group">

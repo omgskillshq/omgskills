@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Cloud, CloudOff, TriangleAlert } from "lucide-react";
+import { Cloud, CloudAlert } from "lucide-react";
 import { needsAttention, statusHelp, statusText, labelText, type CloudSaveState, type CloudSkillRow } from "../../cloud-save/cloud-save";
 
 /** The account's cloud save state, and confirming a skill flagged for a key is safe to save. */
@@ -13,7 +13,7 @@ export function CloudStatusBadge({ row: shown, notInstalled = false }: { row: Cl
   // A skill already marked Not installed just reads Saved.
   const row = notInstalled && shown.status === "deleted" ? { ...shown, status: "saved" as const } : shown;
   const attention = needsAttention(row.status);
-  const Icon = row.status === "review" ? TriangleAlert : attention ? CloudOff : Cloud;
+  const Icon = attention ? CloudAlert : Cloud;
   const saved = ["saved", "deleted", "library", "set"].includes(row.status);
   const history = [
     saved && row.versionCount > 0 ? `${row.versionCount} ${row.versionCount === 1 ? "version" : "versions"}` : "",
