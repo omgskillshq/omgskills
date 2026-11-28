@@ -59,7 +59,7 @@ actor CatalogInstallService {
                       let provenance = SkillInstallProvenanceStore.read(targetRoot: root, targetName: destination.lastPathComponent),
                       provenance.catalogSkillId == skill.id,
                       CatalogSourceMatch.isSameSource(installedFrom: provenance.githubUrl, catalogSkillId: skill.id,
-                                                      githubUrl: skill.githubUrl) else { return .conflict }
+                                                      githubUrl: skill.githubUrl, movedFromRepo: skill.movedFromRepo) else { return .conflict }
                 // The repository cache is named after the link the install used, which predates any move.
                 if provenance.sourceKind == nil,
                    let spec = try? SkillInstaller.installationSpec(for: skill, installedFrom: provenance.githubUrl ?? skill.githubUrl),

@@ -26,6 +26,8 @@ export type Skill = {
   skill_tree_sha?: string;
   publisher_repo?: string;
   provenance_type?: string;
+  /** Set when GitHub confirmed the repository the ID names now resolves to github_url. */
+  moved_from_repo?: string;
 };
 
 export type TrendingEntry = {
@@ -89,7 +91,7 @@ export type LoadedLibrary = {
 const skillFields = [
   "id", "name", "description", "github_url", "install_cmd", "author_handle", "tags", "stars",
   "last_updated", "first_seen", "skill_md_sha", "skill_md_path", "repo_commit_sha", "skill_tree_sha",
-  "repo_slug", "install_target_name"
+  "repo_slug", "install_target_name", "moved_from_repo"
 ] as const satisfies readonly (keyof Skill)[];
 
 // Precomputed per-skill search data so a query never re-normalizes or copies records.

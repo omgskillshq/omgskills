@@ -41,6 +41,7 @@ struct ManagedSkillInstallRequest: Equatable, Sendable {
     let groupRevision: Int?
     let catalogSkillId: String?
     let githubUrl: String?
+    let movedFromRepo: String?
     let expectedCoordinates: SkillPackageCoordinates
     let mode: ManagedSkillInstallMode
     let destination: ManagedSkillDestination
@@ -55,6 +56,7 @@ struct ManagedSkillInstallRequest: Equatable, Sendable {
         groupRevision: Int?,
         catalogSkillId: String?,
         githubUrl: String?,
+        movedFromRepo: String? = nil,
         expectedCoordinates: SkillPackageCoordinates,
         mode: ManagedSkillInstallMode,
         destination: ManagedSkillDestination
@@ -68,6 +70,7 @@ struct ManagedSkillInstallRequest: Equatable, Sendable {
         self.groupRevision = groupRevision
         self.catalogSkillId = catalogSkillId
         self.githubUrl = githubUrl
+        self.movedFromRepo = movedFromRepo
         self.expectedCoordinates = expectedCoordinates
         self.mode = mode
         self.destination = destination
@@ -362,7 +365,7 @@ actor ManagedSkillInstaller {
         return activation.deletingLastPathComponent() == expectedParent
             && provenance.catalogSkillId == request.catalogSkillId
             && CatalogSourceMatch.isSameSource(installedFrom: provenance.githubUrl, catalogSkillId: request.catalogSkillId,
-                                               githubUrl: request.githubUrl)
+                                               githubUrl: request.githubUrl, movedFromRepo: request.movedFromRepo)
             && provenance.sourceKind == ManagedSkillSourceKind.catalog.rawValue
             && provenance.sourceId == request.sourceId && provenance.groupId == nil
             && provenance.targetAgent == request.destination.agent.rawValue

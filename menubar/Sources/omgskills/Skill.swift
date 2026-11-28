@@ -39,6 +39,8 @@ struct Skill: Codable, Identifiable, Hashable, Sendable {
     let catalogSkillId: String?
     let identityStatus: SkillIdentityStatus?
     let installedFromSet: String?
+    /// The repository the ID names, when GitHub confirmed it now resolves to `githubUrl`.
+    var movedFromRepo: String? = nil
     var sourceTag: String? = nil
     var sourceUrl: String? = nil
     var tweetUrl: String? = nil

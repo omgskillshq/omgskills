@@ -89,9 +89,15 @@ enum SkillInstaller {
             try CatalogInstallFilesystem.requireVacant(root: targetRoot, name: spec.targetName)
         } else if fm.fileExists(atPath: targetSkill.path) {
             if let skillMdSha = try? SkillInstallProvenanceStore.skillMdSha(at: targetSkill) {
+                // An install from before a repository move keeps the link it was made from: that
+                // link names its repository cache.
+                let existing = SkillInstallProvenanceStore.read(targetRoot: targetRoot, targetName: spec.targetName)
+                let keepsLink = existing.map { $0.catalogSkillId == skill.id && $0.githubUrl != nil
+                    && CatalogSourceMatch.isSameSource(installedFrom: $0.githubUrl, catalogSkillId: skill.id,
+                                                       githubUrl: skill.githubUrl, movedFromRepo: skill.movedFromRepo) } ?? false
                 try? SkillInstallProvenanceStore.write(
                     catalogSkillId: skill.id,
-                    githubUrl: skill.githubUrl,
+                    githubUrl: keepsLink ? existing?.githubUrl ?? skill.githubUrl : skill.githubUrl,
                     skillMdSha: skillMdSha,
                     targetRoot: targetRoot,
                     targetName: spec.targetName
