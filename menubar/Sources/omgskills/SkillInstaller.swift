@@ -219,10 +219,13 @@ enum SkillInstaller {
     static func installationSpec(for skill: Skill, installedFrom recorded: String) throws -> InstallationSpec {
         let current = try installationSpec(for: skill)
         guard let repo = repoParts(from: recorded) else { throw InstallError.invalidGitHubURL }
+        // A catalog command written before the move still names the old checkout folder.
+        let relative = current.skillRelativePath != "." ? current.skillRelativePath
+            : skillRelativePath(from: skill.installCmd, repoName: repo.name)
         return InstallationSpec(
             repoURL: "https://github.com/\(repo.owner)/\(repo.name)",
             repoCacheName: "\(repo.owner)--\(repo.name)",
-            skillRelativePath: current.skillRelativePath,
+            skillRelativePath: relative,
             targetName: current.targetName
         )
     }
