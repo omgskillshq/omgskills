@@ -6,6 +6,7 @@ import {
 } from "./_shared/device-auth.js";
 import { requireSkillGroupsFeature } from "./_shared/feature-flags.js";
 import {
+  liveCatalogSkillIds,
   readDeviceGroupManifestByRoute,
   type GroupManifestView
 } from "./_shared/group-manifest-adapters.js";
@@ -42,7 +43,7 @@ function defaultDependencies(): DeviceGroupManifestDependencies {
       };
     },
     readManifest(actor, handle, groupSlug) {
-      return readDeviceGroupManifestByRoute(pool, actor, handle, groupSlug);
+      return readDeviceGroupManifestByRoute(pool, actor, handle, groupSlug, { liveCatalogSkillIds });
     }
   };
 }

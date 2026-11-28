@@ -492,6 +492,7 @@ function preserveExistingOptionalMetadata(existing: Skill | undefined, next: Ski
     ...next,
     ...(canPreservePackage ? existingPackage : {}),
     ...(existing.moved_from_repo ? { moved_from_repo: existing.moved_from_repo } : {}),
+    ...(existing.repo_missing_since ? { repo_missing_since: existing.repo_missing_since } : {}),
     ...("source_tag" in existing && existing.source_tag !== undefined ? { source_tag: existing.source_tag } : {}),
     ...("source_url" in existing && existing.source_url !== undefined ? { source_url: existing.source_url } : {}),
     ...("tweet_url" in existing && existing.tweet_url !== undefined ? { tweet_url: existing.tweet_url } : {}),

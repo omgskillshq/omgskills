@@ -1,6 +1,6 @@
 import type { Config, Context } from "@netlify/functions";
 import { getPgPool } from "./_shared/db.js";
-import { readPublicGroupManifestByRoute, type GroupManifestView } from "./_shared/group-manifest-adapters.js";
+import { liveCatalogSkillIds, readPublicGroupManifestByRoute, type GroupManifestView } from "./_shared/group-manifest-adapters.js";
 import { errorResponse, jsonResponse, optionsResponse } from "./_shared/http.js";
 import { parsePublicManifestRoute } from "./_shared/public-group-routes.js";
 
@@ -11,7 +11,7 @@ export type PublicGroupManifestDependencies = {
 function defaultDependencies(): PublicGroupManifestDependencies {
   return {
     readManifest(handle, groupSlug) {
-      return readPublicGroupManifestByRoute(getPgPool(), handle, groupSlug);
+      return readPublicGroupManifestByRoute(getPgPool(), handle, groupSlug, { liveCatalogSkillIds });
     }
   };
 }

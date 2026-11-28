@@ -32,6 +32,22 @@ export const MAX_REPO_MOVES_PER_RUN = 500;
 /** owner/name as stored → GitHub's current owner/name. Repos GitHub didn't answer for are absent. */
 export type CurrentRepoNames = Map<string, string>;
 
+/** A GraphQL error GitHub returns beside the data, for one aliased field. */
+type GraphQLFieldError = { type?: unknown; path?: unknown };
+
+/** The aliases GitHub said don't exist (NOT_FOUND), from an error that carries per-field errors. */
+function notFoundAliases(error: unknown): Set<string> {
+  const errors = (error as { errors?: unknown } | null)?.errors;
+  const aliases = new Set<string>();
+  if (!Array.isArray(errors)) return aliases;
+  for (const entry of errors as GraphQLFieldError[]) {
+    if (entry?.type === "NOT_FOUND" && Array.isArray(entry.path) && entry.path.length === 1 && typeof entry.path[0] === "string") {
+      aliases.add(entry.path[0]);
+    }
+  }
+  return aliases;
+}
+
 type GraphQL = (query: string, variables: Record<string, string>) => Promise<unknown>;
 
 type RepoLookupData = Record<string, { nameWithOwner?: string | null } | null | undefined>;
@@ -64,29 +80,34 @@ export async function resolveCurrentRepoNames(
   repos: readonly string[],
   graphql: GraphQL,
   { batchSize = REPO_MOVE_BATCH_SIZE, pauseMs = REPO_MOVE_BATCH_PAUSE_MS, wait = defaultWait } = {},
-): Promise<{ names: CurrentRepoNames; failedBatches: number; skipped: number }> {
+): Promise<{ names: CurrentRepoNames; missing: Set<string>; failedBatches: number; skipped: number }> {
   const names: CurrentRepoNames = new Map();
+  const missing = new Set<string>();
   let failedBatches = 0;
   let failedInARow = 0;
   for (let start = 0; start < repos.length; start += batchSize) {
-    if (failedInARow >= MAX_CONSECUTIVE_FAILED_BATCHES) return { names, failedBatches, skipped: repos.length - start };
+    if (failedInARow >= MAX_CONSECUTIVE_FAILED_BATCHES) return { names, missing, failedBatches, skipped: repos.length - start };
     if (start > 0) await wait(pauseMs);
     const batch = repos.slice(start, start + batchSize);
     const { query, variables } = repoNamesQuery(batch);
     let data: RepoLookupData | null;
+    let notFound = new Set<string>();
     try {
       data = lookupData(await graphql(query, variables));
     } catch (error) {
       data = lookupData((error as { data?: unknown } | null)?.data);
+      notFound = notFoundAliases(error);
     }
     failedInARow = data ? 0 : failedInARow + 1;
     if (!data) failedBatches++;
     batch.forEach((repo, index) => {
       const current = data?.[`r${index}`]?.nameWithOwner;
       if (typeof current === "string" && /^[^/\s]+\/[^/\s]+$/.test(current)) names.set(repo.toLowerCase(), current);
+      // Only an explicit NOT_FOUND beside a null answer counts as gone; other errors say nothing.
+      else if (data && data[`r${index}`] === null && notFound.has(`r${index}`)) missing.add(repo.toLowerCase());
     });
   }
-  return { names, failedBatches, skipped: 0 };
+  return { names, missing, failedBatches, skipped: 0 };
 }
 
 function defaultWait(ms: number) {
@@ -221,6 +242,8 @@ export function applyRepoMoves<T extends Skill>(skills: readonly T[], current: C
 export type RepoMoveStep = RepoMoveResult & {
   /** GitHub's answers, to apply again to records merged in later in the run. */
   names: CurrentRepoNames;
+  /** Repositories GitHub said don't exist (lowercase owner/name as stored). */
+  missing: Set<string>;
   checked: number;
   answered: number;
   failedBatches: number;
@@ -234,8 +257,8 @@ export async function followRepoMoves(
   now = Date.now(),
 ): Promise<RepoMoveStep> {
   const repos = repoMoveCheckSlice(catalogRepos(skills), Math.floor(now / REPO_MOVE_SLICE_MS));
-  const { names, failedBatches, skipped } = await resolveCurrentRepoNames(repos, graphql);
-  return { ...applyRepoMoves(skills, names, seeds), names, checked: repos.length, answered: names.size, failedBatches, skipped };
+  const { names, missing, failedBatches, skipped } = await resolveCurrentRepoNames(repos, graphql);
+  return { ...applyRepoMoves(skills, names, seeds), names, missing, checked: repos.length, answered: names.size, failedBatches, skipped };
 }
 
 export function describeRepoMoves(result: RepoMoveStep): string[] {

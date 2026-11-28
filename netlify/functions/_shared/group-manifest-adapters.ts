@@ -8,9 +8,11 @@ import {
 import {
   buildGroupManifest,
   type GroupManifest,
-  type GroupManifestInput
+  type GroupManifestInput,
+  type GroupManifestItem
 } from "./group-manifest.js";
-import { loadPublishedSkills, type CatalogSkill } from "./published-catalog.js";
+import { withTimeout } from "./http.js";
+import { loadLiveSkillIds, loadPublishedSkills, type CatalogSkill } from "./published-catalog.js";
 
 type GroupManifestRow = {
   groupId: string;
@@ -63,7 +65,46 @@ export type GroupManifestPool = Pick<Pool, "connect">;
 
 type ManifestNameOptions = {
   loadSkills?: () => Promise<CatalogSkill[]>;
+  /** Which of these catalog skill IDs the published catalog still lists. Without it, items aren't checked. */
+  liveCatalogSkillIds?: (ids: readonly string[]) => Promise<ReadonlySet<string>>;
 };
+
+/**
+ * The install endpoints' check: per-ID detail shards, not the full catalog. A slow catalog never
+ * holds up the Set: past this wait the check gives up and the items stay as they are.
+ */
+export const liveCatalogSkillIds = (ids: readonly string[]): Promise<ReadonlySet<string>> =>
+  withTimeout(loadLiveSkillIds(ids), 4_000);
+
+const sourceUnavailable = { status: "metadata_only", reason: "source_unavailable" } as const;
+
+/**
+ * A catalog item whose skill the catalog no longer lists (its repository was deleted) can't be
+ * installed: it stays in the Set as metadata, and the rest of the Set still installs. If the catalog
+ * can't be read, items stay as they are, as before this check.
+ */
+async function withoutRemovedCatalogSkills(
+  view: GroupManifestView,
+  options: ManifestNameOptions,
+): Promise<GroupManifestView> {
+  if (!options.liveCatalogSkillIds) return view;
+  const ids = [...new Set(view.manifest.items.flatMap(item =>
+    item.installability.status === "installable" && item.installability.source.kind === "catalog"
+      ? [item.installability.source.catalogSkillId] : []))];
+  if (!ids.length) return view;
+  let live: ReadonlySet<string>;
+  try {
+    live = await options.liveCatalogSkillIds(ids);
+  } catch {
+    return view;
+  }
+  if (ids.every(id => live.has(id))) return view;
+  const items = view.manifest.items.map((item): GroupManifestItem =>
+    item.installability.status === "installable" && item.installability.source.kind === "catalog"
+      && !live.has(item.installability.source.catalogSkillId)
+      ? { ...item, installability: sourceUnavailable } : item);
+  return { ...view, manifest: { ...view.manifest, items } };
+}
 
 function safeFolderName(value: unknown): value is string {
   return typeof value === "string" && Boolean(value) && value === value.trim() && value !== "." && value !== ".."
@@ -71,9 +112,10 @@ function safeFolderName(value: unknown): value is string {
 }
 
 async function withCatalogInstallNames(
-  view: GroupManifestView,
+  checked: GroupManifestView,
   options: ManifestNameOptions,
 ): Promise<GroupManifestView> {
+  const view = await withoutRemovedCatalogSkills(checked, options);
   const repairs = new Map<string, string>();
   for (const item of view.manifest.items) {
     if (item.installability.status === "installable" && item.installability.source.kind === "catalog"
@@ -101,11 +143,13 @@ async function withCatalogInstallNames(
     }
     names.set(skill.id, name);
   }
-  const items = view.manifest.items.map(item => {
+  const items = view.manifest.items.map((item): GroupManifestItem => {
     const id = repairs.get(item.id);
     if (!id) return item;
     const name = names.get(id);
-    if (!name) throw new Response("Catalog skill has no safe install target", { status: 409 });
+    // A skill the catalog no longer lists (its repository was deleted) can't be installed; the
+    // item stays in the Set as metadata, and the rest of the Set still installs.
+    if (!name) return { ...item, installability: sourceUnavailable };
     return { ...item, name };
   });
   return { ...view, manifest: { ...view.manifest, items } };
