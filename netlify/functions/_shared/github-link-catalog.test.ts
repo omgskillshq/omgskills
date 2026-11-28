@@ -68,9 +68,12 @@ test("a branch name with slashes still finds the folder", () => {
 
 test("a renamed or moved repo is found by its new name and by its old one", () => {
   const moved = [
-    skill("old-owner/tools:review", "skills/review/SKILL.md", "New-Owner/toolkit"),
-    skill("old-owner/tools:lint", "skills/lint/SKILL.md", "New-Owner/toolkit"),
-    { id: "old/root", name: "root", github_url: "https://github.com/new/root" },
+    { ...skill("old-owner/tools:review", "skills/review/SKILL.md", "New-Owner/toolkit"), moved_from_repo: "old-owner/tools" },
+    { ...skill("old-owner/tools:lint", "skills/lint/SKILL.md", "New-Owner/toolkit"), moved_from_repo: "old-owner/tools" },
+    { id: "old/root", name: "root", github_url: "https://github.com/new/root", moved_from_repo: "old/root" },
+    // A copy: its ID names the upstream repo, which was never renamed.
+    skill("upstream/tools:review", "skills/review/SKILL.md", "fork/tools"),
+    { id: "upstream/root", name: "copy", github_url: "https://github.com/fork/root" },
   ];
   for (const link of ["https://github.com/new-owner/toolkit", "https://github.com/old-owner/tools"]) {
     assert.deepEqual(catalogSkillsForGithubLink(parseGithubLink(link)!, moved).skills.map(item => item.id),
@@ -81,4 +84,9 @@ test("a renamed or moved repo is found by its new name and by its old one", () =
   for (const link of ["https://github.com/new/root", "https://github.com/old/root"]) {
     assert.deepEqual(catalogSkillsForGithubLink(parseGithubLink(link)!, moved).skills.map(item => item.id), ["old/root"], link);
   }
+  for (const link of ["https://github.com/upstream/tools", "https://github.com/upstream/root"]) {
+    assert.deepEqual(catalogSkillsForGithubLink(parseGithubLink(link)!, moved).skills, [], link);
+  }
+  assert.deepEqual(catalogSkillsForGithubLink(parseGithubLink("https://github.com/fork/tools")!, moved).skills.map(item => item.id),
+    ["upstream/tools:review"]);
 });

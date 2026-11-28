@@ -40,10 +40,13 @@ function skillRepo(skill: CatalogSkill): string | null {
   return parsed ? parsed.repo : null;
 }
 
-/** owner/repo the skill's ID was given under, lower case. A repo renamed or moved since keeps it. */
-function idRepo(skill: CatalogSkill): string | null {
+/**
+ * owner/repo the skill's ID was listed under, lower case, when the crawl confirmed its repo was
+ * renamed or moved from there. A copy in another repo has an ID repo too, but isn't matched by it.
+ */
+function movedFromRepo(skill: CatalogSkill): string | null {
   const repo = skill.id?.split(":")[0].toLowerCase() ?? "";
-  return /^[a-z0-9_.-]+\/[a-z0-9_.-]+$/.test(repo) ? repo : null;
+  return repo && skill.moved_from_repo?.toLowerCase() === repo ? repo : null;
 }
 
 type Located = { skill: CatalogSkill; folder: string };
@@ -60,7 +63,7 @@ function skillsByRepo(skills: CatalogSkill[]) {
   for (const skill of skills) {
     const folder = skill.id ? skillFolder(skill) : null;
     if (folder === null) continue;
-    for (const repo of new Set([skillRepo(skill), idRepo(skill)])) {
+    for (const repo of new Set([skillRepo(skill), movedFromRepo(skill)])) {
       if (repo) index.set(repo, [...(index.get(repo) ?? []), { skill, folder }]);
     }
   }
@@ -76,7 +79,7 @@ function skillFolder(skill: CatalogSkill): string | null {
   }
   // An ID with no folder is the repo's root skill, under its current or earlier name.
   const id = skill.id?.toLowerCase();
-  return id && !id.includes(":") && skillRepo(skill) ? "" : null;
+  return id && !id.includes(":") && (id === skillRepo(skill) || id === movedFromRepo(skill)) ? "" : null;
 }
 
 export type GithubLinkSkill = { id: string; name: string; description: string | null; githubUrl: string | null };

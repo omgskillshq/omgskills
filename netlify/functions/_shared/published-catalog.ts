@@ -10,6 +10,8 @@ export type CatalogSkill = {
   skill_md_path?: string;
   skill_md_sha?: string;
   install_target_name?: string;
+  /** The repo the ID was listed under, when GitHub confirmed github_url's repo is it, renamed or moved. */
+  moved_from_repo?: string;
 };
 
 export type CanonicalShaEntry = {
