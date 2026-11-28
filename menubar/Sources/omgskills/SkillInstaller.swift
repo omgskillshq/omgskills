@@ -89,9 +89,15 @@ enum SkillInstaller {
             try CatalogInstallFilesystem.requireVacant(root: targetRoot, name: spec.targetName)
         } else if fm.fileExists(atPath: targetSkill.path) {
             if let skillMdSha = try? SkillInstallProvenanceStore.skillMdSha(at: targetSkill) {
+                // An install from before a repository move keeps the link it was made from: that
+                // link names its repository cache.
+                let existing = SkillInstallProvenanceStore.read(targetRoot: targetRoot, targetName: spec.targetName)
+                let keepsLink = existing.map { $0.catalogSkillId == skill.id && $0.githubUrl != nil
+                    && CatalogSourceMatch.isSameSource(installedFrom: $0.githubUrl, catalogSkillId: skill.id,
+                                                       githubUrl: skill.githubUrl, movedFromRepo: skill.movedFromRepo) } ?? false
                 try? SkillInstallProvenanceStore.write(
                     catalogSkillId: skill.id,
-                    githubUrl: skill.githubUrl,
+                    githubUrl: keepsLink ? existing?.githubUrl ?? skill.githubUrl : skill.githubUrl,
                     skillMdSha: skillMdSha,
                     targetRoot: targetRoot,
                     targetName: spec.targetName
@@ -211,6 +217,22 @@ enum SkillInstaller {
             repoCacheName: "\(repo.owner)--\(repo.name)",
             skillRelativePath: skillRelativePath(from: skill.installCmd, repoName: repo.name),
             targetName: targetName
+        )
+    }
+
+    /// The spec an existing install was made with: the repository cache follows the link it was
+    /// installed from (before any rename or move), the folder inside it follows the catalog.
+    static func installationSpec(for skill: Skill, installedFrom recorded: String) throws -> InstallationSpec {
+        let current = try installationSpec(for: skill)
+        guard let repo = repoParts(from: recorded) else { throw InstallError.invalidGitHubURL }
+        // A catalog command written before the move still names the old checkout folder.
+        let relative = current.skillRelativePath != "." ? current.skillRelativePath
+            : skillRelativePath(from: skill.installCmd, repoName: repo.name)
+        return InstallationSpec(
+            repoURL: "https://github.com/\(repo.owner)/\(repo.name)",
+            repoCacheName: "\(repo.owner)--\(repo.name)",
+            skillRelativePath: relative,
+            targetName: current.targetName
         )
     }
 

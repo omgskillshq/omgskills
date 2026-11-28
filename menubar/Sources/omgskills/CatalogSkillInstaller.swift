@@ -127,7 +127,8 @@ struct CatalogSkillInstaller: CatalogSkillInstalling {
                                metadata: PinnedSkillInstallMetadata) -> ManagedSkillInstallRequest {
         ManagedSkillInstallRequest(sourceKind: .catalog, sourceId: skill.id,
             releaseId: metadata.coordinates.commitSha, groupRevision: nil, catalogSkillId: skill.id,
-            githubUrl: skill.githubUrl, expectedCoordinates: metadata.coordinates, mode: .snapshot,
+            githubUrl: skill.githubUrl, movedFromRepo: skill.movedFromRepo,
+            expectedCoordinates: metadata.coordinates, mode: .snapshot,
             destination: destinationBuilder(target, metadata.targetName))
     }
 }

@@ -57,9 +57,12 @@ actor CatalogInstallService {
             if CatalogInstallFilesystem.exists(destination) {
                 guard FileManager.default.fileExists(atPath: destination.appendingPathComponent("SKILL.md").path),
                       let provenance = SkillInstallProvenanceStore.read(targetRoot: root, targetName: destination.lastPathComponent),
-                      provenance.catalogSkillId == skill.id, provenance.githubUrl == skill.githubUrl else { return .conflict }
+                      provenance.catalogSkillId == skill.id,
+                      CatalogSourceMatch.isSameSource(installedFrom: provenance.githubUrl, catalogSkillId: skill.id,
+                                                      githubUrl: skill.githubUrl, movedFromRepo: skill.movedFromRepo) else { return .conflict }
+                // The repository cache is named after the link the install used, which predates any move.
                 if provenance.sourceKind == nil,
-                   let spec = try? SkillInstaller.installationSpec(for: skill),
+                   let spec = try? SkillInstaller.installationSpec(for: skill, installedFrom: provenance.githubUrl ?? skill.githubUrl),
                    let link = try? FileManager.default.destinationOfSymbolicLink(atPath: destination.path) {
                     let repo = paths.legacyRepoCacheRoot.appendingPathComponent(spec.repoCacheName)
                     try CatalogInstallFilesystem.requireDirectoryChain(repo, under: paths.legacyRepoCacheRoot.deletingLastPathComponent())

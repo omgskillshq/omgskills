@@ -45,6 +45,75 @@ struct CatalogInstallServiceTests {
         #expect(SkillInstallProvenanceStore.read(targetRoot: destination.deletingLastPathComponent(), targetName: "old-alias") == provenance)
     }
 
+    @Test(arguments: [".", "skills/design"])
+    func legacyInstallStaysInstalledAfterItsRepositoryMoves(_ relative: String) async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let service = fixture.service(git: fixture.git(relative: relative))
+        #expect(await service.install(legacy(relative: relative), target: .claude) == .installed)
+        let movedService = fixture.service(gitProvider: { throw TestFailure.mustNotRun })
+        let before = try fixture.snapshot()
+        #expect(await movedService.install(moved(relative: relative), target: .claude) == .alreadyInstalled)
+        #expect(try fixture.snapshot() == before)
+    }
+
+    @Test func legacyInstallStaysInstalledWhenTheMovedCommandKeepsTheOldCheckoutFolder() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let service = fixture.service(git: fixture.git(relative: "skills/design"))
+        #expect(await service.install(legacy(relative: "skills/design"), target: .claude) == .installed)
+        let movedService = fixture.service(gitProvider: { throw TestFailure.mustNotRun })
+        let before = try fixture.snapshot()
+        #expect(await movedService.install(moved(relative: "skills/design", checkout: "repo"), target: .claude) == .alreadyInstalled)
+        #expect(try fixture.snapshot() == before)
+    }
+
+    @Test(arguments: [".", "skills/design"])
+    func aCopyListedUnderTheInstalledRepositoryIsAConflict(_ relative: String) async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let service = fixture.service(git: fixture.git(relative: relative))
+        #expect(await service.install(legacy(relative: relative), target: .claude) == .installed)
+        let movedService = fixture.service(gitProvider: { throw TestFailure.mustNotRun })
+        let before = try fixture.snapshot()
+        #expect(await movedService.install(moved(relative: relative, confirmed: false), target: .claude) == .conflict)
+        #expect(try fixture.snapshot() == before)
+    }
+
+    @Test func theOlderInstallPathKeepsTheLinkAMovedInstallWasMadeFrom() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let service = fixture.service(git: fixture.git(relative: "skills/design"))
+        #expect(await service.install(legacy(relative: "skills/design"), target: .claude) == .installed)
+        let result = try await SkillInstaller.install(moved(relative: "skills/design"), target: .claude,
+                                                      filesystemPaths: fixture.paths, gitRunner: FailingGit())
+        #expect(result == .alreadyInstalled)
+        let record = SkillInstallProvenanceStore.read(targetRoot: fixture.paths.skillsRoot(for: .claude), targetName: "old-alias")
+        #expect(record?.githubUrl == "https://github.com/owner/repo")
+        let movedService = fixture.service(gitProvider: { throw TestFailure.mustNotRun })
+        #expect(await movedService.install(moved(relative: "skills/design"), target: .claude) == .alreadyInstalled)
+    }
+
+    @Test func aPinnedCopyListedUnderTheInstalledRepositoryIsAConflict() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let service = fixture.service()
+        #expect(await service.install(pinned(), target: .claude) == .installed)
+        let before = try fixture.snapshot()
+        #expect(await service.install(movedPinned(confirmed: false), target: .claude) == .conflict)
+        #expect(try fixture.snapshot() == before)
+    }
+
+    @Test func pinnedInstallStaysInstalledAfterItsRepositoryMoves() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let service = fixture.service()
+        #expect(await service.install(pinned(), target: .claude) == .installed)
+        let before = try fixture.snapshot()
+        #expect(await service.install(movedPinned(), target: .claude) == .alreadyInstalled)
+        #expect(try fixture.snapshot() == before)
+    }
+
     @Test(arguments: ["directory", "broken-link", "record", "wrong-source", "redirected-root"])
     func existingUnknownStateIsNeverOverwritten(_ kind: String) async throws {
         let fixture = try Fixture()
@@ -373,6 +442,25 @@ private func catalogRecord(extra: String = "", name: String = "old-alias", relat
     "github_url":"https://github.com/owner/repo","install_cmd":"\(command)"\(extra)}
     """.utf8))
 }
+/// The same catalog skill after its repository moved from owner/repo to new-owner/renamed.
+private func movedRecord(confirmed: Bool = true, extra: String = "", relative: String = ".",
+                         checkout: String = "renamed") throws -> CatalogInstallRecord {
+    let command = relative == "." ? "git clone https://github.com/new-owner/renamed ~/.claude/skills/old-alias"
+        : "git clone https://github.com/new-owner/renamed /tmp/\(checkout) && ln -s /tmp/\(checkout)/\(relative) ~/.claude/skills/old-alias"
+    return try JSONDecoder().decode(CatalogInstallRecord.self, from: Data("""
+    {"id":"owner/repo:alias","name":"design","description":"Skill","author_handle":"owner",
+    "github_url":"https://github.com/new-owner/renamed","install_cmd":"\(command)"\(confirmed ? #","moved_from_repo":"owner/repo""# : "")\(extra)}
+    """.utf8))
+}
+private func moved(relative: String = ".", checkout: String = "renamed", confirmed: Bool = true) -> Skill {
+    try! movedRecord(confirmed: confirmed, relative: relative, checkout: checkout).skill
+}
+private func movedPinned(confirmed: Bool = true) -> Skill {
+    try! movedRecord(confirmed: confirmed, extra: """
+    ,"repo_slug":"new-owner/renamed","skill_md_path":"SKILL.md","repo_commit_sha":"\(GroupSkillPackageTestSupport.commitSha)",
+    "skill_tree_sha":"\(GroupSkillPackageTestSupport.treeSha)","skill_md_sha":"\(GroupSkillPackageTestSupport.skillMdSha)","install_target_name":"old-alias"
+    """).skill
+}
 private func legacy(name: String = "old-alias", relative: String = ".") -> Skill {
     try! catalogRecord(name: name, relative: relative).skill
 }
@@ -396,4 +484,8 @@ private actor GitGate {
         await withCheckedContinuation { waiters.append($0) }
     }
     func resume() { continuation?.resume(); continuation = nil }
+}
+
+private struct FailingGit: GitCommandRunning {
+    func run(arguments: [String], maximumOutputBytes: Int) async throws -> Data { throw TestFailure.mustNotRun }
 }

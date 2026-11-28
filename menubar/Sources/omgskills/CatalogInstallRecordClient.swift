@@ -13,21 +13,25 @@ struct CatalogInstallRecord: Codable, Equatable, Sendable {
     let treeSHA: String?
     let skillMDSHA: String?
     let targetName: String?
+    let movedFromRepo: String?
 
     enum CodingKeys: String, CodingKey {
         case id, name, description
         case authorHandle = "author_handle", githubURL = "github_url", installCommand = "install_cmd"
         case repositorySlug = "repo_slug", skillMDPath = "skill_md_path", commitSHA = "repo_commit_sha"
         case treeSHA = "skill_tree_sha", skillMDSHA = "skill_md_sha", targetName = "install_target_name"
+        case movedFromRepo = "moved_from_repo"
     }
 
     var skill: Skill {
-        Skill(id: id, name: name, description: description, githubUrl: githubURL,
+        var skill = Skill(id: id, name: name, description: description, githubUrl: githubURL,
               installCmd: installCommand, authorHandle: authorHandle, tags: [], readmeSnippet: nil,
               stars: 0, lastUpdated: "", firstSeen: "", skillMdSha: skillMDSHA,
               repoSlug: repositorySlug, skillMdPath: skillMDPath, repoCommitSha: commitSHA,
               skillTreeSha: treeSHA, installTargetName: targetName, installs: nil,
               trendingRank: nil, trendingSource: nil, origin: nil, isSymlink: nil, isLocalOnly: nil)
+        skill.movedFromRepo = movedFromRepo
+        return skill
     }
 
     func hasSameInstallation(as other: Self) -> Bool {
@@ -35,6 +39,7 @@ struct CatalogInstallRecord: Codable, Equatable, Sendable {
             && repositorySlug == other.repositorySlug && skillMDPath == other.skillMDPath
             && commitSHA == other.commitSHA && treeSHA == other.treeSHA
             && skillMDSHA == other.skillMDSHA && targetName == other.targetName
+            && movedFromRepo == other.movedFromRepo
     }
 }
 

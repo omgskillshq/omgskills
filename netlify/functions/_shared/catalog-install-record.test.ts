@@ -24,7 +24,8 @@ const context = { waitUntil: (_work: Promise<unknown>) => {} };
 const request = (query: string, method = "GET") => new Request(`https://example.test/api/catalog/install-record?${query}`, { method });
 
 for (const [label, record] of Object.entries({ legacy, pinned: { ...legacy, ...pins },
-  partial: { ...legacy, repo_commit_sha: "not-a-pin" }, emptyPin: { ...legacy, repo_slug: "" } })) {
+  partial: { ...legacy, repo_commit_sha: "not-a-pin" }, emptyPin: { ...legacy, repo_slug: "" },
+  moved: { ...legacy, github_url: "https://github.com/new-owner/renamed", moved_from_repo: "owner/repo" } })) {
   test(`returns intact ${label} installation fields, without the whole catalog`, async () => {
     const response = await createMcpHandler(loader([record]))(request(`id=${encodeURIComponent(record.id)}`), context);
     assert.equal(response.status, 200);

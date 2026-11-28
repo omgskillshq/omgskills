@@ -4,7 +4,8 @@ import type { McpLibraryLoader } from "./mcp-library.js";
 
 export const catalogInstallRecordPath = "/api/catalog/install-record";
 const fields = ["id", "name", "description", "author_handle", "github_url", "install_cmd",
-  "repo_slug", "skill_md_path", "repo_commit_sha", "skill_tree_sha", "skill_md_sha", "install_target_name"] as const;
+  "repo_slug", "skill_md_path", "repo_commit_sha", "skill_tree_sha", "skill_md_sha", "install_target_name",
+  "moved_from_repo"] as const;
 // Every catalog record has these; pins stay optional (partial pins are answered as they are).
 const requiredFields = ["id", "name", "description", "author_handle", "github_url", "install_cmd"] as const;
 const headers = { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer", "X-Content-Type-Options": "nosniff" };
