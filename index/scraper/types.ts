@@ -14,6 +14,11 @@ export interface Skill {
    * repository (a rename or transfer). Marks the skill as the original, not a repackaged copy.
    */
   moved_from_repo?: string;
+  /**
+   * The day (YYYY-MM-DD) GitHub first said github_url's repository doesn't exist. A second miss a
+   * week later removes the skill; the mark clears when GitHub serves the repository again.
+   */
+  repo_missing_since?: string;
   author_handle: string;
   tags: string[];
   stars: number;

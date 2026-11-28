@@ -8,7 +8,8 @@ import {
 import {
   buildGroupManifest,
   type GroupManifest,
-  type GroupManifestInput
+  type GroupManifestInput,
+  type GroupManifestItem
 } from "./group-manifest.js";
 import { loadPublishedSkills, type CatalogSkill } from "./published-catalog.js";
 
@@ -101,11 +102,13 @@ async function withCatalogInstallNames(
     }
     names.set(skill.id, name);
   }
-  const items = view.manifest.items.map(item => {
+  const items = view.manifest.items.map((item): GroupManifestItem => {
     const id = repairs.get(item.id);
     if (!id) return item;
     const name = names.get(id);
-    if (!name) throw new Response("Catalog skill has no safe install target", { status: 409 });
+    // A skill the catalog no longer lists (its repository was deleted) can't be installed; the
+    // item stays in the Set as metadata, and the rest of the Set still installs.
+    if (!name) return { ...item, installability: { status: "metadata_only", reason: "source_unavailable" } };
     return { ...item, name };
   });
   return { ...view, manifest: { ...view.manifest, items } };

@@ -182,9 +182,18 @@ test("legacy catalog records may use a safe skill name when pinned target metada
   assert.equal(view.manifest.items[0].name, "legacy-target");
 });
 
-test("unsafe, missing, and ambiguous catalog targets fail closed without name guessing", async () => {
+test("a catalog skill no longer listed becomes metadata only; the rest of the Set still installs", async () => {
+  const { pool } = snapshotPool([[accessFacts()], remotionRows()]);
+  const view = await readMemberGroupManifest(pool, { id: "owner-id", email: "owner@example.com" }, setId, {
+    async loadSkills() { return catalogSkills.slice(1); },
+  });
+  assert.deepEqual(view.manifest.items.map(item => item.installability.status), ["metadata_only", "installable"]);
+  const [gone] = view.manifest.items;
+  assert.deepEqual(gone.installability, { status: "metadata_only", reason: "source_unavailable" });
+});
+
+test("unsafe and ambiguous catalog targets fail closed without name guessing", async () => {
   for (const skills of [
-    [],
     [catalogSkills[0], catalogSkills[0]],
     ...["", ".", "..", "../escape", "/tmp/escape", "skills/nested", "bad\\name", "bad\u0000name", "bad\u200bname"]
       .map(install_target_name => [{ ...catalogSkills[0], install_target_name }]),

@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import type { Skill } from "../types.js";
 import { octokit } from "../client.js";
 import { REPO_MOVE_REQUEST_TIMEOUT_MS, applyRepoMoves, describeRepoMoves, followRepoMoves, keepRepoMoveSlugs } from "./repo-moves.js";
+import { applyMissingRepoPlan, curatedSkillIds, describeMissingRepos, planMissingRepos } from "./deleted-repos.js";
 import type { EnrichResult } from "../enrich.js";
 import { enrichCandidate, getCandidateRepoMeta, listRepoSkillPaths, resolveCandidateSkillPath, resolveCanonicalRepoIdentity } from "../enrich.js";
 import { searchByTopics } from "../sources/topics.js";
@@ -45,7 +46,7 @@ import { validateCutoverOutputs } from "./cutover-validation.js";
 import { buildCrawl4Preview } from "./crawl4-preview.js";
 import { buildCatalogAdmissionSample } from "./catalog-admission.js";
 import { isUnresolvedCatalogLikeSkill } from "./catalog-policy.js";
-import { isDoNotCrawlRepo, removeDoNotCrawlState } from "./do-not-crawl.js";
+import { isDoNotCrawlRepo, normalizeRepoKey, removeDoNotCrawlState, repoFromGithubUrl } from "./do-not-crawl.js";
 import { filterSuppressedSkills } from "./suppressed-skills.js";
 import { buildShaCanonicalArtifact, shaCanonicalOptionsFromSeeds } from "./sha-canonical.js";
 import {
@@ -2312,9 +2313,14 @@ async function main() {
     ? null
     : await followRepoMoves(baselineSkills, seeds, (query, variables) =>
       octokit.graphql(query, { ...variables, request: { signal: AbortSignal.timeout(REPO_MOVE_REQUEST_TIMEOUT_MS) } }));
-  if (repoMoves) {
-    baselineSkills = repoMoves.skills;
+  // The same lookups say which repositories no longer exist; a second miss a week later removes
+  // their skills (deleted-repos.ts).
+  const missingRepos = repoMoves ? planMissingRepos(repoMoves.skills, repoMoves.missing, repoMoves.names, Date.now(),
+    curatedSkillIds(JSON.parse(readFileSync(join(indexRoot, "curations", "collections.json"), "utf8")))) : null;
+  if (repoMoves && missingRepos) {
+    baselineSkills = applyMissingRepoPlan(repoMoves.skills, missingRepos);
     for (const line of describeRepoMoves(repoMoves)) console.log(line);
+    for (const line of describeMissingRepos(missingRepos)) console.log(line);
   }
   timings.repoMoves = Math.round(performance.now() - repoMovesStart);
 
@@ -2528,6 +2534,18 @@ async function main() {
     const settled = applyRepoMoves(shadowSkills, repoMoves.names, seeds);
     const before = new Set(shadowSkills);
     shadowSkills = settled.skills.map((skill) => before.has(skill) ? skill : toShadowSkillRecord(skill, seeds));
+  }
+  if (missingRepos) {
+    shadowSkills = applyMissingRepoPlan(shadowSkills, missingRepos);
+    // A gone repository leaves the repo index too, so later runs don't try to crawl it.
+    // A repository that still has a curated skill stays, so the crawl keeps its record consistent.
+    const kept = new Set(shadowSkills.filter((skill) => missingRepos.keptIds.has(skill.id))
+      .map((skill) => repoFromGithubUrl(skill.github_url)));
+    const gone = new Set(missingRepos.removed.map((repo) => repo.repo).filter((repo) => !kept.has(repo)));
+    if (gone.size) {
+      repoIndex.repos = repoIndex.repos.filter((entry) => !gone.has(normalizeRepoKey(entry.repo)));
+      repoIndex.repoCount = repoIndex.repos.length;
+    }
   }
   shadowSkills = removeDoNotCrawlState(repoIndex, shadowSkills, seeds);
   shadowSkills = removeBelowStarXSocialOnlyState(repoIndex, shadowSkills).skills;
