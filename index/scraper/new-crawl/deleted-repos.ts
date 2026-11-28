@@ -82,10 +82,13 @@ export function planMissingRepos(
   const today = new Date(now).toISOString().slice(0, 10);
   const byRepo = new Map<string, { ids: string[]; curated: string[]; since?: string }>();
   const cleared = new Set<string>();
+  // Skills of a moved repository already carry its new name, so GitHub serving a repository under
+  // either name counts as an answer.
+  const served = new Set([...answered.keys(), ...[...answered.values()].map((name) => name.toLowerCase())]);
   for (const skill of skills) {
     const repo = repoKeyFromUrl(skill.github_url);
     if (!repo) continue;
-    if (answered.has(repo) && skill.repo_missing_since) cleared.add(repo);
+    if (served.has(repo) && skill.repo_missing_since) cleared.add(repo);
     if (!missing.has(repo)) continue;
     const entry = byRepo.get(repo) ?? { ids: [], curated: [] };
     (curated.has(skill.id) ? entry.curated : entry.ids).push(skill.id);

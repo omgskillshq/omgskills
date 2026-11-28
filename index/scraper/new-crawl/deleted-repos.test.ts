@@ -123,3 +123,9 @@ test("the real curations file parses", async () => {
   const ids = curatedSkillIds(JSON.parse(readFileSync(new URL("../../curations/collections.json", import.meta.url), "utf8")));
   assert.ok(ids.size > 10);
 });
+
+test("a marked repository GitHub now serves under a new name loses its mark", () => {
+  const rows = [skill("old/r:a", "New/R", { repo_missing_since: "2026-11-14" })];
+  const plan = planMissingRepos(rows, new Set(), new Map([["old/r", "New/R"]]), day("2026-11-28"));
+  assert.equal("repo_missing_since" in applyMissingRepoPlan(rows, plan)[0], false);
+});
