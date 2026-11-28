@@ -201,12 +201,13 @@ export function createPublishedCatalogIdentityLoader(
   );
 }
 
-type HintCatalog = {
+type DetailShardCatalog = {
   track: string;
-  shaHistory: ShaHistoryAsset;
   detailShards: Record<string, string>;
   shards: Map<string, Promise<ReadonlySet<string>>>;
 };
+
+type HintCatalog = DetailShardCatalog & { shaHistory: ShaHistoryAsset };
 
 /**
  * The original of a mirror skill, from where the mirror keeps it: a `mirrors/repos/<owner>@<repo>/<folder>/SKILL.md`
@@ -219,24 +220,33 @@ export function mirroredOriginalId(row: { provenance_type?: unknown; skill_md_pa
   return match[3] ? `${match[1]}/${match[2]}:${match[3]}` : `${match[1]}/${match[2]}`;
 }
 
+async function fetchDetailShardUrls(
+  manifest: ReturnType<typeof parseManifest>,
+  track: PublishedTrack,
+  fetcher: typeof fetch,
+): Promise<Record<string, string>> {
+  const searchUrl = assetUrl(manifest.searchCatalog, track.manifestUrl, "searchCatalog");
+  const search = await fetchJson(searchUrl, fetcher);
+  const details = isObject(search) && isObject(search.details) ? search.details : undefined;
+  const index = await fetchJson(assetUrl(details, searchUrl, "details"), fetcher);
+  if (!isObject(index) || index.partition !== "sha256-first-byte" || !isObject(index.shards)) {
+    throw new Error("Published skill detail index has an invalid shape");
+  }
+  const detailShards: Record<string, string> = {};
+  for (const [bucket, shard] of Object.entries(index.shards)) {
+    detailShards[bucket] = assetUrl(isObject(shard) ? shard : undefined, searchUrl, "detail shard");
+  }
+  return detailShards;
+}
+
 async function fetchHintCatalog(fetcher: typeof fetch, tracks: PublishedTrack[]): Promise<HintCatalog> {
   for (const track of tracks) {
     try {
       const manifest = parseManifest(await fetchJson(track.manifestUrl, fetcher));
-      const searchUrl = assetUrl(manifest.searchCatalog, track.manifestUrl, "searchCatalog");
-      const [shaHistoryValue, search] = await Promise.all([
+      const [shaHistoryValue, detailShards] = await Promise.all([
         fetchJson(assetUrl(manifest.shaHistory, track.manifestUrl, "shaHistory"), fetcher),
-        fetchJson(searchUrl, fetcher),
+        fetchDetailShardUrls(manifest, track, fetcher),
       ]);
-      const details = isObject(search) && isObject(search.details) ? search.details : undefined;
-      const index = await fetchJson(assetUrl(details, searchUrl, "details"), fetcher);
-      if (!isObject(index) || index.partition !== "sha256-first-byte" || !isObject(index.shards)) {
-        throw new Error("Published skill detail index has an invalid shape");
-      }
-      const detailShards: Record<string, string> = {};
-      for (const [bucket, shard] of Object.entries(index.shards)) {
-        detailShards[bucket] = assetUrl(isObject(shard) ? shard : undefined, searchUrl, "detail shard");
-      }
       return { track: track.name, shaHistory: parseShaHistory(shaHistoryValue), detailShards, shards: new Map() };
     } catch {
       // Do not combine SHA history from one track with detail shards from another.
@@ -245,7 +255,38 @@ async function fetchHintCatalog(fetcher: typeof fetch, tracks: PublishedTrack[])
   throw new Error("Published catalog hint assets unavailable");
 }
 
-function shardIds(catalog: HintCatalog, url: string, fetcher: typeof fetch): Promise<ReadonlySet<string>> {
+async function fetchDetailShardCatalog(fetcher: typeof fetch, tracks: PublishedTrack[]): Promise<DetailShardCatalog> {
+  for (const track of tracks) {
+    try {
+      const manifest = parseManifest(await fetchJson(track.manifestUrl, fetcher));
+      return { track: track.name, detailShards: await fetchDetailShardUrls(manifest, track, fetcher), shards: new Map() };
+    } catch {
+      // Try the next track whole; shards from two tracks are never mixed.
+    }
+  }
+  throw new Error("Published catalog detail shards unavailable");
+}
+
+function liveIds(catalog: DetailShardCatalog, ids: readonly string[], fetcher: typeof fetch): Promise<Set<string>> {
+  const live = new Set<string>();
+  return Promise.all([...new Set(ids)].map(async (id) => {
+    const url = catalog.detailShards[createHash("sha256").update(id, "utf8").digest("hex").slice(0, 2)];
+    if (url && (await shardIds(catalog, url, fetcher)).has(id)) live.add(id);
+  })).then(() => live);
+}
+
+/** Which of these IDs the published catalog lists, from the detail shards that hold them (no SHA history). */
+export function createLiveSkillIdsLoader(options: LoaderOptions = {}): (ids: readonly string[]) => Promise<ReadonlySet<string>> {
+  const fetcher = options.fetcher ?? fetch;
+  const loadCatalog = cachedLoader(
+    () => fetchDetailShardCatalog(fetcher, options.tracks ?? publishedCatalogTracks),
+    options.now ?? Date.now,
+    options.cacheMs ?? 5 * 60_000,
+  );
+  return async (ids) => liveIds(await loadCatalog(), ids, fetcher);
+}
+
+function shardIds(catalog: DetailShardCatalog, url: string, fetcher: typeof fetch): Promise<ReadonlySet<string>> {
   let ids = catalog.shards.get(url);
   if (!ids) {
     ids = fetchJson(url, fetcher).then((rows) => {
@@ -273,15 +314,11 @@ export function createCatalogHintIdentityLoader(
   );
   return async (hintIds) => {
     const catalog = await loadCatalog();
-    const live = new Set<string>();
-    await Promise.all([...new Set(hintIds)].map(async (id) => {
-      const url = catalog.detailShards[createHash("sha256").update(id, "utf8").digest("hex").slice(0, 2)];
-      if (url && (await shardIds(catalog, url, fetcher)).has(id)) live.add(id);
-    }));
-    return { track: catalog.track, liveSkillIds: live, shaHistory: catalog.shaHistory };
+    return { track: catalog.track, liveSkillIds: await liveIds(catalog, hintIds, fetcher), shaHistory: catalog.shaHistory };
   };
 }
 
 export const loadPublishedSkills = createPublishedSkillsLoader();
 export const loadPublishedCatalogIdentity = createPublishedCatalogIdentityLoader();
 export const loadCatalogHintIdentity = createCatalogHintIdentityLoader();
+export const loadLiveSkillIds = createLiveSkillIdsLoader();

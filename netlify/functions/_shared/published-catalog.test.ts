@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import test from "node:test";
 import {
   createCatalogHintIdentityLoader,
+  createLiveSkillIdsLoader,
   createPublishedCatalogIdentityLoader,
   mirroredOriginalId,
   fetchPublishedCatalogIdentity,
@@ -164,6 +165,32 @@ test("hint identity checks only the detail shards holding the hints, never the f
   await load([live]);
   assert.equal(calls.filter((url) => url.endsWith("details-live.json")).length, 1, "shards are cached");
   assert.ok(!calls.some((url) => url.endsWith("skills.json")));
+});
+
+test("live skill IDs come from the detail shards alone, without SHA history or the skills asset", async () => {
+  const manifestUrl = "https://example.test/crawl4/manifest.json";
+  const live = "owner/repo:live";
+  const bucket = (id: string) => createHash("sha256").update(id, "utf8").digest("hex").slice(0, 2);
+  const calls: string[] = [];
+  const load = createLiveSkillIdsLoader({
+    tracks: [{ name: "crawl4", manifestUrl }],
+    fetcher: fixtureFetcher({
+      [manifestUrl]: { body: {
+        skills: { path: "skills.json" },
+        shaHistory: { path: "sha-history.json" },
+        searchCatalog: { path: "search-catalog.json" },
+      } },
+      "https://example.test/crawl4/search-catalog.json": { body: { details: { path: "detail-index.json" } } },
+      "https://example.test/crawl4/detail-index.json": { body: {
+        partition: "sha256-first-byte",
+        shards: { [bucket(live)]: { path: "details-live.json" } },
+      } },
+      "https://example.test/crawl4/details-live.json": { body: [{ id: live }] },
+    }, calls),
+  });
+
+  assert.deepEqual([...await load([live, live, "owner/repo:removed"])], [live]);
+  assert.ok(!calls.some((url) => url.endsWith("sha-history.json") || url.endsWith("skills.json")));
 });
 
 test("a mirror's original is read from where the mirror keeps it", () => {

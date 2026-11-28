@@ -11,7 +11,8 @@ import {
   type GroupManifestInput,
   type GroupManifestItem
 } from "./group-manifest.js";
-import { loadCatalogHintIdentity, loadPublishedSkills, type CatalogSkill } from "./published-catalog.js";
+import { withTimeout } from "./http.js";
+import { loadLiveSkillIds, loadPublishedSkills, type CatalogSkill } from "./published-catalog.js";
 
 type GroupManifestRow = {
   groupId: string;
@@ -68,9 +69,12 @@ type ManifestNameOptions = {
   liveCatalogSkillIds?: (ids: readonly string[]) => Promise<ReadonlySet<string>>;
 };
 
-/** The endpoints' check: per-ID detail shards, not the full catalog. */
-export const liveCatalogSkillIds = async (ids: readonly string[]): Promise<ReadonlySet<string>> =>
-  (await loadCatalogHintIdentity(ids)).liveSkillIds;
+/**
+ * The install endpoints' check: per-ID detail shards, not the full catalog. A slow catalog never
+ * holds up the Set: past this wait the check gives up and the items stay as they are.
+ */
+export const liveCatalogSkillIds = (ids: readonly string[]): Promise<ReadonlySet<string>> =>
+  withTimeout(loadLiveSkillIds(ids), 4_000);
 
 const sourceUnavailable = { status: "metadata_only", reason: "source_unavailable" } as const;
 

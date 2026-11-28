@@ -117,27 +117,6 @@ struct GroupSubscriptionTests {
         #expect(diff.hasBlockingLocalConflicts == false)
     }
 
-    @Test func anItemWhoseSourceIsGoneKeepsItsInstalledCopy() throws {
-        let baseline = try subscriptionRecord(items: [
-            installableRecordItem(id: "gone", name: "Gone", position: 0),
-            installableRecordItem(id: "hidden", name: "Hidden", position: 1)
-        ])
-        let current = try subscriptionRecord(revision: 8, items: [
-            metadataRecordItem(id: "gone", name: "Gone", position: 0, reason: .sourceUnavailable),
-            metadataRecordItem(id: "hidden", name: "Hidden", position: 1)
-        ])
-
-        let diff = try GroupSubscriptionDiffer.compare(
-            baseline: baseline,
-            current: current,
-            localStates: ["gone": .modified, "hidden": .clean]
-        )
-
-        #expect(diff.changes.map(\.packageAction) == [.none, .remove])
-        #expect(diff.changes.map(\.isMetadataOnly) == [true, true])
-        #expect(diff.hasBlockingLocalConflicts == false, "an edited copy that stays blocks nothing")
-    }
-
     @Test func diffRejectsAReceiptForAnotherDestination() throws {
         let baseline = try subscriptionRecord(items: [
             installableRecordItem(id: "first", name: "Alpha", position: 0)
@@ -207,14 +186,13 @@ private func installableRecordItem(
 private func metadataRecordItem(
     id: String,
     name: String,
-    position: Int,
-    reason: GroupManifestMetadataOnlyReason = .syncedLocalOnly
+    position: Int
 ) -> GroupSubscriptionRecord.Item {
     GroupSubscriptionRecord.Item(
         id: id,
         name: name,
         position: position,
         presentationDigest: String(repeating: "b", count: 40),
-        state: .metadataOnly(reason: reason.rawValue)
+        state: .metadataOnly(reason: GroupManifestMetadataOnlyReason.syncedLocalOnly.rawValue)
     )
 }

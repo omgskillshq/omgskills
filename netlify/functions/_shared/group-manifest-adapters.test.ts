@@ -193,7 +193,7 @@ test("a catalog skill no longer listed becomes metadata only; the rest of the Se
 });
 
 test("a safely named catalog item the catalog no longer lists becomes metadata only, checked per ID", async () => {
-  const rows = remotionRows().map(row => ({ ...row, itemName: row.itemCatalogSkillId!.split(":")[1] }));
+  const rows = remotionRows().map(row => ({ ...row, itemName: String(row.itemCatalogSkillId).split(":")[1] }));
   const { pool } = snapshotPool([[accessFacts()], rows]);
   const asked: string[][] = [];
   const view = await readMemberGroupManifest(pool, { id: "owner-id", email: "owner@example.com" }, setId, {
@@ -206,7 +206,7 @@ test("a safely named catalog item the catalog no longer lists becomes metadata o
 });
 
 test("when the catalog check can't run, items stay as they are", async () => {
-  const rows = remotionRows().map(row => ({ ...row, itemName: row.itemCatalogSkillId!.split(":")[1] }));
+  const rows = remotionRows().map(row => ({ ...row, itemName: String(row.itemCatalogSkillId).split(":")[1] }));
   const { pool } = snapshotPool([[accessFacts()], rows]);
   const view = await readMemberGroupManifest(pool, { id: "owner-id", email: "owner@example.com" }, setId, {
     async liveCatalogSkillIds() { throw new Error("catalog offline"); },
