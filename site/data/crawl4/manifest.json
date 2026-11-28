@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-27T21:09:26.852Z",
+  "generatedAt": "2026-11-28T01:32:20.870Z",
   "skills": {
-    "path": "skills-a96a9c9c05ef.json",
-    "sha256": "a96a9c9c05ef1a4d07aa19599da8177ec78c074bf6eb2916e455b629a202e4af",
-    "bytes": 88489654
+    "path": "skills-6d53375bae78.json",
+    "sha256": "6d53375bae787db976f11989b3ae04472e4037ceeaad5253b33f874a945e31d6",
+    "bytes": 88322895
   },
   "trending": {
-    "path": "trending-47af14957edd.json",
-    "sha256": "47af14957eddce36747b326f2b8ea7d36655262c3b9ce8933ce354b3a4192d78",
-    "bytes": 53824
+    "path": "trending-c409189f4314.json",
+    "sha256": "c409189f431486549b5db4ebdd168a3cc80da9d957f0b9e00dc82b93b71c18f9",
+    "bytes": 53469
   },
   "xTrending": {
     "path": "x-trending-c2ec558d316a.json",
@@ -22,9 +22,9 @@
     "bytes": 393175
   },
   "shaHistory": {
-    "path": "sha-history-3986dc55d258.json",
-    "sha256": "3986dc55d258aa483c5a03ed8595fd724b2dd3c3b5ea161b7ec41aa351f80211",
-    "bytes": 9556783
+    "path": "sha-history-1d3a3f096e19.json",
+    "sha256": "1d3a3f096e19f675c1d079ae28117d124598d36ac05e7767384b32c692dec68f",
+    "bytes": 9549706
   },
   "skillEquivalence": {
     "path": "skill-equivalence-82d96da53728.json",
@@ -32,18 +32,18 @@
     "bytes": 18837
   },
   "searchCatalog": {
-    "path": "search-catalog-3659b07ed6a3.json",
-    "sha256": "3659b07ed6a3d3cc125b8d35ada9bc3344a98e7e59a0507cbb14e66d8f3542b7",
+    "path": "search-catalog-dd5665a2b75d.json",
+    "sha256": "dd5665a2b75dbf514b4ba25e96fa700b3662ad18c827dc7be997eedd1d550e40",
     "bytes": 813
   },
   "sourceTrending": {
-    "path": "source-trending-a439e51089e8.json",
-    "sha256": "a439e51089e8864b1dc40fd2b736752fd938e53d9e8c0345793d6bc73bfe4707",
-    "bytes": 128821
+    "path": "source-trending-d3c7dd368fb8.json",
+    "sha256": "d3c7dd368fb8800dfd80890232e1e4b7d075ffa01de3158e5f63c472f135a1d7",
+    "bytes": 128892
   },
   "descriptionHistory": {
-    "path": "description-history-0e3d16af2fff.json",
-    "sha256": "0e3d16af2fffd86460871de3980965970a304f78ca035882c6fc46a5babcb0c5",
-    "bytes": 669385
+    "path": "description-history-a660ed5bc8d3.json",
+    "sha256": "a660ed5bc8d3a7b077504c2be15c9d9d2076534299cd2f3b96b93c48d97c1d09",
+    "bytes": 665437
   }
 }
