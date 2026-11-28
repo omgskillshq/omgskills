@@ -323,3 +323,15 @@ test("NeverSight path parsing beats repo-level override", () => {
   assert.equal(result.provenanceType, "mirrored");
   assert.equal(result.authorConfidence, "high");
 });
+
+test("a repo renamed or transferred since listing stays original, with its stored author", () => {
+  const moved = skill({ id: "OldOwner/tools:review", github_url: "https://github.com/NewOwner/toolkit", author_handle: "OldOwner" });
+  assert.equal(resolveShadowProvenance(moved, seeds()).provenanceType, "repackaged");
+  const result = resolveShadowProvenance({ ...moved, moved_from_repo: "oldowner/tools" }, seeds());
+  assert.equal(result.provenanceType, "original");
+  assert.equal(result.authorHandle, "OldOwner");
+  assert.equal(result.publisherRepo, "newowner/toolkit");
+  assert.equal(result.upstreamRepo, null);
+  // A marker naming another repository than the ID's changes nothing.
+  assert.equal(resolveShadowProvenance({ ...moved, moved_from_repo: "someone/else" }, seeds()).provenanceType, "repackaged");
+});

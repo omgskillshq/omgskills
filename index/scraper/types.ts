@@ -9,6 +9,11 @@ export interface Skill {
   skill_tree_sha?: string;
   install_target_name?: string;
   install_cmd: string;
+  /**
+   * The repository the ID was listed under, when GitHub has confirmed it now serves github_url's
+   * repository (a rename or transfer). Marks the skill as the original, not a repackaged copy.
+   */
+  moved_from_repo?: string;
   author_handle: string;
   tags: string[];
   stars: number;

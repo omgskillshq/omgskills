@@ -111,16 +111,36 @@ export function repoMoveCheckSlice(repos: readonly string[], sliceNumber: number
   return repos.filter((repo) => stableHash(repo.toLowerCase()) % REPO_MOVE_CHECK_SLICES === slice);
 }
 
-/** Each catalog repository once, as its skills' github_url spells it. */
+function idRepo(skill: Skill): string {
+  return skill.id.split(":")[0];
+}
+
+/**
+ * Each catalog repository once, as its skills' github_url spells it, plus the repository an ID
+ * names when that differs (to learn whether it is the same repository under an earlier name).
+ */
 export function catalogRepos(skills: readonly Skill[]): string[] {
   const repos = new Map<string, string>();
   for (const skill of skills) {
     const key = repoKeyFromUrl(skill.github_url);
-    if (!key || repos.has(key)) continue;
-    const [owner, name] = new URL(skill.github_url).pathname.replace(/^\/+|\/+$/g, "").replace(/\.git$/i, "").split("/");
-    repos.set(key, `${owner}/${name}`);
+    if (key && !repos.has(key)) {
+      const [owner, name] = new URL(skill.github_url).pathname.replace(/^\/+|\/+$/g, "").replace(/\.git$/i, "").split("/");
+      repos.set(key, `${owner}/${name}`);
+    }
+    const listedUnder = idRepo(skill);
+    if (/^[^/\s]+\/[^/\s]+$/.test(listedUnder) && listedUnder.toLowerCase() !== key && !repos.has(listedUnder.toLowerCase())) {
+      repos.set(listedUnder.toLowerCase(), listedUnder);
+    }
   }
   return [...repos.values()].sort((left, right) => left.localeCompare(right));
+}
+
+/** Marks a skill whose ID repository GitHub now serves as its link's repository. */
+function markMovedFrom<T extends Skill>(skill: T, current: CurrentRepoNames): T {
+  const listedUnder = idRepo(skill).toLowerCase();
+  const repo = repoKeyFromUrl(skill.github_url);
+  if (!repo || listedUnder === repo || skill.moved_from_repo === listedUnder) return skill;
+  return current.get(listedUnder)?.toLowerCase() === repo ? { ...skill, moved_from_repo: listedUnder } : skill;
 }
 
 export type RepoMove = { from: string; to: string; skills: number };
@@ -174,10 +194,10 @@ export function applyRepoMoves<T extends Skill>(skills: readonly T[], current: C
   }
   const sortedBlocked = [...blocked.values()].sort((left, right) => left.from.localeCompare(right.from));
   const capped = moves.size > MAX_REPO_MOVES_PER_RUN;
-  const repointed = capped ? [...skills] : skills.map((skill) => {
+  const repointed = (capped ? [...skills] : skills.map((skill) => {
     const move = moves.get(repoKeyFromUrl(skill.github_url) ?? "");
     return move ? repointSkill(skill, move.to) : skill;
-  });
+  })).map((skill) => markMovedFrom(skill, current));
   // A skill whose ID names another repository than its link was listed before a move. Where it and
   // a row listed under the current name hold the same SKILL.md, the listed row is kept. Checked every
   // run, not only on a move's day, so an old ID a source still lists can't displace the listed row.

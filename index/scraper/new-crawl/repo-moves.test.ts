@@ -46,6 +46,7 @@ test("a renamed repository's skills take the new name and keep their IDs, author
   assert.equal(moved.repo_slug, "New/toolkit");
   assert.equal(moved.repo_commit_sha, "b".repeat(40));
   assert.equal(moved.install_cmd, "git clone https://github.com/New/toolkit /tmp/toolkit && ln -s /tmp/toolkit/skills/review ~/.claude/skills/review");
+  assert.equal(moved.moved_from_repo, "old/tools");
   assert.equal(kept, other);
 });
 
@@ -94,7 +95,8 @@ test("too many moves in one run changes nothing", () => {
 test("catalog repositories are listed once each, as stored", () => {
   assert.deepEqual(catalogRepos([
     skill("A/b:x", "A/b", "x/SKILL.md"), skill("a/B:y", "a/B", "y/SKILL.md"), skill("c/d", "c/d", "SKILL.md"),
-  ]), ["A/b", "c/d"]);
+    skill("Old/name:z", "c/d", "z/SKILL.md"),
+  ]), ["A/b", "c/d", "Old/name"]);
 });
 
 test("the lookup passes names as variables and keeps the answers a partly failed batch returns", async () => {
@@ -143,4 +145,15 @@ test("a pin saved before the move takes the new repository name; unrelated pins 
   const [fixed, kept] = keepRepoMoveSlugs([stale, publisher], moves);
   assert.equal(fixed.repo_slug, "New/toolkit");
   assert.equal(kept, publisher);
+});
+
+test("a skill moved in an earlier run is marked once GitHub confirms its ID repo is the same repository", () => {
+  const earlier = skill("old/tools:review", "New/toolkit", "skills/review/SKILL.md");
+  const copy = skill("upstream/tools:lint", "fork/tools", "skills/lint/SKILL.md");
+  const names = new Map([["old/tools", "New/toolkit"], ["upstream/tools", "upstream/tools"], ["new/toolkit", "New/toolkit"]]);
+  const [marked, notMarked] = applyRepoMoves([earlier, copy], names, seeds()).skills;
+  assert.equal(marked.moved_from_repo, "old/tools");
+  assert.equal(notMarked, copy);
+  const again = applyRepoMoves([marked], names, seeds()).skills[0];
+  assert.equal(again, marked);
 });
