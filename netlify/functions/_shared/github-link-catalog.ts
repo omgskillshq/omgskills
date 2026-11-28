@@ -40,17 +40,29 @@ function skillRepo(skill: CatalogSkill): string | null {
   return parsed ? parsed.repo : null;
 }
 
+/** owner/repo the skill's ID was given under, lower case. A repo renamed or moved since keeps it. */
+function idRepo(skill: CatalogSkill): string | null {
+  const repo = skill.id?.split(":")[0].toLowerCase() ?? "";
+  return /^[a-z0-9_.-]+\/[a-z0-9_.-]+$/.test(repo) ? repo : null;
+}
+
 type Located = { skill: CatalogSkill; folder: string };
 // The catalog loader returns the same array until it reloads, so each load is indexed once.
 const byRepoCache = new WeakMap<CatalogSkill[], Map<string, Located[]>>();
+/**
+ * Each skill under its repo's current name and, when the repo was renamed or moved since the skill
+ * was listed, its old name too, so a link from before the move still finds it.
+ */
 function skillsByRepo(skills: CatalogSkill[]) {
   let index = byRepoCache.get(skills);
   if (index) return index;
   index = new Map();
   for (const skill of skills) {
-    const repo = skill.id ? skillRepo(skill) : null;
-    const folder = repo ? skillFolder(skill) : null;
-    if (repo && folder !== null) index.set(repo, [...(index.get(repo) ?? []), { skill, folder }]);
+    const folder = skill.id ? skillFolder(skill) : null;
+    if (folder === null) continue;
+    for (const repo of new Set([skillRepo(skill), idRepo(skill)])) {
+      if (repo) index.set(repo, [...(index.get(repo) ?? []), { skill, folder }]);
+    }
   }
   byRepoCache.set(skills, index);
   return index;
@@ -62,8 +74,9 @@ function skillFolder(skill: CatalogSkill): string | null {
     const segments = skill.skill_md_path.split("/").filter(Boolean);
     return segments.pop()?.toLowerCase() === "skill.md" ? segments.join("/").toLowerCase() : null;
   }
+  // An ID with no folder is the repo's root skill, under its current or earlier name.
   const id = skill.id?.toLowerCase();
-  return id && !id.includes(":") && id === skillRepo(skill) ? "" : null;
+  return id && !id.includes(":") && skillRepo(skill) ? "" : null;
 }
 
 export type GithubLinkSkill = { id: string; name: string; description: string | null; githubUrl: string | null };

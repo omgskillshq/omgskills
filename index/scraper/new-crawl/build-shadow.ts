@@ -4,6 +4,7 @@ import { performance } from "node:perf_hooks";
 import { fileURLToPath } from "node:url";
 import type { Skill } from "../types.js";
 import { octokit } from "../client.js";
+import { REPO_MOVE_REQUEST_TIMEOUT_MS, applyRepoMoves, describeRepoMoves, followRepoMoves, keepRepoMoveSlugs } from "./repo-moves.js";
 import type { EnrichResult } from "../enrich.js";
 import { enrichCandidate, getCandidateRepoMeta, listRepoSkillPaths, resolveCandidateSkillPath, resolveCanonicalRepoIdentity } from "../enrich.js";
 import { searchByTopics } from "../sources/topics.js";
@@ -2290,7 +2291,7 @@ async function main() {
   const summaryOutPath = join(shadowRoot, "shadow-summary.md");
 
   const baselineStart = performance.now();
-  const baselineSkills = loadSkills(baselinePath);
+  let baselineSkills = loadSkills(baselinePath);
   const goldBasketSkills = loadSkills(goldBasketPath);
   const goldBasketRepos = new Set(
     goldBasketSkills
@@ -2302,6 +2303,20 @@ async function main() {
   const seeds = loadTrustedSeeds();
   const policyMetadata = policyRunMetadata(typedPolicySources(loadPolicySources()));
   timings.loadBaseline = Math.round(performance.now() - baselineStart);
+
+  // Follow repositories GitHub now serves under another name before anything is derived from the
+  // links, so provenance, the repo index and installs all use the current name.
+  const repoMovesStart = performance.now();
+  // The single-purpose backfill runs make no other lookups, so they skip this one too.
+  const repoMoves = onlyPackageMetadataOverlay || onlyHighStarBackfill
+    ? null
+    : await followRepoMoves(baselineSkills, seeds, (query, variables) =>
+      octokit.graphql(query, { ...variables, request: { signal: AbortSignal.timeout(REPO_MOVE_REQUEST_TIMEOUT_MS) } }));
+  if (repoMoves) {
+    baselineSkills = repoMoves.skills;
+    for (const line of describeRepoMoves(repoMoves)) console.log(line);
+  }
+  timings.repoMoves = Math.round(performance.now() - repoMovesStart);
 
   const provenanceStart = performance.now();
   let shadowSkills = buildShadowSkills(baselineSkills, seeds);
@@ -2338,7 +2353,8 @@ async function main() {
     overlayEntryCount: pinnedPackageMetadataOverlayEntryCount,
     appliedCount: pinnedPackageMetadataOverlayAppliedCount,
   } = applyPinnedPackageMetadataOverlay(cadence, shadowSkills, packageMetadataOverlay);
-  shadowSkills = packageMetadataMergedSkills;
+  // The overlay was saved before this run's moves; a moved skill keeps its new repository name.
+  shadowSkills = keepRepoMoveSlugs(packageMetadataMergedSkills, repoMoves?.moves ?? []);
   shadowSkills = removeDoNotCrawlState(repoIndex, shadowSkills, seeds);
   shadowSkills = removeBelowStarXSocialOnlyState(repoIndex, shadowSkills).skills;
 
@@ -2506,6 +2522,13 @@ async function main() {
   );
   shadowSkills = refreshResult.shadowSkills;
   timings.runRefresh = Math.round(performance.now() - refreshStart);
+  if (repoMoves) {
+    // Saved records merged in since the first pass may still carry an old name or duplicate a
+    // listed row; the same answers settle them, and a re-pointed record's provenance is rebuilt.
+    const settled = applyRepoMoves(shadowSkills, repoMoves.names, seeds);
+    const before = new Set(shadowSkills);
+    shadowSkills = settled.skills.map((skill) => before.has(skill) ? skill : toShadowSkillRecord(skill, seeds));
+  }
   shadowSkills = removeDoNotCrawlState(repoIndex, shadowSkills, seeds);
   shadowSkills = removeBelowStarXSocialOnlyState(repoIndex, shadowSkills).skills;
   shadowSkills = filterSuppressedSkills(shadowSkills, seeds);

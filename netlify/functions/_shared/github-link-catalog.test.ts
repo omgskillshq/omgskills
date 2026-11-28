@@ -65,3 +65,20 @@ test("a branch name with slashes still finds the folder", () => {
   assert.deepEqual(ids("https://github.com/anthropics/skills/tree/release/v2/skills/pdf"), ["anthropics/skills:pdf"]);
   assert.deepEqual(ids("https://github.com/anthropics/skills/tree/main/nothing/here"), [], "a folder with no skills isn't the whole repo");
 });
+
+test("a renamed or moved repo is found by its new name and by its old one", () => {
+  const moved = [
+    skill("old-owner/tools:review", "skills/review/SKILL.md", "New-Owner/toolkit"),
+    skill("old-owner/tools:lint", "skills/lint/SKILL.md", "New-Owner/toolkit"),
+    { id: "old/root", name: "root", github_url: "https://github.com/new/root" },
+  ];
+  for (const link of ["https://github.com/new-owner/toolkit", "https://github.com/old-owner/tools"]) {
+    assert.deepEqual(catalogSkillsForGithubLink(parseGithubLink(link)!, moved).skills.map(item => item.id),
+      ["old-owner/tools:lint", "old-owner/tools:review"], link);
+  }
+  const folder = catalogSkillsForGithubLink(parseGithubLink("https://github.com/New-Owner/toolkit/tree/main/skills/review")!, moved);
+  assert.deepEqual(folder.skills.map(item => [item.id, item.githubUrl]), [["old-owner/tools:review", "https://github.com/New-Owner/toolkit"]]);
+  for (const link of ["https://github.com/new/root", "https://github.com/old/root"]) {
+    assert.deepEqual(catalogSkillsForGithubLink(parseGithubLink(link)!, moved).skills.map(item => item.id), ["old/root"], link);
+  }
+});
