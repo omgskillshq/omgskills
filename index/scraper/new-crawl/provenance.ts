@@ -126,8 +126,10 @@ export function resolveShadowProvenance(skill: Skill, seeds: TrustedSeeds): Shad
   const publisherRepo = repoKeyForSkill(skill);
   const publisherHandle = ownerHandle(publisherRepo);
   const upstreamRepoFromId = repoFromId(skill.id);
+  // A repository renamed or transferred since the skill was listed isn't an upstream: same skill.
+  const movedFromIdRepo = Boolean(skill.moved_from_repo) && normalizeRepo(skill.moved_from_repo ?? "") === upstreamRepoFromId;
   const obviousUpstreamRepo =
-    upstreamRepoFromId && publisherRepo && upstreamRepoFromId !== publisherRepo ? upstreamRepoFromId : "";
+    upstreamRepoFromId && publisherRepo && upstreamRepoFromId !== publisherRepo && !movedFromIdRepo ? upstreamRepoFromId : "";
   const catalogRule = catalogRuleForRepo(publisherRepo, seeds.catalogRepoRules);
   const { repoOverride, idOverride } = overrideForSkill(skill, seeds.provenanceOverrides);
   const parsedOpenclaw = parseOpenclawSkillAuthor(skill);

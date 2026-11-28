@@ -1,6 +1,7 @@
 import { octokit } from "./client.js";
 import { parseFrontmatter, stripFrontmatter } from "./frontmatter.js";
 import { gitBlobSha } from "./git-blob-sha.js";
+import { deriveInstallCmd } from "./install-cmd.js";
 import { pinnedPackageMetadataFromSkill } from "./new-crawl/package-metadata.js";
 import { createRefreshReplayStoreFromEnv } from "./new-crawl/refresh-replay.js";
 import {
@@ -27,6 +28,8 @@ export interface RepoMeta {
   lastUpdated: string;
   tags: string[];
   githubUrl: string;
+  /** True when githubUrl is a guess (a discovery source's link, or one built from the ID), not GitHub's answer. */
+  unverifiedUrl?: boolean;
 }
 
 export interface NegativeCacheFailure {
@@ -88,6 +91,7 @@ function fallbackRepoMeta(c: Candidate, owner: string, today: string): RepoMeta 
     lastUpdated: c.last_updated ?? `${today}T00:00:00.000Z`,
     tags: c.tags ?? [],
     githubUrl: c.github_url ?? `https://github.com/${owner}/${parseOwnerRepo(c.id)?.[1] ?? ""}`,
+    unverifiedUrl: true,
   };
 }
 
@@ -116,7 +120,7 @@ export async function getCandidateRepoMeta(c: Candidate, today: string): Promise
   const [owner, repo] = parsed;
 
   if (c.stars !== undefined && c.last_updated && c.github_url) {
-    return { stars: c.stars, lastUpdated: c.last_updated, tags: c.tags ?? [], githubUrl: c.github_url };
+    return { stars: c.stars, lastUpdated: c.last_updated, tags: c.tags ?? [], githubUrl: c.github_url, unverifiedUrl: true };
   }
 
   try {
@@ -487,6 +491,7 @@ function preserveExistingOptionalMetadata(existing: Skill | undefined, next: Ski
   return {
     ...next,
     ...(canPreservePackage ? existingPackage : {}),
+    ...(existing.moved_from_repo ? { moved_from_repo: existing.moved_from_repo } : {}),
     ...("source_tag" in existing && existing.source_tag !== undefined ? { source_tag: existing.source_tag } : {}),
     ...("source_url" in existing && existing.source_url !== undefined ? { source_url: existing.source_url } : {}),
     ...("tweet_url" in existing && existing.tweet_url !== undefined ? { tweet_url: existing.tweet_url } : {}),
@@ -511,15 +516,6 @@ function preserveExistingOptionalMetadata(existing: Skill | undefined, next: Ski
     ),
     ...("tweet_text" in existing && existing.tweet_text !== undefined ? { tweet_text: existing.tweet_text } : {}),
   };
-}
-
-function deriveInstallCmd(githubUrl: string, path: string, name: string): string {
-  if (path === "SKILL.md") {
-    return `git clone ${githubUrl} ~/.claude/skills/${name}`;
-  }
-  const repoName = githubUrl.split("/").pop() ?? "repo";
-  const skillDir = path.replace(/\/SKILL\.md$/, "");
-  return `git clone ${githubUrl} /tmp/${repoName} && ln -s /tmp/${repoName}/${skillDir} ~/.claude/skills/${name}`;
 }
 
 function parseOwnerRepo(candidateId: string): [string, string] | null {
@@ -587,6 +583,9 @@ export async function enrichCandidate(
 
     // SHA cache: if SKILL.md hasn't changed, reuse existing parsed data
     const existing = existingSkills.get(c.id);
+    // A guessed link may carry a repository's old name; the catalog's own (kept current by the
+    // repo-move step) is better.
+    const githubUrl = meta.unverifiedUrl && existing?.github_url ? existing.github_url : meta.githubUrl;
     const readme_snippet = buildReadmeSnippetFromSkillContent(fileData.content, existing?.description ?? "");
     if (existing?.skill_md_sha && existing.skill_md_sha === fileData.sha && hasCompleteCachedSkill(existing)) {
       const { readme_snippet: _oldReadmeSnippet, ...existingWithoutSnippet } = existing;
@@ -595,7 +594,8 @@ export async function enrichCandidate(
           ...existingWithoutSnippet,
           ...(readme_snippet ? { readme_snippet } : {}),
           skill_md_path: resolvedPath,
-          install_cmd: deriveInstallCmd(meta.githubUrl, resolvedPath, existing.name),
+          // The install command follows the stored link, so the two never name different repos.
+          install_cmd: deriveInstallCmd(existing.github_url, resolvedPath, existing.name),
           stars: meta.stars,
           last_updated: meta.lastUpdated,
         }),
@@ -621,7 +621,7 @@ export async function enrichCandidate(
     const name = stripSurrogates(normalize(fmName));
     const description = stripSurrogates(normalize(fm.description));
     const mergedTags = Array.from(new Set([...(fm.tags ?? []), ...meta.tags])).filter(Boolean).map(stripSurrogates);
-    const install_cmd = deriveInstallCmd(meta.githubUrl, resolvedPath, name);
+    const install_cmd = deriveInstallCmd(githubUrl, resolvedPath, name);
     const first_seen = existingFirstSeen.get(c.id) ?? today;
     const freshReadmeSnippet = buildReadmeSnippetFromSkillContent(content, description);
 
@@ -630,7 +630,7 @@ export async function enrichCandidate(
         id: c.id,
         name,
         description,
-        github_url: meta.githubUrl,
+        github_url: githubUrl,
         skill_md_path: resolvedPath,
         install_cmd,
         author_handle: owner,
