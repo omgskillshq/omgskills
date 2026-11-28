@@ -360,7 +360,9 @@ actor ManagedSkillInstaller {
         let expectedParent = activationsRoot.appendingPathComponent(
             stableKey("\(request.destination.rootIdentifier):\(request.destination.targetName)"))
         return activation.deletingLastPathComponent() == expectedParent
-            && provenance.catalogSkillId == request.catalogSkillId && provenance.githubUrl == request.githubUrl
+            && provenance.catalogSkillId == request.catalogSkillId
+            && CatalogSourceMatch.isSameSource(installedFrom: provenance.githubUrl, catalogSkillId: request.catalogSkillId,
+                                               githubUrl: request.githubUrl)
             && provenance.sourceKind == ManagedSkillSourceKind.catalog.rawValue
             && provenance.sourceId == request.sourceId && provenance.groupId == nil
             && provenance.targetAgent == request.destination.agent.rawValue

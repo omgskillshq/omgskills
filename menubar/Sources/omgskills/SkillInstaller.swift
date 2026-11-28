@@ -214,6 +214,19 @@ enum SkillInstaller {
         )
     }
 
+    /// The spec an existing install was made with: the repository cache follows the link it was
+    /// installed from (before any rename or move), the folder inside it follows the catalog.
+    static func installationSpec(for skill: Skill, installedFrom recorded: String) throws -> InstallationSpec {
+        let current = try installationSpec(for: skill)
+        guard let repo = repoParts(from: recorded) else { throw InstallError.invalidGitHubURL }
+        return InstallationSpec(
+            repoURL: "https://github.com/\(repo.owner)/\(repo.name)",
+            repoCacheName: "\(repo.owner)--\(repo.name)",
+            skillRelativePath: current.skillRelativePath,
+            targetName: current.targetName
+        )
+    }
+
     private static func repoParts(from githubURL: String) -> (owner: String, name: String)? {
         guard let url = URL(string: githubURL) else { return nil }
         let parts = url.pathComponents.filter { $0 != "/" }
