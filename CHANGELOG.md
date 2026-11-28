@@ -4,6 +4,11 @@ All notable changes to omgskills are documented here.
 
 ## [Unreleased]
 
+## [0.0.50] - 2026-11-28
+
+### App
+- Installed skills stay recognized when their GitHub repository moves or is renamed.
+
 ## [0.0.49] - 2026-11-27
 
 ### App
