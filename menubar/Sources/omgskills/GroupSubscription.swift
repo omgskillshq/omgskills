@@ -423,8 +423,9 @@ enum GroupSubscriptionDiffer {
             return .none
         case (.metadataOnly, .installable):
             return .install
-        case (.installable, .metadataOnly):
-            return .remove
+        case (.installable, .metadataOnly(let reason)):
+            // The source is gone (its repository was deleted): the installed copy is the only one left, so it stays.
+            return reason == GroupManifestMetadataOnlyReason.sourceUnavailable.rawValue ? .none : .remove
         case (.installable, .installable):
             if previous.name != current.name { return .rename }
             return previous.state == current.state ? .none : .update

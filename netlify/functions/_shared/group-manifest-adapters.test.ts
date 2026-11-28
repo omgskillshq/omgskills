@@ -192,6 +192,28 @@ test("a catalog skill no longer listed becomes metadata only; the rest of the Se
   assert.deepEqual(gone.installability, { status: "metadata_only", reason: "source_unavailable" });
 });
 
+test("a safely named catalog item the catalog no longer lists becomes metadata only, checked per ID", async () => {
+  const rows = remotionRows().map(row => ({ ...row, itemName: row.itemCatalogSkillId!.split(":")[1] }));
+  const { pool } = snapshotPool([[accessFacts()], rows]);
+  const asked: string[][] = [];
+  const view = await readMemberGroupManifest(pool, { id: "owner-id", email: "owner@example.com" }, setId, {
+    async loadSkills() { assert.fail("no full catalog load for safely named items"); },
+    async liveCatalogSkillIds(ids) { asked.push([...ids]); return new Set([catalogSkills[1].id]); },
+  });
+  assert.deepEqual(asked, [catalogSkills.map(skill => skill.id)]);
+  assert.deepEqual(view.manifest.items.map(item => item.installability.status), ["metadata_only", "installable"]);
+  assert.deepEqual(view.manifest.items[0].installability, { status: "metadata_only", reason: "source_unavailable" });
+});
+
+test("when the catalog check can't run, items stay as they are", async () => {
+  const rows = remotionRows().map(row => ({ ...row, itemName: row.itemCatalogSkillId!.split(":")[1] }));
+  const { pool } = snapshotPool([[accessFacts()], rows]);
+  const view = await readMemberGroupManifest(pool, { id: "owner-id", email: "owner@example.com" }, setId, {
+    async liveCatalogSkillIds() { throw new Error("catalog offline"); },
+  });
+  assert.deepEqual(view.manifest.items.map(item => item.installability.status), ["installable", "installable"]);
+});
+
 test("unsafe and ambiguous catalog targets fail closed without name guessing", async () => {
   for (const skills of [
     [catalogSkills[0], catalogSkills[0]],

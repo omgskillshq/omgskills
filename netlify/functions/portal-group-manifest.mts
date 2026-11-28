@@ -1,6 +1,6 @@
 import type { Config, Context } from "@netlify/functions";
 import { getPgPool } from "./_shared/db.js";
-import { readMemberGroupManifest, type GroupManifestView } from "./_shared/group-manifest-adapters.js";
+import { liveCatalogSkillIds, readMemberGroupManifest, type GroupManifestView } from "./_shared/group-manifest-adapters.js";
 import { errorResponse, optionsResponse, secretJsonResponse } from "./_shared/http.js";
 import { requirePortalUser, type PortalUser } from "./_shared/user.js";
 
@@ -18,7 +18,7 @@ function defaultDependencies(): PortalGroupManifestDependencies {
   return {
     requirePortalUser,
     readManifest(actor, groupId) {
-      return readMemberGroupManifest(getPgPool(), actor, groupId);
+      return readMemberGroupManifest(getPgPool(), actor, groupId, { liveCatalogSkillIds });
     }
   };
 }

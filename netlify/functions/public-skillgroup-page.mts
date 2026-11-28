@@ -6,6 +6,7 @@ import {
   type GroupAccessClient,
 } from "./_shared/group-access.js";
 import {
+  liveCatalogSkillIds,
   readPublicGroupManifestByRoute,
   type GroupManifestView,
 } from "./_shared/group-manifest-adapters.js";
@@ -78,7 +79,7 @@ function defaultDependencies(): PublicSkillgroupPageDependencies {
   return {
     pool: getPgPool(),
     loadPublicGroupManifest(handle, groupSlug) {
-      return readPublicGroupManifestByRoute(getPgPool(), handle, groupSlug);
+      return readPublicGroupManifestByRoute(getPgPool(), handle, groupSlug, { liveCatalogSkillIds });
     },
     loadCatalogSkillUrls,
     recordAnalytics,
