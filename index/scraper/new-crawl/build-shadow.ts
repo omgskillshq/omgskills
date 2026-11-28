@@ -2541,7 +2541,7 @@ async function main() {
     // A repository that still has a curated skill stays, so the crawl keeps its record consistent.
     const kept = new Set(shadowSkills.filter((skill) => missingRepos.keptIds.has(skill.id))
       .map((skill) => repoFromGithubUrl(skill.github_url)));
-    const gone = new Set(missingRepos.removed.map((repo) => repo.repo).filter((repo) => !kept.has(repo)));
+    const gone = new Set([...missingRepos.goneRepos].filter((repo) => !kept.has(repo)));
     if (gone.size) {
       repoIndex.repos = repoIndex.repos.filter((entry) => !gone.has(normalizeRepoKey(entry.repo)));
       repoIndex.repoCount = repoIndex.repos.length;

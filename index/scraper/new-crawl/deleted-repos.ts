@@ -50,10 +50,14 @@ export type MissingRepoPlan = {
   marked: Map<string, string>;
   /** Marked repositories GitHub answered for again. */
   cleared: Set<string>;
-  /** Confirmed gone: their skills leave the catalog this run. */
+  /** Confirmed gone: these skills leave the catalog this run (a large repository may leave in parts). */
   removed: GoneRepo[];
-  /** Confirmed gone, but over this run's limit: they stay marked and leave on a later run. */
+  /** Confirmed-gone skills over this run's limit: they stay marked and leave on a later run. */
   held: GoneRepo[];
+  /** Skills leaving this run. */
+  removedIds: Set<string>;
+  /** Repositories all of whose skills leave this run (curated ones aside): any copy merged in later leaves too. */
+  goneRepos: Set<string>;
   /** Skills in a removed repository that a curation lists: they stay, marked, for an editor. */
   keptIds: Set<string>;
   /** Missing catalog repositories this run (after the fault check). */
@@ -76,45 +80,50 @@ export function planMissingRepos(
   curated: ReadonlySet<string> = new Set(),
 ): MissingRepoPlan {
   const today = new Date(now).toISOString().slice(0, 10);
-  const byRepo = new Map<string, { skills: number; curated: string[]; since?: string }>();
+  const byRepo = new Map<string, { ids: string[]; curated: string[]; since?: string }>();
   const cleared = new Set<string>();
   for (const skill of skills) {
     const repo = repoKeyFromUrl(skill.github_url);
     if (!repo) continue;
     if (answered.has(repo) && skill.repo_missing_since) cleared.add(repo);
     if (!missing.has(repo)) continue;
-    const entry = byRepo.get(repo) ?? { skills: 0, curated: [] };
-    if (curated.has(skill.id)) entry.curated.push(skill.id);
-    else entry.skills++;
+    const entry = byRepo.get(repo) ?? { ids: [], curated: [] };
+    (curated.has(skill.id) ? entry.curated : entry.ids).push(skill.id);
     const since = DAY.test(skill.repo_missing_since ?? "") ? skill.repo_missing_since : undefined;
     if (since && (!entry.since || since < entry.since)) entry.since = since;
     byRepo.set(repo, entry);
   }
-  const empty = { marked: new Map<string, string>(), removed: [], held: [], keptIds: new Set<string>() };
+  const empty = { marked: new Map<string, string>(), removed: [], held: [], keptIds: new Set<string>(),
+    removedIds: new Set<string>(), goneRepos: new Set<string>() };
   if (byRepo.size > MAX_MISSING_REPOS_PER_RUN) return { ...empty, cleared, missing: byRepo.size, faulted: true };
   const marked = new Map<string, string>();
-  const confirmed: (GoneRepo & { curated: string[] })[] = [];
+  const confirmed: { repo: string; since: string; ids: string[]; curated: string[] }[] = [];
   for (const [repo, entry] of [...byRepo].sort(([left], [right]) => left.localeCompare(right))) {
     const since = entry.since ?? today;
     marked.set(repo, since);
     if (entry.since && now - Date.parse(`${entry.since}T00:00:00Z`) >= REPO_GONE_CONFIRM_MS) {
-      confirmed.push({ repo, skills: entry.skills, since, curated: entry.curated });
+      confirmed.push({ repo, since, ids: [...new Set(entry.ids)].sort(), curated: entry.curated });
     }
   }
   const removed: GoneRepo[] = [];
   const held: GoneRepo[] = [];
   const keptIds = new Set<string>();
-  let removedSkills = 0;
-  for (const { curated: listed, ...gone } of confirmed) {
-    if (removedSkills + gone.skills <= MAX_GONE_SKILLS_PER_RUN) {
-      removed.push(gone);
-      removedSkills += gone.skills;
+  const removedIds = new Set<string>();
+  const goneRepos = new Set<string>();
+  let budget = MAX_GONE_SKILLS_PER_RUN;
+  for (const { repo, since, ids, curated: listed } of confirmed) {
+    // A repository larger than what's left of the limit leaves in parts, over later runs.
+    const leaving = ids.slice(0, budget);
+    budget -= leaving.length;
+    if (leaving.length || !ids.length) {
       for (const id of listed) keptIds.add(id);
-    } else {
-      held.push(gone);
     }
+    if (leaving.length) removed.push({ repo, skills: leaving.length, since });
+    for (const id of leaving) removedIds.add(id);
+    if (leaving.length === ids.length) goneRepos.add(repo);
+    if (leaving.length < ids.length) held.push({ repo, skills: ids.length - leaving.length, since });
   }
-  return { marked, cleared, removed, held, keptIds, missing: byRepo.size, faulted: false };
+  return { marked, cleared, removed, held, keptIds, removedIds, goneRepos, missing: byRepo.size, faulted: false };
 }
 
 /**
@@ -122,11 +131,10 @@ export function planMissingRepos(
  * merged in later in the run, so a saved record can't bring a removed skill back or drop its mark.
  */
 export function applyMissingRepoPlan<T extends Skill>(skills: readonly T[], plan: MissingRepoPlan): T[] {
-  const removed = new Set(plan.removed.map((gone) => gone.repo));
   const result: T[] = [];
   for (const skill of skills) {
     const repo = repoKeyFromUrl(skill.github_url) ?? "";
-    if (removed.has(repo) && !plan.keptIds.has(skill.id)) continue;
+    if (!plan.keptIds.has(skill.id) && (plan.removedIds.has(skill.id) || plan.goneRepos.has(repo))) continue;
     const since = plan.marked.get(repo);
     if (since) {
       result.push(skill.repo_missing_since === since ? skill : { ...skill, repo_missing_since: since });
@@ -146,9 +154,9 @@ export function describeMissingRepos(plan: MissingRepoPlan): string[] {
   }
   const removedSkills = plan.removed.reduce((sum, gone) => sum + gone.skills, 0);
   return [
-    `Deleted repos: ${plan.missing} missing (${plan.marked.size - plan.removed.length - plan.held.length} awaiting a second check), ` +
+    `Deleted repos: ${plan.missing} missing (${plan.marked.size - new Set([...plan.removed, ...plan.held].map((gone) => gone.repo)).size} awaiting a second check), ` +
       `${plan.removed.length} confirmed gone (${removedSkills} skills removed)` +
-      `${plan.held.length ? `, ${plan.held.length} held for a later run` : ""}` +
+      `${plan.held.length ? `, ${plan.held.reduce((sum, gone) => sum + gone.skills, 0)} skills from ${plan.held.length} repos held for a later run` : ""}` +
       `${plan.cleared.size ? `, ${plan.cleared.size} back on GitHub` : ""}` +
       `${plan.keptIds.size ? `, ${plan.keptIds.size} skills kept because a collection lists them (remove them from index/curations/collections.json)` : ""}.`,
     ...plan.removed.slice(0, 20).map((gone) => `  [repo-gone] ${gone.repo} (${gone.skills}, missing since ${gone.since})`),

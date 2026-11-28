@@ -58,12 +58,27 @@ test("too many missing repositories looks like a fault and changes nothing", () 
 });
 
 test("removals past the per-run limit wait for a later run, still marked", () => {
-  const big = Array.from({ length: MAX_GONE_SKILLS_PER_RUN }, (_, index) => skill(`a/big:s${index}`, "a/big", { repo_missing_since: "2026-11-01" }));
+  const big = Array.from({ length: MAX_GONE_SKILLS_PER_RUN }, (_, index) => skill(`a/big:s${String(index).padStart(3, "0")}`, "a/big", { repo_missing_since: "2026-11-01" }));
   const small = skill("b/small:s", "b/small", { repo_missing_since: "2026-11-01" });
   const plan = planMissingRepos([...big, small], new Set(["a/big", "b/small"]), answered(), day("2026-11-28"));
   assert.deepEqual(plan.removed.map((gone) => gone.repo), ["a/big"]);
-  assert.deepEqual(plan.held.map((gone) => gone.repo), ["b/small"]);
+  assert.deepEqual(plan.held, [{ repo: "b/small", skills: 1, since: "2026-11-01" }]);
   assert.deepEqual(applyMissingRepoPlan([...big, small], plan), [small]);
+});
+
+test("a repository larger than the limit leaves in parts over later runs", () => {
+  const rows = Array.from({ length: MAX_GONE_SKILLS_PER_RUN + 5 }, (_, index) =>
+    skill(`a/huge:s${String(index).padStart(3, "0")}`, "a/huge", { repo_missing_since: "2026-11-01" }));
+  const plan = planMissingRepos(rows, new Set(["a/huge"]), answered(), day("2026-11-28"));
+  assert.deepEqual(plan.removed, [{ repo: "a/huge", skills: MAX_GONE_SKILLS_PER_RUN, since: "2026-11-01" }]);
+  assert.deepEqual(plan.held, [{ repo: "a/huge", skills: 5, since: "2026-11-01" }]);
+  assert.equal(plan.goneRepos.size, 0, "the repository stays until its last skill leaves");
+  const left = applyMissingRepoPlan(rows, plan);
+  assert.deepEqual(left.map((row) => [row.id, row.repo_missing_since]), rows.slice(-5).map((row) => [row.id, "2026-11-01"]));
+  const next = planMissingRepos(left, new Set(["a/huge"]), answered(), day("2026-12-05"));
+  assert.deepEqual(applyMissingRepoPlan(left, next), []);
+  assert.deepEqual([...next.goneRepos], ["a/huge"]);
+  assert.match(describeMissingRepos(plan)[0], /1 missing \(0 awaiting a second check\), 1 confirmed gone \(200 skills removed\), 5 skills from 1 repos held/);
 });
 
 test("the plan applies to records merged in later: a removed skill stays removed and a new copy is marked", () => {
